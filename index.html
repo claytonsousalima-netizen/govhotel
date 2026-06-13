@@ -2075,14 +2075,8 @@ function renderRelatorios() {
 }
 
 // ============ CONFIG ============
-function renderConfig() {
-  const tipos = ['Limpeza geral','Troca de roupa de cama','Reposição de amenidades','Limpeza urgente','Inspeção pós-checkout'];
-  document.getElementById('config-tipos-chamado').innerHTML = tipos.map(t => `
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f5f5f5;">
-      <span style="font-size:13px;">${t}</span>
-      <button class="btn btn-ghost btn-xs">✏️</button>
-    </div>`).join('');
-}
+// renderConfig() delegada para config.js (renderConfigPage)
+function renderConfig() { /* gerenciado por config.js via patchOpenPageConfig */ }
 
 // ============ APP CAMAREIRA ============
 function renderAppCamareira() {
