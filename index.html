@@ -994,8 +994,10 @@ tr:last-child td { border-bottom: none; }
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-apto-detail')">Fechar</button>
       <button class="btn btn-primary" id="detail-btn-iniciar" onclick="iniciarLimpeza()">▶ Iniciar limpeza</button>
-      <button class="btn btn-warning" id="detail-btn-pausar" onclick="abrirModalPausa(selectedAptoId)" style="display:none;">⏸ Pausar</button>
-      <button class="btn btn-success" id="detail-btn-concluir" onclick="concluirLimpeza()">✓ Concluir</button>
+      <button class="btn btn-warning" id="detail-btn-pausar"   onclick="abrirModalPausa(selectedAptoId)" style="display:none;">⏸ Pausar</button>
+      <button class="btn btn-success" id="detail-btn-concluir" onclick="concluirLimpeza()" style="display:none;">✓ Concluir</button>
+      <button class="btn btn-success" id="detail-btn-aprovar"  onclick="aprovarLimpeza()"  style="display:none;">✅ Aprovar</button>
+      <button class="btn btn-danger"  id="detail-btn-reprovar" onclick="abrirModalReprovacao()" style="display:none;">❌ Reprovar</button>
     </div>
   </div>
 </div>
@@ -1054,6 +1056,47 @@ tr:last-child td { border-bottom: none; }
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-checklist-limpeza')">Cancelar</button>
       <button class="btn btn-success" onclick="concluirChecklistLimpeza()">✓ Concluir limpeza</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Reprovar Limpeza -->
+<div class="modal-overlay" id="modal-reprovacao">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <div class="modal-title">❌ Reprovar limpeza</div>
+      <button class="btn-close" onclick="closeModal('modal-reprovacao')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">
+        Selecione o motivo e registre as observações.<br>
+        Uma pendência de retrabalho será criada automaticamente.
+      </p>
+      <div class="form-row single">
+        <div class="field">
+          <label>Motivo da reprovação *</label>
+          <select id="rep-motivo">
+            <option value="">Selecione...</option>
+            <option value="Banheiro inadequado">Banheiro inadequado</option>
+            <option value="Enxoval incorreto">Enxoval incorreto</option>
+            <option value="Amenities faltando">Amenities faltando</option>
+            <option value="Piso sujo">Piso sujo</option>
+            <option value="Odor">Odor</option>
+            <option value="Frigobar não conferido">Frigobar não conferido</option>
+            <option value="Outro">Outro</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row single">
+        <div class="field">
+          <label>Observações adicionais</label>
+          <textarea id="rep-obs" rows="3" placeholder="Detalhe o problema encontrado (opcional)..."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-reprovacao')">Cancelar</button>
+      <button class="btn btn-danger" id="btn-confirmar-reprovacao" onclick="reprovarLimpeza()">❌ Confirmar reprovação</button>
     </div>
   </div>
 </div>
@@ -1523,8 +1566,8 @@ tr:last-child td { border-bottom: none; }
 <!-- TOAST -->
 <div class="toast" id="toast-msg"></div>
 
-<script src="js/supabase-client.js?v=20260613i"></script>
-<script src="js/auth.js?v=20260613i"></script>
+<script src="js/supabase-client.js?v=20260613j"></script>
+<script src="js/auth.js?v=20260613j"></script>
 <script>
 // ============ STATE ============
 let currentPage = 'dashboard';
@@ -1845,8 +1888,8 @@ function openAptoDetail(id) {
                   <button class="btn btn-xs btn-primary" onclick="concluirLimpeza()">🔍 Enviar conf.</button>`,
     pausado:     `<button class="btn btn-xs btn-primary" onclick="iniciarLimpeza()">▶ Retomar limpeza</button>
                   <button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','sujo')">↩ Voltar sujo</button>`,
-    conferencia: `<button class="btn btn-xs btn-primary" onclick="mudarStatusApto('${id}','limpo')">✅ Aprovar</button>
-                  <button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','reprovado')">❌ Reprovar</button>`,
+    conferencia: `<button class="btn btn-xs btn-primary" onclick="aprovarLimpeza()">✅ Aprovar limpeza</button>
+                  <button class="btn btn-xs btn-danger"  onclick="abrirModalReprovacao()">❌ Reprovar limpeza</button>`,
     limpo:       `<button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','ocupado')">🏠 Marcar ocupado</button>
                   <button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','sujo')">↩ Marcar sujo</button>`,
     bloqueado:   `<button class="btn btn-xs btn-primary" onclick="mudarStatusApto('${id}','sujo')">🔓 Desbloquear</button>`,
@@ -1894,9 +1937,12 @@ function openAptoDetail(id) {
       ${forceBtns}
     </div>`;
 
-  document.getElementById('detail-btn-iniciar').style.display  = ['sujo','reprovado','pausado'].includes(apto.status) ? '' : 'none';
-  document.getElementById('detail-btn-pausar').style.display   = apto.status === 'limpando' ? '' : 'none';
-  document.getElementById('detail-btn-concluir').style.display = ['limpando','pausado'].includes(apto.status) ? '' : 'none';
+  const _s = apto.status;
+  document.getElementById('detail-btn-iniciar').style.display  = ['sujo','reprovado','pausado'].includes(_s) ? '' : 'none';
+  document.getElementById('detail-btn-pausar').style.display   = _s === 'limpando' ? '' : 'none';
+  document.getElementById('detail-btn-concluir').style.display = ['limpando','pausado'].includes(_s) ? '' : 'none';
+  document.getElementById('detail-btn-aprovar').style.display  = _s === 'conferencia' ? '' : 'none';
+  document.getElementById('detail-btn-reprovar').style.display = _s === 'conferencia' ? '' : 'none';
   openModal('modal-apto-detail');
 }
 
@@ -2355,14 +2401,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('loading-overlay').style.display = 'none';
 });
 </script>
-<script src="js/hotels.js?v=20260613i"></script>
-<script src="js/apartments.js?v=20260613i"></script>
-<script src="js/maids.js?v=20260613i"></script>
-<script src="js/users.js?v=20260613i"></script>
-<script src="js/permissions.js?v=20260613i"></script>
-<script src="js/chamados.js?v=20260613i"></script>
-<script src="js/config.js?v=20260613i"></script>
-<script src="js/dashboard.js?v=20260613i"></script>
-<script src="js/relatorios.js?v=20260613i"></script>
+<script src="js/hotels.js?v=20260613j"></script>
+<script src="js/apartments.js?v=20260613j"></script>
+<script src="js/maids.js?v=20260613j"></script>
+<script src="js/users.js?v=20260613j"></script>
+<script src="js/permissions.js?v=20260613j"></script>
+<script src="js/chamados.js?v=20260613j"></script>
+<script src="js/config.js?v=20260613j"></script>
+<script src="js/dashboard.js?v=20260613j"></script>
+<script src="js/relatorios.js?v=20260613j"></script>
 </body>
 </html>

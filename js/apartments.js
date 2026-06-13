@@ -413,6 +413,53 @@ function concluirLimpeza() {
   abrirChecklistLimpeza();
 }
 
+// ── CONFERÊNCIA DA SUPERVISORA ────────────────────────────────
+
+async function aprovarLimpeza() {
+  const apto = aptos.find(a => a.id === selectedAptoId);
+  if (!apto) return;
+  const obs = `Aprovado por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
+  await mudarStatusApto(selectedAptoId, 'limpo', obs);
+}
+
+function abrirModalReprovacao() {
+  const sel = document.getElementById('rep-motivo');
+  const obs = document.getElementById('rep-obs');
+  if (sel) sel.value = '';
+  if (obs) obs.value = '';
+  closeModal('modal-apto-detail');
+  openModal('modal-reprovacao');
+  if (sel) sel.focus();
+}
+
+async function reprovarLimpeza() {
+  const motivo = document.getElementById('rep-motivo')?.value || '';
+  const obs    = document.getElementById('rep-obs')?.value.trim() || null;
+
+  if (!motivo) { toast('Selecione o motivo da reprovação', 'error'); return; }
+
+  const apto = aptos.find(a => a.id === selectedAptoId);
+  if (!apto) return;
+
+  const btn = document.getElementById('btn-confirmar-reprovacao');
+  if (btn) { btn.disabled = true; btn.textContent = 'Registrando...'; }
+
+  const { error } = await supabaseClient.from('pendencias_retrabalho').insert({
+    apartment_id: selectedAptoId,
+    hotel_id:     apto.hotel_id,
+    motivo,
+    obs,
+    criado_por:   currentUser.id,
+  });
+
+  if (btn) { btn.disabled = false; btn.textContent = '❌ Confirmar reprovação'; }
+  if (error) { toast('Erro ao registrar pendência: ' + error.message, 'error'); return; }
+
+  closeModal('modal-reprovacao');
+  const obsHist = `Reprovado por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}: ${motivo}${obs ? ' — ' + obs : ''}`;
+  await mudarStatusApto(selectedAptoId, 'reprovado', obsHist);
+}
+
 // ── CHECKLIST DE LIMPEZA ──────────────────────────────────────
 
 const CHECKLIST_LIMPEZA = [
