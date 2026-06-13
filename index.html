@@ -610,6 +610,8 @@ tr:last-child td { border-bottom: none; }
             <div class="page-subtitle">Fluxo visual de andamento das limpezas</div>
           </div>
         </div>
+        <!-- Filtro de hotel — apenas admin_global -->
+        <div id="kanban-hotel-filter"></div>
         <div class="kanban" id="kanban-board"></div>
       </div>
 
@@ -620,8 +622,10 @@ tr:last-child td { border-bottom: none; }
             <div class="page-title">Chamados de Limpeza</div>
             <div class="page-subtitle">Solicitações da recepção e hóspedes</div>
           </div>
-          <button class="btn btn-primary btn-sm" id="btn-novo-chamado" onclick="openModal('modal-novo-chamado')">+ Novo Chamado</button>
+          <button class="btn btn-primary btn-sm" id="btn-novo-chamado" onclick="openModalNovoChamado()">+ Novo Chamado</button>
         </div>
+        <!-- Filtro de hotel — apenas admin_global -->
+        <div id="chamados-hotel-filter"></div>
         <div class="tabs">
           <button class="tab-btn active" onclick="switchTab('tab-todos','tab-chamados')">Todos</button>
           <button class="tab-btn" onclick="switchTab('tab-abertos','tab-chamados')">Abertos</button>
@@ -759,18 +763,39 @@ tr:last-child td { border-bottom: none; }
       <div class="page" id="page-config">
         <div class="page-header"><div class="page-title">Configurações</div></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+          <!-- Turnos -->
           <div class="card">
-            <div class="card-title" style="margin-bottom:14px;">Parâmetros de limpeza</div>
+            <div class="card-title" style="margin-bottom:14px;">⏰ Turnos</div>
+            <div id="config-turnos"></div>
+          </div>
+
+          <!-- Parâmetros de limpeza -->
+          <div class="card">
+            <div class="card-title" style="margin-bottom:14px;">🧹 Parâmetros de limpeza</div>
             <div class="field" style="margin-bottom:12px;"><label>Tempo padrão limpeza saída (min)</label><input type="number" value="45"></div>
             <div class="field" style="margin-bottom:12px;"><label>Tempo padrão limpeza permanência (min)</label><input type="number" value="25"></div>
-            <div class="field" style="margin-bottom:12px;"><label>Turno padrão manhã</label><input type="time" value="07:00"></div>
-            <div class="field" style="margin-bottom:12px;"><label>Turno padrão tarde</label><input type="time" value="14:00"></div>
             <button class="btn btn-success btn-sm" onclick="toast('Parâmetros salvos!','success')">Salvar parâmetros</button>
           </div>
-          <div class="card">
-            <div class="card-title" style="margin-bottom:14px;">Tipos de chamado</div>
+
+          <!-- Tipos de chamado -->
+          <div class="card" style="grid-column:1/-1;">
+            <div class="card-title" style="margin-bottom:14px;">🔔 Tipos de Chamado</div>
+            <div style="font-size:12px;color:var(--text3);margin-bottom:12px;">
+              🌐 = padrão do sistema · 🏨 = exclusivo deste hotel
+            </div>
             <div id="config-tipos-chamado"></div>
           </div>
+
+          <!-- Checklist de limpeza -->
+          <div class="card" style="grid-column:1/-1;">
+            <div class="card-title" style="margin-bottom:14px;">✅ Checklist de Limpeza</div>
+            <div style="font-size:12px;color:var(--text3);margin-bottom:12px;">
+              Itens exibidos para a camareira ao iniciar a limpeza. 🌐 = padrão · 🏨 = exclusivo deste hotel
+            </div>
+            <div id="config-checklist"></div>
+          </div>
+
         </div>
       </div>
 
@@ -959,17 +984,23 @@ tr:last-child td { border-bottom: none; }
       <button class="btn-close" onclick="closeModal('modal-novo-chamado')">✕</button>
     </div>
     <div class="modal-body">
+      <!-- Hotel: seletor para admin_global, label para demais -->
+      <div id="nc-hotel-wrap" class="form-row single" style="display:none;">
+        <div class="field">
+          <label>Hotel *</label>
+          <select id="nc-hotel-id"><option value="">Selecione o hotel *</option></select>
+        </div>
+      </div>
+      <div id="nc-hotel-label-wrap" class="form-row single">
+        <div class="field">
+          <label>Hotel</label>
+          <div id="nc-hotel-label" style="font-size:13px;font-weight:600;padding:8px 0;border-bottom:1px solid var(--border);color:var(--text2);"></div>
+        </div>
+      </div>
       <div class="form-row">
         <div class="field"><label>Apartamento</label><select id="nc-apto"><option value="">Selecionar...</option></select></div>
         <div class="field"><label>Tipo de chamado</label>
-          <select id="nc-tipo">
-            <option value="limpeza_geral">Limpeza geral</option>
-            <option value="troca_roupa">Troca de roupa de cama</option>
-            <option value="reposicao">Reposição de amenidades</option>
-            <option value="limpeza_urgente">Limpeza urgente</option>
-            <option value="mancha">Remoção de mancha</option>
-            <option value="inspecao">Inspeção pós-checkout</option>
-          </select>
+          <select id="nc-tipo"></select>
         </div>
       </div>
       <div class="form-row">
@@ -1355,8 +1386,8 @@ tr:last-child td { border-bottom: none; }
 <!-- TOAST -->
 <div class="toast" id="toast-msg"></div>
 
-<script src="js/supabase-client.js?v=20260613b"></script>
-<script src="js/auth.js?v=20260613b"></script>
+<script src="js/supabase-client.js?v=20260613c"></script>
+<script src="js/auth.js?v=20260613c"></script>
 <script>
 // ============ STATE ============
 let currentPage = 'dashboard';
@@ -1417,6 +1448,8 @@ function startApp() {
 
   const startPage = currentUser.perfil === 'camareira' ? 'app-camareira' : 'dashboard';
   openPage(startPage);
+
+  document.dispatchEvent(new Event('govhotel:ready'));
 }
 
 // ============ RESTRIÇÕES DE PERFIL NO UI ============
@@ -2151,10 +2184,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('loading-overlay').style.display = 'none';
 });
 </script>
-<script src="js/hotels.js?v=20260613b"></script>
-<script src="js/apartments.js?v=20260613b"></script>
-<script src="js/maids.js?v=20260613b"></script>
-<script src="js/users.js?v=20260613b"></script>
-<script src="js/permissions.js?v=20260613b"></script>
+<script src="js/hotels.js?v=20260613c"></script>
+<script src="js/apartments.js?v=20260613c"></script>
+<script src="js/maids.js?v=20260613c"></script>
+<script src="js/users.js?v=20260613c"></script>
+<script src="js/permissions.js?v=20260613c"></script>
+<script src="js/chamados.js?v=20260613c"></script>
+<script src="js/config.js?v=20260613c"></script>
 </body>
 </html>
