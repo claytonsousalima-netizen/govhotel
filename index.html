@@ -222,6 +222,11 @@ a { text-decoration: none; }
 .badge-limpo { background: #d1f2eb; color: #0e6655; }
 .badge-reprovado { background: #fce4e4; color: #922b21; }
 .badge-bloqueado { background: #fdecea; color: #c0392b; }
+.badge-em-analise { background: #f5eef8; color: #7d3c98; }
+.badge-resolvido { background: #d1f2eb; color: #0e6655; }
+.badge-reaberto { background: #fce4e4; color: #922b21; }
+.badge-cancelado { background: #f2f3f4; color: #717d7e; }
+.badge-alta { background: #fdebd0; color: #935116; }
 .badge-ocupado { background: #eaecee; color: #566573; }
 .badge-manutencao { background: #fef9e7; color: #d4ac0d; }
 .badge-aberto { background: #fdebd0; color: #b9770e; }
@@ -648,8 +653,8 @@ tr:last-child td { border-bottom: none; }
       <div class="page" id="page-chamados">
         <div class="page-header">
           <div>
-            <div class="page-title">Chamados de Limpeza</div>
-            <div class="page-subtitle">Solicitações da recepção e hóspedes</div>
+            <div class="page-title">Chamados da Governança</div>
+            <div class="page-subtitle">Gestão e acompanhamento de chamados operacionais</div>
           </div>
           <button class="btn btn-primary btn-sm" id="btn-novo-chamado" onclick="openModalNovoChamado()">+ Novo Chamado</button>
         </div>
@@ -657,7 +662,7 @@ tr:last-child td { border-bottom: none; }
         <div id="chamados-hotel-filter"></div>
         <div class="tabs">
           <button class="tab-btn active" onclick="switchTab('tab-todos','tab-chamados')">Todos</button>
-          <button class="tab-btn" onclick="switchTab('tab-abertos','tab-chamados')">Abertos</button>
+          <button class="tab-btn" onclick="switchTab('tab-abertos','tab-chamados')">Pendentes</button>
           <button class="tab-btn" onclick="switchTab('tab-andamento','tab-chamados')">Em andamento</button>
           <button class="tab-btn" onclick="switchTab('tab-concluidos','tab-chamados')">Concluídos</button>
         </div>
@@ -1141,7 +1146,7 @@ tr:last-child td { border-bottom: none; }
 <div class="modal-overlay" id="modal-novo-chamado">
   <div class="modal">
     <div class="modal-header">
-      <div class="modal-title">Abrir Chamado de Limpeza</div>
+      <div class="modal-title">Novo Chamado</div>
       <button class="btn-close" onclick="closeModal('modal-novo-chamado')">✕</button>
     </div>
     <div class="modal-body">
@@ -1169,7 +1174,12 @@ tr:last-child td { border-bottom: none; }
       </div>
       <div class="form-row">
         <div class="field"><label>Apartamento</label><select id="nc-apto"><option value="">Selecionar...</option></select></div>
-        <div class="field"><label>Tipo de chamado</label>
+        <div class="field" id="nc-categoria-wrap">
+          <label>Categoria *</label>
+          <select id="nc-categoria"><option value="">Selecionar categoria *</option></select>
+        </div>
+        <div class="field" id="nc-tipo-wrap" style="display:none;">
+          <label>Tipo de chamado</label>
           <select id="nc-tipo"></select>
         </div>
       </div>
@@ -1177,6 +1187,7 @@ tr:last-child td { border-bottom: none; }
         <div class="field"><label>Prioridade</label>
           <select id="nc-prioridade">
             <option value="urgente">🔴 Urgente</option>
+            <option value="alta">🟠 Alta</option>
             <option value="normal" selected>🟡 Normal</option>
             <option value="baixa">🟢 Baixa</option>
           </select>
@@ -1208,6 +1219,41 @@ tr:last-child td { border-bottom: none; }
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-novo-chamado')">Cancelar</button>
       <button class="btn btn-primary" onclick="salvarNovoChamado()">Abrir chamado</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Detalhe do Chamado -->
+<div class="modal-overlay" id="modal-chamado-detalhe">
+  <div class="modal" style="max-width:680px;">
+    <div class="modal-header">
+      <div>
+        <div style="font-size:11px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;" id="cd-numero">—</div>
+        <div class="modal-title" id="cd-titulo">Chamado</div>
+      </div>
+      <button class="btn-close" onclick="closeModal('modal-chamado-detalhe')">✕</button>
+    </div>
+    <div class="modal-body" style="padding-top:0;">
+      <!-- Badges de status/prioridade/categoria -->
+      <div id="cd-badges" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;padding-top:14px;"></div>
+      <!-- Grid de informações -->
+      <div id="cd-info" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;padding:14px;background:var(--surface2);border-radius:var(--radius-sm);margin-bottom:14px;"></div>
+      <!-- Ações de status -->
+      <div id="cd-acoes" style="margin-bottom:14px;padding:12px;background:var(--surface2);border-radius:var(--radius-sm);"></div>
+      <!-- Histórico -->
+      <div style="margin-bottom:14px;">
+        <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">Histórico</div>
+        <div id="cd-historico" style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm);padding:0 12px;"></div>
+      </div>
+      <!-- Comentário -->
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">Comentário interno</div>
+        <textarea id="cd-comentario" rows="2" placeholder="Adicione um comentário interno..." style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;box-sizing:border-box;resize:vertical;"></textarea>
+        <button class="btn btn-ghost btn-sm" style="margin-top:6px;" onclick="salvarComentarioChamado()">💬 Adicionar comentário</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-chamado-detalhe')">Fechar</button>
     </div>
   </div>
 </div>
@@ -1566,8 +1612,8 @@ tr:last-child td { border-bottom: none; }
 <!-- TOAST -->
 <div class="toast" id="toast-msg"></div>
 
-<script src="js/supabase-client.js?v=20260613j"></script>
-<script src="js/auth.js?v=20260613j"></script>
+<script src="js/supabase-client.js?v=20260613k"></script>
+<script src="js/auth.js?v=20260613k"></script>
 <script>
 // ============ STATE ============
 let currentPage = 'dashboard';
@@ -2401,14 +2447,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('loading-overlay').style.display = 'none';
 });
 </script>
-<script src="js/hotels.js?v=20260613j"></script>
-<script src="js/apartments.js?v=20260613j"></script>
-<script src="js/maids.js?v=20260613j"></script>
-<script src="js/users.js?v=20260613j"></script>
-<script src="js/permissions.js?v=20260613j"></script>
-<script src="js/chamados.js?v=20260613j"></script>
-<script src="js/config.js?v=20260613j"></script>
-<script src="js/dashboard.js?v=20260613j"></script>
-<script src="js/relatorios.js?v=20260613j"></script>
+<script src="js/hotels.js?v=20260613k"></script>
+<script src="js/apartments.js?v=20260613k"></script>
+<script src="js/maids.js?v=20260613k"></script>
+<script src="js/users.js?v=20260613k"></script>
+<script src="js/permissions.js?v=20260613k"></script>
+<script src="js/chamados.js?v=20260613k"></script>
+<script src="js/config.js?v=20260613k"></script>
+<script src="js/dashboard.js?v=20260613k"></script>
+<script src="js/relatorios.js?v=20260613k"></script>
 </body>
 </html>

@@ -1,21 +1,53 @@
 // ================================================================
 // CHAMADOS SERVICE — GovHotel
-// Substitui os dados mock do inline script por Supabase real.
-// Depende de: supabase-client.js, auth.js, apartments.js (aptos cache)
+// Depende de: supabase-client.js, auth.js, apartments.js
 // ================================================================
 
-let _chamadosCache  = [];
-let _chamadoHotelId = null;
-let _tiposChamado   = [];
+let _chamadosCache    = [];
+let _chamadoHotelId   = null;
+let _tiposChamado     = [];
+let _chamadoDetalheId = null;
+
+const _GOV_STATUS = {
+  aberto:     { label:'Aberto',       badge:'badge-sujo'        },
+  em_analise: { label:'Em análise',   badge:'badge-conferencia' },
+  andamento:  { label:'Em andamento', badge:'badge-limpando'    },
+  pausado:    { label:'Pausado',      badge:'badge-pausado'     },
+  resolvido:  { label:'Resolvido',    badge:'badge-limpo'       },
+  reaberto:   { label:'Reaberto',     badge:'badge-reprovado'   },
+  cancelado:  { label:'Cancelado',    badge:'badge-bloqueado'   },
+  concluido:  { label:'Concluído',    badge:'badge-limpo'       },
+};
+
+const _GOV_PRIO = {
+  baixa:   { label:'Baixa',   badge:'badge-livre'     },
+  normal:  { label:'Normal',  badge:'badge-limpando'  },
+  alta:    { label:'Alta',    badge:'badge-sujo'      },
+  urgente: { label:'Urgente', badge:'badge-bloqueado' },
+};
+
+const _GOV_CATEGORIAS = [
+  'Enxoval','Amenities','Limpeza complementar','Achados e perdidos',
+  'Reclamação de hóspede','Frigobar','Odor','Sujeira','Apoio operacional','Outro'
+];
+
+// Fluxo de status — próximos estados permitidos
+const _GOV_NEXT = {
+  aberto:     ['em_analise','andamento','cancelado'],
+  em_analise: ['andamento','cancelado'],
+  andamento:  ['pausado','resolvido','cancelado'],
+  pausado:    ['andamento','resolvido','cancelado'],
+  resolvido:  ['reaberto'],
+  reaberto:   ['em_analise','andamento','cancelado'],
+  cancelado:  ['reaberto'],
+  concluido:  ['reaberto'],
+};
 
 // ── CARREGAR TIPOS DO CHAMADO ──────────────────────────────────
-async function _loadTiposChamado(departamento) {
-  let query = supabaseClient
-    .from('chamado_tipos')
-    .select('id, nome, departamento')
-    .eq('ativo', true)
-    .order('ordem');
-  const { data } = await query;
+async function _loadTiposChamado() {
+  const { data } = await supabaseClient
+    .from('chamado_tipos').select('id, nome, departamento')
+    .eq('ativo', true).order('ordem');
   _tiposChamado = data || [];
 }
 
@@ -23,23 +55,37 @@ async function _loadTiposChamado(departamento) {
 function _populateTipoSelect(selId, departamento) {
   const sel = document.getElementById(selId);
   if (!sel) return;
-  const dept = departamento || 'ambos';
   const filtrados = _tiposChamado.filter(t =>
-    !t.departamento || t.departamento === 'ambos' || t.departamento === dept
+    !t.departamento || t.departamento === 'ambos' || t.departamento === (departamento || 'ambos')
   );
   sel.innerHTML = filtrados.map(t =>
     `<option value="${t.id}">${t.nome}</option>`
   ).join('');
 }
 
+// ── POPULAR SELECT DE CATEGORIAS ──────────────────────────────
+function _populateCategoriaSelect() {
+  const sel = document.getElementById('nc-categoria');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Selecionar categoria *</option>' +
+    _GOV_CATEGORIAS.map(c => `<option value="${c}">${c}</option>`).join('');
+}
+
+// ── TOGGLE CAMPOS POR DEPARTAMENTO ───────────────────────────
+function _toggleCamposDepartamento(dept) {
+  const wrapCat  = document.getElementById('nc-categoria-wrap');
+  const wrapTipo = document.getElementById('nc-tipo-wrap');
+  if (wrapCat)  wrapCat.style.display  = dept === 'governanca' ? '' : 'none';
+  if (wrapTipo) wrapTipo.style.display = dept === 'manutencao' ? '' : 'none';
+}
+
 // ── FILTRO DE HOTEL (admin_global) ────────────────────────────
 async function _popularFiltroHotelChamados() {
   if (currentUser.perfil !== 'admin_global') return;
-
   const { data: hotels } = await supabaseClient
     .from('hotels').select('id, nome').eq('ativo', true).order('nome');
 
-  ['chamados-hotel-filter', 'kanban-hotel-filter'].forEach(filterId => {
+  ['chamados-hotel-filter','kanban-hotel-filter'].forEach(filterId => {
     const wrap = document.getElementById(filterId);
     if (!wrap) return;
     wrap.innerHTML = `
@@ -68,78 +114,71 @@ async function _fetchChamados() {
   let query = supabaseClient
     .from('work_orders')
     .select(`
-      id, tipo, prioridade, status, solicitante, hospede, descricao, prazo, created_at,
+      id, numero, tipo, categoria, prioridade, status,
+      solicitante, hospede, descricao, prazo, created_at,
       departamento, responsavel_user_id,
       hotel_id, hotels(nome),
       apartment_id, apartments(numero)
     `)
     .order('created_at', { ascending: false });
 
-  // Camareira e manutenção: apenas chamados atribuídos a eles
   if (currentUser.perfil === 'camareira' || currentUser.perfil === 'manutencao') {
     query = query.eq('responsavel_user_id', currentUser.id);
   } else if (currentUser.perfil !== 'admin_global' && currentUser.hotelId) {
-    // gestor, admin_hotel: apenas o próprio hotel
     query = query.eq('hotel_id', currentUser.hotelId);
   } else if (_chamadoHotelId) {
-    // admin_global com filtro selecionado
     query = query.eq('hotel_id', _chamadoHotelId);
   }
 
   const { data, error } = await query;
   if (error) { console.error('Chamados:', error.message); return; }
 
-  // Busca nomes dos responsáveis via user_profiles
-  const responsavelIds = [...new Set((data || [])
-    .filter(c => c.responsavel_user_id)
-    .map(c => c.responsavel_user_id))];
-
+  const responsavelIds = [...new Set((data||[])
+    .filter(c => c.responsavel_user_id).map(c => c.responsavel_user_id))];
   let responsavelMap = {};
   if (responsavelIds.length) {
     const { data: profiles } = await supabaseClient
-      .from('user_profiles')
-      .select('user_id, nome, perfil')
-      .in('user_id', responsavelIds);
-    (profiles || []).forEach(p => { responsavelMap[p.user_id] = p.nome; });
+      .from('user_profiles').select('user_id, nome').in('user_id', responsavelIds);
+    (profiles||[]).forEach(p => { responsavelMap[p.user_id] = p.nome; });
   }
 
-  _chamadosCache = (data || []).map(c => ({
+  _chamadosCache = (data||[]).map(c => ({
     id:                  c.id,
-    dbId:                c.id,
+    numero:              c.numero || null,
     apto:                c.apartments?.numero || '—',
     tipo:                c.tipo,
+    categoria:           c.categoria || null,
     prioridade:          c.prioridade,
     status:              c.status,
     solicitante:         c.solicitante || '',
     hospede:             c.hospede || '',
     desc:                c.descricao || '',
-    prazo:               c.prazo ? new Date(c.prazo).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '',
+    prazo:               c.prazo ? new Date(c.prazo).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}) : '',
     criado:              new Date(c.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+    criadoFull:          new Date(c.created_at).toLocaleString('pt-BR'),
     camareira:           responsavelMap[c.responsavel_user_id] || null,
     departamento:        c.departamento || 'governanca',
     responsavel_user_id: c.responsavel_user_id,
     hotel_id:            c.hotel_id,
     hotelNome:           c.hotels?.nome || null,
     apartment_id:        c.apartment_id,
+    created_at:          c.created_at,
   }));
 
   chamados = _chamadosCache;
 }
 
-// ── POPULAR ATRIBUÍDOS (camareiras OU manutenção via user_profiles) ──
+// ── POPULAR ATRIBUÍDOS ────────────────────────────────────────
 async function _popularAtribuidosModal(departamento, hotelId) {
   const sel  = document.getElementById('nc-camareira');
   const hint = document.getElementById('nc-atribuir-hint');
   if (!sel) return;
 
-  // Governança → camareiras; Manutenção → perfil manutenção
   const perfil = departamento === 'manutencao' ? 'manutencao' : 'camareira';
   const hId    = hotelId || currentUser.hotelId;
-
   let q = supabaseClient.from('user_profiles')
     .select('user_id, nome').eq('perfil', perfil).eq('ativo', true).order('nome');
   if (hId) q = q.eq('hotel_id', hId);
-
   const { data } = await q;
 
   if (!data || !data.length) {
@@ -147,10 +186,8 @@ async function _popularAtribuidosModal(departamento, hotelId) {
     if (hint) {
       hint.style.display = '';
       hint.innerHTML = perfil === 'camareira'
-        ? '⚠️ Nenhuma camareira cadastrada para este hotel. '
-          + '<a href="#" onclick="openPage(\'usuarios\');return false;" style="color:var(--primary);">Cadastrar em Usuários →</a>'
-        : '⚠️ Nenhum usuário com perfil <strong>Manutenção</strong> para este hotel. '
-          + '<a href="#" onclick="openPage(\'usuarios\');return false;" style="color:var(--primary);">Cadastrar em Usuários →</a>';
+        ? '⚠️ Nenhuma camareira cadastrada. <a href="#" onclick="openPage(\'usuarios\');return false;" style="color:var(--primary);">Cadastrar →</a>'
+        : '⚠️ Nenhum técnico de manutenção cadastrado. <a href="#" onclick="openPage(\'usuarios\');return false;" style="color:var(--primary);">Cadastrar →</a>';
     }
   } else {
     sel.innerHTML = '<option value="">Não atribuído</option>' +
@@ -164,23 +201,21 @@ async function _popularAptosModalChamado(hotelId) {
   const sel = document.getElementById('nc-apto');
   if (!sel) return;
   const hId = hotelId || currentUser.hotelId;
-  let query = supabaseClient.from('apartments').select('id, numero, tipo').eq('ativo', true).order('numero');
-  if (hId) query = query.eq('hotel_id', hId);
-  const { data } = await query;
+  let q = supabaseClient.from('apartments').select('id, numero, tipo').eq('ativo', true).order('numero');
+  if (hId) q = q.eq('hotel_id', hId);
+  const { data } = await q;
   sel.innerHTML = '<option value="">Selecionar...</option>' +
     (data||[]).map(a=>`<option value="${a.id}">${a.numero} — ${a.tipo}</option>`).join('');
 }
 
 // ── ABRIR MODAL CHAMADO ───────────────────────────────────────
 async function openModalNovoChamado() {
-  // Reseta departamento para governanca
   const deptSel = document.getElementById('nc-departamento');
   if (deptSel) deptSel.value = 'governanca';
   _atualizarLabelAtribuir('governanca');
+  _toggleCamposDepartamento('governanca');
 
   const hotelWrap = document.getElementById('nc-hotel-wrap');
-  let currentHotelId = currentUser.hotelId;
-
   if (hotelWrap) {
     if (currentUser.perfil === 'admin_global') {
       hotelWrap.style.display = '';
@@ -192,9 +227,8 @@ async function openModalNovoChamado() {
         sel.innerHTML = '<option value="">Selecione o hotel *</option>' +
           (hotels||[]).map(h=>`<option value="${h.id}">${h.nome}</option>`).join('');
         sel.onchange = async () => {
-          currentHotelId = sel.value;
-          await _popularAptosModalChamado(sel.value);
           const dept = document.getElementById('nc-departamento')?.value || 'governanca';
+          await _popularAptosModalChamado(sel.value);
           await _popularAtribuidosModal(dept, sel.value);
         };
       }
@@ -211,20 +245,23 @@ async function openModalNovoChamado() {
 
   await _loadTiposChamado();
   _populateTipoSelect('nc-tipo', 'governanca');
+  _populateCategoriaSelect();
   openModal('modal-novo-chamado');
 }
 
-// ── ATUALIZAR LABEL "ATRIBUIR PARA" ──────────────────────────
+// ── LABEL "ATRIBUIR PARA" ─────────────────────────────────────
 function _atualizarLabelAtribuir(departamento) {
-  const label = document.querySelector('label[for="nc-camareira"], .nc-atribuir-label');
+  const label = document.querySelector('.nc-atribuir-label');
   if (label) {
-    label.textContent = departamento === 'manutencao' ? 'Responsável (Manutenção)' : 'Atribuir para (Camareira)';
+    label.textContent = departamento === 'manutencao'
+      ? 'Responsável (Manutenção)' : 'Atribuir para (Camareira)';
   }
 }
 
-// ── HANDLER: MUDAR DEPARTAMENTO NO MODAL ─────────────────────
+// ── HANDLER: MUDAR DEPARTAMENTO ──────────────────────────────
 async function _onChangeDepartamento(valor) {
   _atualizarLabelAtribuir(valor);
+  _toggleCamposDepartamento(valor);
   _populateTipoSelect('nc-tipo', valor);
   const hotelId = document.getElementById('nc-hotel-id')?.value || currentUser.hotelId;
   await _popularAtribuidosModal(valor, hotelId);
@@ -236,70 +273,229 @@ async function salvarNovoChamado() {
   const hotel_id = isAdmin
     ? document.getElementById('nc-hotel-id')?.value
     : currentUser.hotelId;
-
   if (!hotel_id) { toast('Selecione o hotel', 'error'); return; }
 
-  const departamento   = document.getElementById('nc-departamento')?.value || 'governanca';
-  const apartment_id   = document.getElementById('nc-apto')?.value || null;
-  const tipoVal        = document.getElementById('nc-tipo')?.value || '';
-  const tipoNome       = _tiposChamado.find(t => t.id === tipoVal)?.nome || tipoVal;
-  const prioridade     = document.getElementById('nc-prioridade')?.value || 'normal';
-  const solicitante    = document.getElementById('nc-solicitante')?.value || '';
-  const atribuidoVal        = document.getElementById('nc-camareira')?.value || null;
-  const prazo               = document.getElementById('nc-prazo')?.value || null;
-  const descricao           = document.getElementById('nc-desc')?.value || '';
-  const hospede             = document.getElementById('nc-hospede')?.value || '';
+  const departamento = document.getElementById('nc-departamento')?.value || 'governanca';
+  const apartment_id = document.getElementById('nc-apto')?.value || null;
+  const prioridade   = document.getElementById('nc-prioridade')?.value || 'normal';
+  const solicitante  = document.getElementById('nc-solicitante')?.value || '';
+  const atribuido    = document.getElementById('nc-camareira')?.value || null;
+  const prazo        = document.getElementById('nc-prazo')?.value || null;
+  const descricao    = document.getElementById('nc-desc')?.value || '';
+  const hospede      = document.getElementById('nc-hospede')?.value || '';
 
-  // Ambos os departamentos usam responsavel_user_id (user_profiles.user_id)
-  const responsavel_user_id = atribuidoVal || null;
+  let tipo, categoria = null;
+  if (departamento === 'governanca') {
+    categoria = document.getElementById('nc-categoria')?.value || null;
+    if (!categoria) { toast('Selecione a categoria', 'error'); return; }
+    tipo = categoria;
+  } else {
+    const tipoVal = document.getElementById('nc-tipo')?.value || '';
+    tipo = _tiposChamado.find(t => t.id === tipoVal)?.nome || tipoVal || 'Manutenção';
+  }
 
-  const { error } = await supabaseClient.from('work_orders').insert([{
-    hotel_id,
-    apartment_id:        apartment_id || null,
-    responsavel_user_id: responsavel_user_id || null,
-    departamento,
-    tipo:                tipoNome,
-    prioridade,
-    status:              'aberto',
-    solicitante,
-    hospede,
-    descricao,
-    prazo:               prazo || null,
-    criado_por:          currentUser.id,
-  }]);
+  const { data: inserted, error } = await supabaseClient
+    .from('work_orders').insert([{
+      hotel_id,
+      apartment_id:        apartment_id || null,
+      responsavel_user_id: atribuido || null,
+      departamento,
+      tipo,
+      categoria,
+      prioridade,
+      status:      'aberto',
+      solicitante,
+      hospede,
+      descricao,
+      prazo:       prazo || null,
+      criado_por:  currentUser.id,
+    }]).select('id, numero').single();
 
   if (error) { toast('Erro: ' + error.message, 'error'); return; }
 
+  if (inserted?.id) {
+    await _gravarHistorico(inserted.id, hotel_id, 'criacao',
+      `Chamado aberto por ${currentUser.nome}${categoria ? ' — ' + categoria : ''}.`);
+  }
+
   closeModal('modal-novo-chamado');
-  toast('Chamado aberto!', 'success');
+  const numLabel = inserted?.numero ? ` (${inserted.numero})` : '';
+  toast(`Chamado aberto${numLabel}!`, 'success');
   await _fetchChamados();
   renderChamados();
   renderKanban();
 }
 
-// ── ATUALIZAR STATUS DO CHAMADO ───────────────────────────────
+// ── GRAVAR HISTÓRICO ─────────────────────────────────────────
+async function _gravarHistorico(chamadoId, hotelId, tipoEvento, descricao) {
+  await supabaseClient.from('chamado_historico').insert([{
+    chamado_id:  chamadoId,
+    hotel_id:    hotelId,
+    tipo_evento: tipoEvento,
+    descricao,
+    usuario_id:  currentUser.id,
+  }]);
+}
+
+// ── ATUALIZAR STATUS COM HISTÓRICO ────────────────────────────
 async function atualizarStatusChamado(id, novoStatus) {
   const c = _chamadosCache.find(x => x.id === id);
   if (!c) return;
+
   const { error } = await supabaseClient
     .from('work_orders').update({ status: novoStatus }).eq('id', id);
   if (error) { toast('Erro: ' + error.message, 'error'); return; }
-  c.status = novoStatus;
+
+  const prevLabel  = _GOV_STATUS[c.status]?.label  || c.status;
+  const nextLabel  = _GOV_STATUS[novoStatus]?.label || novoStatus;
+  const tipoEvento = novoStatus === 'resolvido' || novoStatus === 'concluido' ? 'conclusao'
+    : novoStatus === 'reaberto'  ? 'reabertura'
+    : novoStatus === 'cancelado' ? 'cancelamento'
+    : 'status';
+
+  await _gravarHistorico(id, c.hotel_id, tipoEvento,
+    `Status alterado de "${prevLabel}" para "${nextLabel}" por ${currentUser.nome}.`);
+
+  c.status  = novoStatus;
   chamados  = _chamadosCache;
   renderChamados();
   renderKanban();
+
+  // Atualiza o modal de detalhe se estiver aberto neste chamado
+  if (_chamadoDetalheId === id) {
+    _renderDetalheConteudo(c);
+    await _carregarHistoricoChamado(id);
+  }
+}
+
+// ── ABRIR DETALHE DO CHAMADO ──────────────────────────────────
+async function abrirDetalheChamado(id) {
+  _chamadoDetalheId = id;
+  const c = _chamadosCache.find(x => x.id === id);
+  if (!c) return;
+  _renderDetalheConteudo(c);
+  const ta = document.getElementById('cd-comentario');
+  if (ta) ta.value = '';
+  openModal('modal-chamado-detalhe');
+  await _carregarHistoricoChamado(id);
+}
+
+function _renderDetalheConteudo(c) {
+  const elNum = document.getElementById('cd-numero');
+  if (elNum) elNum.textContent = c.numero || '—';
+
+  const elTit = document.getElementById('cd-titulo');
+  if (elTit) elTit.textContent = c.tipo;
+
+  const st   = _GOV_STATUS[c.status] || { label: c.status, badge: '' };
+  const pr   = _GOV_PRIO[c.prioridade] || { label: c.prioridade, badge: '' };
+  const dB   = c.departamento === 'manutencao'
+    ? `<span style="font-size:11px;background:#fef9e7;color:#d4ac0d;padding:3px 8px;border-radius:10px;font-weight:600;">🔧 Manutenção</span>`
+    : `<span style="font-size:11px;background:#e8f6f3;color:#148f77;padding:3px 8px;border-radius:10px;font-weight:600;">🧹 Governança</span>`;
+
+  const elBadges = document.getElementById('cd-badges');
+  if (elBadges) elBadges.innerHTML =
+    `<span class="badge ${st.badge}">${st.label}</span>` +
+    `<span class="badge ${pr.badge}">${pr.label}</span>` +
+    (c.categoria ? `<span style="font-size:11px;background:var(--surface2);color:var(--text2);padding:3px 8px;border-radius:10px;">📁 ${c.categoria}</span>` : '') +
+    dB;
+
+  const elInfo = document.getElementById('cd-info');
+  if (elInfo) elInfo.innerHTML = `
+    <div><span style="font-size:11px;color:var(--text3);">Apartamento</span><div style="font-weight:600;">${c.apto}</div></div>
+    <div><span style="font-size:11px;color:var(--text3);">Solicitante</span><div>${c.solicitante || '—'}</div></div>
+    ${c.camareira ? `<div><span style="font-size:11px;color:var(--text3);">Responsável</span><div>🧹 ${c.camareira}</div></div>` : ''}
+    ${c.hospede ? `<div><span style="font-size:11px;color:var(--text3);">Hóspede</span><div>${c.hospede}</div></div>` : ''}
+    <div><span style="font-size:11px;color:var(--text3);">Criado em</span><div>${c.criadoFull}</div></div>
+    ${c.prazo ? `<div><span style="font-size:11px;color:var(--text3);">Prazo</span><div>${c.prazo}</div></div>` : ''}
+    ${c.desc ? `<div style="grid-column:1/-1;"><span style="font-size:11px;color:var(--text3);">Descrição</span><div style="margin-top:2px;">${c.desc}</div></div>` : ''}
+  `;
+
+  const nexts   = _GOV_NEXT[c.status] || [];
+  const elAcoes = document.getElementById('cd-acoes');
+  if (elAcoes) {
+    if (!nexts.length) {
+      elAcoes.innerHTML = `<div style="font-size:12px;color:var(--text3);">Nenhuma ação disponível.</div>`;
+    } else {
+      const btns = nexts.map(ns => {
+        const sl  = _GOV_STATUS[ns]?.label || ns;
+        const cls = ns === 'cancelado' ? 'btn-danger'
+          : ns === 'resolvido' || ns === 'concluido' ? 'btn-success'
+          : ns === 'reaberto' ? 'btn-danger'
+          : 'btn-primary';
+        return `<button class="btn ${cls} btn-sm" onclick="atualizarStatusChamado('${c.id}','${ns}')">→ ${sl}</button>`;
+      }).join('');
+      elAcoes.innerHTML = `
+        <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">Ações</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">${btns}</div>`;
+    }
+  }
+}
+
+// ── CARREGAR HISTÓRICO ────────────────────────────────────────
+async function _carregarHistoricoChamado(id) {
+  const el = document.getElementById('cd-historico');
+  if (!el) return;
+  el.innerHTML = `<div style="font-size:12px;color:var(--text3);padding:8px;">Carregando...</div>`;
+
+  const { data, error } = await supabaseClient
+    .from('chamado_historico')
+    .select('tipo_evento, descricao, created_at')
+    .eq('chamado_id', id)
+    .order('created_at', { ascending: true });
+
+  if (error || !data?.length) {
+    el.innerHTML = `<div style="font-size:12px;color:var(--text3);padding:8px;">Sem histórico registrado.</div>`;
+    return;
+  }
+
+  const icons = {
+    criacao:'🆕', status:'🔄', responsavel:'👤', comentario:'💬',
+    conclusao:'✅', reabertura:'🔁', cancelamento:'❌', prioridade:'⚡'
+  };
+  el.innerHTML = data.map(h => `
+    <div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);">
+      <div style="font-size:16px;flex-shrink:0;">${icons[h.tipo_evento] || '📋'}</div>
+      <div>
+        <div style="font-size:12px;color:var(--text);">${h.descricao}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px;">${new Date(h.created_at).toLocaleString('pt-BR')}</div>
+      </div>
+    </div>`).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+// ── SALVAR COMENTÁRIO ─────────────────────────────────────────
+async function salvarComentarioChamado() {
+  const id   = _chamadoDetalheId;
+  const ta   = document.getElementById('cd-comentario');
+  const text = ta?.value?.trim();
+  if (!id || !text) { toast('Digite o comentário', 'error'); return; }
+
+  const c = _chamadosCache.find(x => x.id === id);
+  if (!c) return;
+
+  await _gravarHistorico(id, c.hotel_id, 'comentario',
+    `${currentUser.nome}: ${text}`);
+
+  ta.value = '';
+  toast('Comentário adicionado', 'success');
+  await _carregarHistoricoChamado(id);
 }
 
 // ── RENDER CHAMADOS ───────────────────────────────────────────
 function renderChamados() {
   const showHotel = currentUser.perfil === 'admin_global';
-  ['todos','abertos','andamento','concluidos'].forEach(tab => {
-    let lista = _chamadosCache;
-    if (tab === 'abertos')    lista = lista.filter(c => c.status === 'aberto');
-    if (tab === 'andamento')  lista = lista.filter(c => c.status === 'andamento');
-    if (tab === 'concluidos') lista = lista.filter(c => c.status === 'concluido');
+  const tabFilter = {
+    todos:      () => true,
+    abertos:    c => ['aberto','em_analise','reaberto'].includes(c.status),
+    andamento:  c => ['andamento','pausado'].includes(c.status),
+    concluidos: c => ['resolvido','concluido','cancelado'].includes(c.status),
+  };
+  const prioColors = { urgente:'var(--danger)', alta:'#e67e22', normal:'var(--warning)', baixa:'var(--success)' };
 
-    const el = document.getElementById('chamados-list-' + tab);
+  Object.entries(tabFilter).forEach(([tab, fn]) => {
+    const lista = _chamadosCache.filter(fn);
+    const el    = document.getElementById('chamados-list-' + tab);
     if (!el) return;
 
     if (!lista.length) {
@@ -307,31 +503,34 @@ function renderChamados() {
       return;
     }
 
-    const prioColor = { urgente:'var(--danger)', normal:'var(--warning)', baixa:'var(--success)' };
     el.innerHTML = lista.map(c => {
-      const deptBadge = c.departamento === 'manutencao'
+      const st  = _GOV_STATUS[c.status] || { label: c.status, badge: '' };
+      const pr  = _GOV_PRIO[c.prioridade] || { label: c.prioridade, badge: 'badge-limpando' };
+      const dB  = c.departamento === 'manutencao'
         ? `<span style="font-size:10px;background:#fef9e7;color:#d4ac0d;padding:2px 6px;border-radius:10px;font-weight:600;">🔧 Manutenção</span>`
         : `<span style="font-size:10px;background:#e8f6f3;color:#148f77;padding:2px 6px;border-radius:10px;font-weight:600;">🧹 Governança</span>`;
+
       return `
-      <div class="card" style="margin-bottom:10px;border-left:4px solid ${prioColor[c.prioridade]||'var(--border)'};">
+      <div class="card" style="margin-bottom:10px;border-left:4px solid ${prioColors[c.prioridade]||'var(--border)'};cursor:pointer;"
+           onclick="abrirDetalheChamado('${c.id}')">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">
-          <div>
+          <div style="flex:1;min-width:0;">
             ${showHotel && c.hotelNome ? `<div style="font-size:10px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">🏨 ${c.hotelNome}</div>` : ''}
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px;">
+              ${c.numero ? `<span style="font-size:11px;font-weight:700;color:var(--primary);background:var(--surface2);padding:2px 7px;border-radius:4px;">${c.numero}</span>` : ''}
               <div style="font-weight:700;font-size:14px;">${c.tipo}</div>
-              ${deptBadge}
+              ${dB}
             </div>
             <div style="font-size:12px;color:var(--text2);">
               Apto ${c.apto}${c.hospede ? ` · ${c.hospede}` : ''}${c.camareira ? ` · 🧹 ${c.camareira}` : ''}
             </div>
-            ${c.desc ? `<div style="font-size:12px;color:var(--text3);margin-top:4px;">${c.desc}</div>` : ''}
+            ${c.categoria ? `<div style="font-size:11px;color:var(--text3);margin-top:2px;">📁 ${c.categoria}</div>` : ''}
+            ${c.desc ? `<div style="font-size:12px;color:var(--text3);margin-top:4px;">${c.desc.substring(0,80)}${c.desc.length>80?'…':''}</div>` : ''}
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">
-            <span class="badge badge-${c.prioridade === 'urgente' ? 'ocupado' : c.prioridade === 'baixa' ? 'livre' : 'limpando'}">${c.prioridade}</span>
-            <span class="badge" style="background:var(--surface2);">${c.status}</span>
-            ${c.status !== 'concluido' && c.status !== 'cancelado'
-              ? `<button class="btn btn-ghost btn-xs" onclick="_menuStatusChamado('${c.id}',event)">✏️ Status</button>`
-              : ''}
+            <span class="badge ${pr.badge}">${pr.label}</span>
+            <span class="badge ${st.badge}">${st.label}</span>
+            <span style="font-size:10px;color:var(--text3);">${c.criado}</span>
           </div>
         </div>
       </div>`;
@@ -339,22 +538,17 @@ function renderChamados() {
   });
 }
 
-function _menuStatusChamado(id, e) {
-  e.stopPropagation();
-  const c = _chamadosCache.find(x => x.id === id);
-  if (!c) return;
-  const next = c.status === 'aberto' ? 'andamento' : c.status === 'andamento' ? 'concluido' : 'cancelado';
-  const label = { andamento:'Em andamento', concluido:'Concluído', cancelado:'Cancelado' };
-  if (confirm(`Mudar para "${label[next]}"?`)) atualizarStatusChamado(id, next);
-}
-
 // ── RENDER KANBAN ─────────────────────────────────────────────
 function renderKanban() {
   const showHotel = currentUser.perfil === 'admin_global';
   const cols = [
-    { key:'aberto',    label:'Aberto',       color:'var(--danger)' },
-    { key:'andamento', label:'Em andamento',  color:'var(--warning)' },
-    { key:'concluido', label:'Concluído',     color:'var(--success)' },
+    { key:'aberto',     label:'Aberto',       color:'var(--danger)'  },
+    { key:'em_analise', label:'Em análise',    color:'#8e44ad'        },
+    { key:'andamento',  label:'Em andamento',  color:'var(--warning)' },
+    { key:'pausado',    label:'Pausado',       color:'#f39c12'        },
+    { key:'resolvido',  label:'Resolvido',     color:'var(--success)' },
+    { key:'reaberto',   label:'Reaberto',      color:'var(--danger)'  },
+    { key:'cancelado',  label:'Cancelado',     color:'var(--text3)'   },
   ];
   const board = document.getElementById('kanban-board');
   if (!board) return;
@@ -367,18 +561,18 @@ function renderKanban() {
         <span class="badge" style="background:${col.color};color:#fff;">${items.length}</span>
       </div>
       ${items.map(c => {
+        const pr      = _GOV_PRIO[c.prioridade] || { badge:'badge-limpando', label:c.prioridade };
         const deptIcon = c.departamento === 'manutencao' ? '🔧' : '🧹';
         return `
-        <div class="kanban-card" style="border-left:3px solid ${col.color};">
+        <div class="kanban-card" style="border-left:3px solid ${col.color};cursor:pointer;"
+             onclick="abrirDetalheChamado('${c.id}')">
           ${showHotel && c.hotelNome ? `<div style="font-size:10px;font-weight:700;color:var(--primary);margin-bottom:2px;">🏨 ${c.hotelNome}</div>` : ''}
+          ${c.numero ? `<div style="font-size:10px;font-weight:700;color:var(--primary);margin-bottom:2px;">${c.numero}</div>` : ''}
           <div style="font-weight:600;font-size:13px;">${deptIcon} ${c.tipo}</div>
           <div style="font-size:11px;color:var(--text2);margin-top:2px;">Apto ${c.apto}</div>
           ${c.camareira ? `<div style="font-size:11px;color:var(--text3);">🧹 ${c.camareira}</div>` : ''}
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
-            <span class="badge badge-${c.prioridade==='urgente'?'ocupado':c.prioridade==='baixa'?'livre':'limpando'}">${c.prioridade}</span>
-            ${col.key !== 'concluido'
-              ? `<button class="btn btn-ghost btn-xs kanban-novo-chamado" onclick="atualizarStatusChamado('${c.id}','${col.key==='aberto'?'andamento':'concluido'}')">→</button>`
-              : ''}
+          <div style="margin-top:8px;">
+            <span class="badge ${pr.badge}">${pr.label}</span>
           </div>
         </div>`;
       }).join('') || `<div style="font-size:12px;color:var(--text3);padding:12px;text-align:center;">Vazio</div>`}
@@ -395,11 +589,9 @@ async function _initChamados() {
   await _fetchChamados();
 }
 
-// Intercepta openPage para carregar chamados do banco
 (function patchOpenPageChamados() {
   if (window._chamadosPatch) return;
   window._chamadosPatch = true;
-
   const _realOpen = openPage;
   openPage = function(id) {
     _realOpen(id);
