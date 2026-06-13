@@ -1,14 +1,9 @@
 // ================================================================
 // Edge Function: invite-user
-// Cria um auth user + user_profile via service role key (server-side).
-//
-// Deploy: supabase functions deploy invite-user
-// Secrets necessários (supabase secrets set):
-//   SUPABASE_URL          → URL do seu projeto
-//   SUPABASE_SERVICE_ROLE → service_role key (NÃO a anon key)
+// Cria auth user + user_profile usando fetch direto (sem imports).
+// O admin define a senha inicial; force_password_change=true força
+// troca no primeiro acesso.
 // ================================================================
-
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,115 +16,114 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  const SUPABASE_URL          = Deno.env.get('SUPABASE_URL')!;
+  const SERVICE_ROLE_KEY      = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const ANON_KEY              = Deno.env.get('SUPABASE_ANON_KEY')!;
+
   try {
-    // Valida que a requisição vem de um usuário autenticado
+    // 1. Valida JWT do solicitante
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Não autorizado' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return json({ error: 'Não autorizado' }, 401);
     }
 
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    );
+    const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: { Authorization: authHeader, apikey: ANON_KEY },
+    });
+    if (!userRes.ok) return json({ error: 'Sessão inválida' }, 401);
+    const { id: callerId } = await userRes.json();
 
-    // Verifica perfil do solicitante
-    const supabaseUser = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } }
+    // 2. Busca perfil do solicitante
+    const profileRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/user_profiles?user_id=eq.${callerId}&select=perfil,hotel_id&limit=1`,
+      { headers: { Authorization: `Bearer ${SERVICE_ROLE_KEY}`, apikey: SERVICE_ROLE_KEY } }
     );
-    const { data: { user: caller } } = await supabaseUser.auth.getUser();
-    if (!caller) {
-      return new Response(JSON.stringify({ error: 'Sessão inválida' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const { data: callerProfile } = await supabaseAdmin
-      .from('user_profiles')
-      .select('perfil, hotel_id')
-      .eq('user_id', caller.id)
-      .single();
+    const profiles = await profileRes.json();
+    const callerProfile = profiles?.[0];
 
     if (!callerProfile || !['admin_global', 'admin_hotel'].includes(callerProfile.perfil)) {
-      return new Response(JSON.stringify({ error: 'Sem permissão para criar usuários' }), {
-        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return json({ error: 'Sem permissão para criar usuários' }, 403);
     }
 
+    // 3. Lê payload
     const { nome, email, senha, perfil, hotel_id, ativo = true } = await req.json();
 
     if (!nome || !email || !senha || !perfil) {
-      return new Response(JSON.stringify({ error: 'nome, email, senha e perfil são obrigatórios' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return json({ error: 'nome, email, senha e perfil são obrigatórios' }, 400);
     }
-
     if (senha.length < 6) {
-      return new Response(JSON.stringify({ error: 'A senha deve ter pelo menos 6 caracteres' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return json({ error: 'A senha deve ter pelo menos 6 caracteres' }, 400);
     }
 
-    // admin_hotel não pode criar admin_global e só pode criar para o próprio hotel
+    // 4. Restrições admin_hotel
     if (callerProfile.perfil === 'admin_hotel') {
       if (perfil === 'admin_global') {
-        return new Response(JSON.stringify({ error: 'admin_hotel não pode criar admin_global' }), {
-          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return json({ error: 'admin_hotel não pode criar admin_global' }, 403);
       }
       if (hotel_id && hotel_id !== callerProfile.hotel_id) {
-        return new Response(JSON.stringify({ error: 'Só é possível criar usuários para o próprio hotel' }), {
-          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return json({ error: 'Só é possível criar usuários para o próprio hotel' }, 403);
       }
     }
 
-    // 1. Cria o usuário com senha definida pelo admin; força troca no primeiro acesso
-    const { data: created, error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password: senha,
-      email_confirm: true,
-      user_metadata: { nome, force_password_change: true },
+    // 5. Cria usuário no Auth
+    const createRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+        apikey: SERVICE_ROLE_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        password: senha,
+        email_confirm: true,
+        user_metadata: { nome, force_password_change: true },
+      }),
     });
 
-    if (createError) {
-      return new Response(JSON.stringify({ error: createError.message }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    const created = await createRes.json();
+    if (!createRes.ok) {
+      return json({ error: created.message || created.msg || 'Erro ao criar usuário' }, 400);
     }
 
-    // 2. Cria o user_profile vinculado ao auth user
-    const { error: profileError } = await supabaseAdmin
-      .from('user_profiles')
-      .insert([{
-        user_id:  created.user.id,
+    // 6. Cria user_profile
+    const profileInsertRes = await fetch(`${SUPABASE_URL}/rest/v1/user_profiles`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+        apikey: SERVICE_ROLE_KEY,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({
+        user_id: created.id,
         nome,
         perfil,
         hotel_id: hotel_id || null,
         ativo,
-      }]);
+      }),
+    });
 
-    if (profileError) {
-      // Rollback: remove auth user criado
-      await supabaseAdmin.auth.admin.deleteUser(created.user.id);
-      return new Response(JSON.stringify({ error: profileError.message }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    if (!profileInsertRes.ok) {
+      const err = await profileInsertRes.text();
+      // Rollback: remove auth user
+      await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${created.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${SERVICE_ROLE_KEY}`, apikey: SERVICE_ROLE_KEY },
       });
+      return json({ error: err }, 400);
     }
 
-    return new Response(
-      JSON.stringify({ message: `Usuário ${email} criado com sucesso`, user_id: created.user.id }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return json({ message: `Usuário ${email} criado com sucesso`, user_id: created.id }, 200);
 
   } catch (err) {
-    return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return json({ error: String(err) }, 500);
   }
 });
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
