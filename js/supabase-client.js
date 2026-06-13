@@ -14,7 +14,7 @@
 // Ela deve ficar apenas nos Secrets da Edge Function.
 // ============================================================
 
-const SUPABASE_URL = 'https://SEU_PROJETO.supabase.co';
-const SUPABASE_KEY = 'SUA_CHAVE_ANON_PUBLICA';
+const SUPABASE_URL = 'https://fjohwpkjjxeqqxudzmhz.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqb2h3cGtqanhlcXF4dWR6bWh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMDY4NjcsImV4cCI6MjA5Njg4Mjg2N30.iKFw2WNYX_PVAtAXsLT6weFf9oXjeQhR90Ny0i4pyhQ';
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
