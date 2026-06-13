@@ -67,6 +67,11 @@ async function loadSessionUser(authUser) {
   };
 
   startApp();
+
+  // Primeiro acesso: força troca de senha
+  if (authUser.user_metadata?.force_password_change) {
+    setTimeout(() => _abrirTrocaSenhaObrigatoria(), 300);
+  }
 }
 
 // ---------- VERIFICAR SESSÃO AO CARREGAR ----------
@@ -90,6 +95,30 @@ async function checkSession() {
       // sessão renovada automaticamente — sem ação necessária
     }
   });
+}
+
+// ---------- TROCA DE SENHA OBRIGATÓRIA (primeiro acesso) ----------
+function _abrirTrocaSenhaObrigatoria() {
+  // Reutiliza o modal-senha mas bloqueia o fechamento
+  const modal = document.getElementById('modal-senha');
+  if (!modal) return;
+
+  // Adiciona aviso de primeiro acesso se ainda não existe
+  if (!document.getElementById('aviso-primeiro-acesso')) {
+    const body = modal.querySelector('.modal-body');
+    const aviso = document.createElement('div');
+    aviso.id = 'aviso-primeiro-acesso';
+    aviso.style.cssText = 'background:var(--warning-bg,#fffbe6);border:1px solid var(--warning,#f59e0b);border-radius:6px;padding:10px 14px;font-size:12px;color:var(--warning-dark,#92400e);margin-bottom:16px;';
+    aviso.textContent = 'Primeiro acesso — por segurança, defina uma nova senha antes de continuar.';
+    body.insertBefore(aviso, body.firstChild);
+  }
+
+  // Impede fechar clicando fora ou pelo X
+  modal.dataset.obrigatorio = 'true';
+  const btnClose = modal.querySelector('.btn-close');
+  if (btnClose) btnClose.style.display = 'none';
+
+  openModal('modal-senha');
 }
 
 // ---------- ALTERAR SENHA ----------
@@ -119,6 +148,18 @@ async function changePassword() {
 
   document.getElementById('nova-senha').value = '';
   document.getElementById('confirmar-senha').value = '';
+
+  // Remove flag de primeiro acesso, se presente
+  const modal = document.getElementById('modal-senha');
+  if (modal?.dataset.obrigatorio) {
+    await supabaseClient.auth.updateUser({ data: { force_password_change: false } });
+    delete modal.dataset.obrigatorio;
+    const aviso = document.getElementById('aviso-primeiro-acesso');
+    if (aviso) aviso.remove();
+    const btnClose = modal.querySelector('.btn-close');
+    if (btnClose) btnClose.style.display = '';
+  }
+
   closeModal('modal-senha');
   toast('Senha alterada com sucesso!', 'success');
 }

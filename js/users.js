@@ -141,10 +141,12 @@ async function openUserForm(profileId = null) {
   // Limpar campos
   document.getElementById('us-nome').value  = '';
   document.getElementById('us-email').value = '';
+  document.getElementById('us-senha').value = '';
   document.getElementById('us-ativo').checked = true;
 
-  // E-mail: editável só na criação
+  // E-mail e senha: visíveis só na criação
   document.getElementById('us-email-wrap').style.display     = isEdit ? 'none' : '';
+  document.getElementById('us-senha-wrap').style.display     = isEdit ? 'none' : '';
   document.getElementById('us-email-readonly').style.display = isEdit ? '' : 'none';
 
   await _popularHotelSelectUsuario();
@@ -216,6 +218,7 @@ async function salvarUsuario() {
   if (!canAccess('usuarios')) { toast('Sem permissão', 'error'); return; }
   const nome     = document.getElementById('us-nome').value.trim();
   const email    = document.getElementById('us-email').value.trim().toLowerCase();
+  const senha    = document.getElementById('us-senha')?.value || '';
   const perfil   = document.getElementById('us-perfil').value;
   const hotel_id = document.getElementById('us-hotel-id').value || null;
   const ativo    = document.getElementById('us-ativo').checked;
@@ -238,8 +241,11 @@ async function salvarUsuario() {
       btn.disabled = false; btn.textContent = 'Criar usuário';
       toast('Informe o e-mail', 'error'); return;
     }
-    // Envia convite via Edge Function (cria auth user + profile)
-    const result = await _invocarConvite({ nome, email, perfil, hotel_id, ativo });
+    if (!senha || senha.length < 6) {
+      btn.disabled = false; btn.textContent = 'Criar usuário';
+      toast('A senha inicial deve ter pelo menos 6 caracteres', 'error'); return;
+    }
+    const result = await _invocarConvite({ nome, email, senha, perfil, hotel_id, ativo });
     error = result.error;
   }
 
@@ -250,7 +256,7 @@ async function salvarUsuario() {
 
   closeModal('modal-usuario-form');
   toast(
-    _editingUserId ? 'Usuário atualizado com sucesso!' : `Convite enviado para ${email}`,
+    _editingUserId ? 'Usuário atualizado com sucesso!' : `Usuário ${email} criado com sucesso!`,
     'success'
   );
   _editingUserId = null;

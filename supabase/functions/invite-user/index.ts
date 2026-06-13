@@ -60,10 +60,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { nome, email, perfil, hotel_id, ativo = true } = await req.json();
+    const { nome, email, senha, perfil, hotel_id, ativo = true } = await req.json();
 
-    if (!nome || !email || !perfil) {
-      return new Response(JSON.stringify({ error: 'nome, email e perfil são obrigatórios' }), {
+    if (!nome || !email || !senha || !perfil) {
+      return new Response(JSON.stringify({ error: 'nome, email, senha e perfil são obrigatórios' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (senha.length < 6) {
+      return new Response(JSON.stringify({ error: 'A senha deve ter pelo menos 6 caracteres' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -82,14 +88,16 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 1. Convida o usuário via auth (envia e-mail de convite com link para definir senha)
-    const { data: invited, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-      data: { nome },
-      redirectTo: Deno.env.get('INVITE_REDIRECT_URL') || undefined,
+    // 1. Cria o usuário com senha definida pelo admin; força troca no primeiro acesso
+    const { data: created, error: createError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password: senha,
+      email_confirm: true,
+      user_metadata: { nome, force_password_change: true },
     });
 
-    if (inviteError) {
-      return new Response(JSON.stringify({ error: inviteError.message }), {
+    if (createError) {
+      return new Response(JSON.stringify({ error: createError.message }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -98,9 +106,8 @@ Deno.serve(async (req) => {
     const { error: profileError } = await supabaseAdmin
       .from('user_profiles')
       .insert([{
-        user_id:  invited.user.id,
+        user_id:  created.user.id,
         nome,
-        email,
         perfil,
         hotel_id: hotel_id || null,
         ativo,
@@ -108,14 +115,14 @@ Deno.serve(async (req) => {
 
     if (profileError) {
       // Rollback: remove auth user criado
-      await supabaseAdmin.auth.admin.deleteUser(invited.user.id);
+      await supabaseAdmin.auth.admin.deleteUser(created.user.id);
       return new Response(JSON.stringify({ error: profileError.message }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     return new Response(
-      JSON.stringify({ message: `Convite enviado para ${email}`, user_id: invited.user.id }),
+      JSON.stringify({ message: `Usuário ${email} criado com sucesso`, user_id: created.user.id }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

@@ -1027,6 +1027,13 @@ tr:last-child td { border-bottom: none; }
           <input type="email" id="us-email" placeholder="usuario@hotel.com">
         </div>
       </div>
+      <!-- Senha (criação) -->
+      <div id="us-senha-wrap" class="form-row single">
+        <div class="field"><label>Senha inicial *</label>
+          <input type="password" id="us-senha" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+          <div style="font-size:11px;color:var(--text3);margin-top:4px;">O usuário deverá alterar a senha no primeiro acesso.</div>
+        </div>
+      </div>
       <!-- E-mail (edição — somente leitura) -->
       <div id="us-email-readonly" style="display:none;margin-bottom:16px;">
         <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">E-mail</div>
@@ -2093,7 +2100,11 @@ function populateTsApto() {
 
 // ============ MODAL ============
 function openModal(id)  { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function closeModal(id) {
+  const el = document.getElementById(id);
+  if (el?.dataset.obrigatorio) return; // modal de troca obrigatória não pode ser fechado
+  el?.classList.remove('open');
+}
 document.querySelectorAll('.modal-overlay').forEach(m => {
   m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
 });
