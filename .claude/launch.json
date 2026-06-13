@@ -1,0 +1,11 @@
+﻿{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "govhotel",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "-s", ".", "-p", "3030", "--no-clipboard"],
+      "port": 3030
+    }
+  ]
+}

@@ -1,0 +1,292 @@
+// ================================================================
+// USERS SERVICE — GovHotel
+// Gerenciamento de usuários vinculados ao hotel
+// Depende de: supabase-client.js, auth.js
+// ================================================================
+
+let _editingUserId   = null;   // user_profiles.id (UUID do perfil, não do auth.user)
+let _userViewHotelId = null;
+let _usuariosCache   = [];
+
+// ── CARREGAR ──────────────────────────────────────────────────
+
+async function renderUsuarios() {
+  if (!canAccess('usuarios')) return;
+
+  const selectorWrap = document.getElementById('usuarios-hotel-selector');
+  if (currentUser.perfil === 'admin_global') {
+    if (selectorWrap) selectorWrap.style.display = '';
+    await _popularSeletorHotelUsuarios();
+  } else {
+    if (selectorWrap) selectorWrap.style.display = 'none';
+    _userViewHotelId = currentUser.hotelId;
+  }
+
+  const tbody = document.getElementById('usuarios-table-body');
+  if (tbody) tbody.innerHTML = `
+    <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text3);">
+      <div class="spinner" style="margin:0 auto 8px;border-top-color:var(--primary-light);"></div>
+      Carregando usuários...
+    </td></tr>`;
+
+  await _fetchUsuarios();
+  _renderUsuariosTabela();
+  _atualizarStatsUsuarios();
+}
+
+async function _popularSeletorHotelUsuarios() {
+  const sel = document.getElementById('usuarios-hotel-select');
+  if (!sel) return;
+  const { data } = await supabaseClient
+    .from('hotels').select('id, nome').eq('ativo', true).order('nome');
+  sel.innerHTML = '<option value="">Todos os hotéis</option>' +
+    (data || []).map(h =>
+      `<option value="${h.id}" ${h.id === _userViewHotelId ? 'selected' : ''}>${h.nome}</option>`
+    ).join('');
+}
+
+async function _fetchUsuarios() {
+  let query = supabaseClient
+    .from('user_profiles')
+    .select('*, hotels(nome)')
+    .order('nome');
+
+  if (_userViewHotelId) query = query.eq('hotel_id', _userViewHotelId);
+
+  const { data, error } = await query;
+  if (error) { console.error('Erro usuarios:', error.message); _usuariosCache = []; return; }
+  _usuariosCache = data || [];
+}
+
+async function selecionarHotelUsuarios(hotelId) {
+  _userViewHotelId = hotelId || null;
+  await renderUsuarios();
+}
+
+// ── RENDER TABELA ─────────────────────────────────────────────
+
+function _renderUsuariosTabela(filter = '') {
+  const tbody = document.getElementById('usuarios-table-body');
+  if (!tbody) return;
+
+  let lista = _usuariosCache;
+  if (filter) {
+    const q = filter.toLowerCase();
+    lista = lista.filter(u =>
+      u.nome.toLowerCase().includes(q) ||
+      (u.email && u.email.toLowerCase().includes(q))
+    );
+  }
+
+  if (!lista.length) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text3);">
+      Nenhum usuário encontrado.
+    </td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = lista.map(u => {
+    const iniciais  = u.nome.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
+    const hotelNome = u.hotels?.nome || (u.perfil === 'admin_global' ? '—' : '—');
+    const isMe      = u.user_id === currentUser.id;
+    return `<tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="user-avatar" style="width:30px;height:30px;font-size:11px;flex-shrink:0;">${iniciais}</div>
+          <div>
+            <div style="font-weight:600;">${u.nome}</div>
+            ${isMe ? '<div style="font-size:10px;color:var(--accent);font-weight:600;">você</div>' : ''}
+          </div>
+        </div>
+      </td>
+      <td style="font-size:12px;color:var(--text2);">${u.email || '—'}</td>
+      <td><span class="badge badge-${u.perfil}">${PERFIL_LABELS[u.perfil] || u.perfil}</span></td>
+      <td style="font-size:13px;">${hotelNome}</td>
+      <td><span class="badge ${u.ativo ? 'badge-livre' : 'badge-bloqueado'}">${u.ativo ? 'Ativo' : 'Inativo'}</span></td>
+      <td>
+        <button class="btn btn-ghost btn-xs" onclick="openUserForm('${u.id}')" title="Editar">✏️</button>
+        ${!isMe ? `<button class="btn btn-ghost btn-xs"
+          onclick="toggleUserAtivo('${u.id}', ${u.ativo})"
+          title="${u.ativo ? 'Inativar' : 'Ativar'}">${u.ativo ? '⏸' : '▶'}</button>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function searchUsuarios(q) { _renderUsuariosTabela(q); }
+
+function _atualizarStatsUsuarios() {
+  const total  = _usuariosCache.length;
+  const ativos = _usuariosCache.filter(u => u.ativo).length;
+  const perfis = [...new Set(_usuariosCache.map(u => u.perfil))].length;
+  const elT = document.getElementById('us-stat-total');
+  const elA = document.getElementById('us-stat-ativos');
+  const elP = document.getElementById('us-stat-perfis');
+  if (elT) elT.textContent = total;
+  if (elA) elA.textContent = ativos;
+  if (elP) elP.textContent = perfis;
+}
+
+// ── FORMULÁRIO ────────────────────────────────────────────────
+
+async function openUserForm(profileId = null) {
+  if (!canAccess('usuarios')) { toast('Sem permissão', 'error'); return; }
+  _editingUserId = profileId;
+  const isEdit = !!profileId;
+
+  document.getElementById('modal-usuario-title').textContent  = isEdit ? 'Editar Usuário' : 'Novo Usuário';
+  document.getElementById('btn-salvar-usuario').textContent   = isEdit ? 'Salvar alterações' : 'Criar usuário';
+  document.getElementById('btn-salvar-usuario').disabled      = false;
+
+  // Limpar campos
+  document.getElementById('us-nome').value  = '';
+  document.getElementById('us-email').value = '';
+  document.getElementById('us-ativo').checked = true;
+
+  // E-mail: editável só na criação
+  document.getElementById('us-email-wrap').style.display     = isEdit ? 'none' : '';
+  document.getElementById('us-email-readonly').style.display = isEdit ? '' : 'none';
+
+  await _popularHotelSelectUsuario();
+  _popularPerfilSelectUsuario();
+  _atualizarPermissoesPerfil('camareira');
+
+  if (isEdit) {
+    const u = _usuariosCache.find(x => x.id === profileId);
+    if (u) {
+      document.getElementById('us-nome').value            = u.nome;
+      document.getElementById('us-email-text').textContent = u.email || '—';
+      document.getElementById('us-perfil').value          = u.perfil;
+      document.getElementById('us-hotel-id').value        = u.hotel_id || '';
+      document.getElementById('us-ativo').checked         = u.ativo !== false;
+      _atualizarPermissoesPerfil(u.perfil);
+    }
+  }
+
+  openModal('modal-usuario-form');
+  document.getElementById('us-nome').focus();
+}
+
+async function _popularHotelSelectUsuario() {
+  const sel = document.getElementById('us-hotel-id');
+  if (!sel) return;
+  if (currentUser.perfil === 'admin_global') {
+    const { data } = await supabaseClient
+      .from('hotels').select('id, nome').eq('ativo', true).order('nome');
+    sel.innerHTML = '<option value="">Sem hotel vinculado (admin_global)</option>' +
+      (data || []).map(h => `<option value="${h.id}">${h.nome}</option>`).join('');
+    sel.disabled = false;
+  } else {
+    sel.innerHTML = `<option value="${currentUser.hotelId}">${currentUser.hotelNome}</option>`;
+    sel.disabled = true;
+  }
+}
+
+function _popularPerfilSelectUsuario() {
+  const sel = document.getElementById('us-perfil');
+  if (!sel) return;
+  const opcoes = currentUser.perfil === 'admin_global'
+    ? [['admin_global','Administrador Global'],['admin_hotel','Admin do Hotel'],['gestor','Gestor'],['camareira','Camareira']]
+    : [['admin_hotel','Admin do Hotel'],['gestor','Gestor'],['camareira','Camareira']]; // admin_hotel não pode escalar para admin_global
+  sel.innerHTML = opcoes.map(([val, label]) =>
+    `<option value="${val}">${label}</option>`
+  ).join('');
+}
+
+function _atualizarPermissoesPerfil(perfil) {
+  const labels = {
+    hoteis:'Hotéis', usuarios:'Usuários', dashboard:'Dashboard', mapa:'Mapa',
+    kanban:'Kanban', chamados:'Chamados', equipe:'Equipe',
+    'cadastro-apto':'Cadastro de Aptos', relatorios:'Relatórios',
+    config:'Config', 'app-camareira':'App Camareira',
+  };
+  const pages = PERFIL_PAGES[perfil] || [];
+  const el = document.getElementById('us-permissoes-lista');
+  if (!el) return;
+  el.innerHTML = pages.map(p =>
+    `<span style="display:inline-flex;align-items:center;gap:4px;background:var(--surface2);
+      border:1px solid var(--border);border-radius:20px;padding:3px 10px;
+      font-size:11px;font-weight:600;color:var(--text2);margin:2px;">✓ ${labels[p] || p}</span>`
+  ).join('');
+}
+
+// ── SALVAR ────────────────────────────────────────────────────
+
+async function salvarUsuario() {
+  if (!canAccess('usuarios')) { toast('Sem permissão', 'error'); return; }
+  const nome     = document.getElementById('us-nome').value.trim();
+  const email    = document.getElementById('us-email').value.trim().toLowerCase();
+  const perfil   = document.getElementById('us-perfil').value;
+  const hotel_id = document.getElementById('us-hotel-id').value || null;
+  const ativo    = document.getElementById('us-ativo').checked;
+
+  if (!nome) { toast('Informe o nome completo', 'error'); return; }
+
+  const btn = document.getElementById('btn-salvar-usuario');
+  btn.disabled = true;
+  btn.textContent = 'Salvando...';
+
+  let error;
+
+  if (_editingUserId) {
+    ({ error } = await supabaseClient
+      .from('user_profiles')
+      .update({ nome, perfil, hotel_id, ativo })
+      .eq('id', _editingUserId));
+  } else {
+    if (!email) {
+      btn.disabled = false; btn.textContent = 'Criar usuário';
+      toast('Informe o e-mail', 'error'); return;
+    }
+    // Envia convite via Edge Function (cria auth user + profile)
+    const result = await _invocarConvite({ nome, email, perfil, hotel_id, ativo });
+    error = result.error;
+  }
+
+  btn.disabled = false;
+  btn.textContent = _editingUserId ? 'Salvar alterações' : 'Criar usuário';
+
+  if (error) { toast('Erro: ' + (error.message || error), 'error'); return; }
+
+  closeModal('modal-usuario-form');
+  toast(
+    _editingUserId ? 'Usuário atualizado com sucesso!' : `Convite enviado para ${email}`,
+    'success'
+  );
+  _editingUserId = null;
+  await renderUsuarios();
+}
+
+async function _invocarConvite(payload) {
+  try {
+    const { data, error } = await supabaseClient.functions.invoke('invite-user', { body: payload });
+    return error ? { error } : { data };
+  } catch {
+    return {
+      error: {
+        message:
+          'A Edge Function "invite-user" não está implantada. '
+          + 'Execute: supabase functions deploy invite-user '
+          + '(arquivo em supabase/functions/invite-user/index.ts).',
+      },
+    };
+  }
+}
+
+// ── ATIVAR / INATIVAR ─────────────────────────────────────────
+
+async function toggleUserAtivo(profileId, atualAtivo) {
+  const u = _usuariosCache.find(x => x.id === profileId);
+  if (!u) return;
+  if (!confirm(`Deseja ${atualAtivo ? 'inativar' : 'ativar'} o usuário "${u.nome}"?`)) return;
+
+  const { error } = await supabaseClient
+    .from('user_profiles').update({ ativo: !atualAtivo }).eq('id', profileId);
+
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+
+  u.ativo = !atualAtivo;
+  toast(`Usuário ${!atualAtivo ? 'ativado' : 'inativado'}!`, 'success');
+  _renderUsuariosTabela();
+  _atualizarStatsUsuarios();
+}

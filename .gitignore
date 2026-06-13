@@ -1,0 +1,33 @@
+# Dependências e cache
+node_modules/
+.cache/
+dist/
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Variáveis de ambiente locais
+.env
+.env.local
+.env.*.local
+
+# Configurações locais do editor
+.vscode/
+*.code-workspace
+
+# Arquivos temporários
+*.log
+*.tmp
+*.bak
+
+# Credenciais — se você criar um arquivo local com valores reais,
+# nomeie com sufixo .local.js para que fique protegido pelo gitignore
+js/*.local.js
+
+# Segredos da Edge Function (nunca versionar)
+supabase/.env
+supabase/functions/.env
+*service_role*
+*service-role*

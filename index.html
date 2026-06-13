@@ -1,0 +1,2139 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GovHotel — Governança & Limpeza</title>
+
+<!-- Supabase JS SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+:root {
+  --primary: #1a5276;
+  --primary-light: #2e86c1;
+  --primary-dark: #154360;
+  --accent: #148f77;
+  --accent-light: #1abc9c;
+  --danger: #c0392b;
+  --warning: #d68910;
+  --success: #148f77;
+  --info: #2e86c1;
+  --bg: #f0f3f6;
+  --surface: #ffffff;
+  --surface2: #f8f9fa;
+  --border: #dee2e6;
+  --text: #212529;
+  --text2: #6c757d;
+  --text3: #adb5bd;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 2px 8px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.12);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; min-height: 100vh; }
+button { cursor: pointer; font-family: inherit; }
+input, select, textarea { font-family: inherit; }
+a { text-decoration: none; }
+
+/* ===== LOADING OVERLAY ===== */
+#loading-overlay {
+  position: fixed; inset: 0; background: linear-gradient(135deg, #1a5276 0%, #148f77 100%);
+  display: flex; align-items: center; justify-content: center; z-index: 9999; flex-direction: column; gap: 16px;
+}
+#loading-overlay p { color: white; font-size: 14px; opacity: 0.8; }
+.spinner {
+  width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.3);
+  border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===== LOGIN ===== */
+#login-screen {
+  min-height: 100vh; display: none; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #1a5276 0%, #148f77 100%);
+}
+.login-box {
+  background: white; border-radius: 16px; padding: 40px;
+  width: 100%; max-width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+}
+.login-logo { text-align: center; margin-bottom: 28px; }
+.login-logo h1 { font-size: 26px; font-weight: 700; color: var(--primary); letter-spacing: -0.5px; }
+.login-logo p { color: var(--text2); font-size: 13px; margin-top: 4px; }
+.login-badge {
+  display: inline-block; background: #e8f4fd; color: var(--primary); font-size: 11px;
+  font-weight: 600; padding: 3px 10px; border-radius: 20px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.4px; }
+.form-group input, .form-group select {
+  width: 100%; padding: 10px 14px; border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm); font-size: 14px; transition: border 0.2s;
+  background: var(--surface2);
+}
+.form-group input:focus, .form-group select:focus { outline: none; border-color: var(--primary-light); background: white; }
+.btn-login {
+  width: 100%; padding: 12px; background: var(--primary); color: white;
+  border: none; border-radius: var(--radius-sm); font-size: 15px; font-weight: 600;
+  transition: background 0.2s; margin-top: 8px;
+}
+.btn-login:hover:not(:disabled) { background: var(--primary-dark); }
+.btn-login:disabled { opacity: 0.7; cursor: not-allowed; }
+.login-hint { text-align: center; margin-top: 16px; font-size: 12px; color: var(--text3); }
+.login-error { background: #fdecea; color: var(--danger); padding: 10px 14px; border-radius: var(--radius-sm); font-size: 13px; margin-top: 10px; display: none; }
+
+/* ===== APP SHELL ===== */
+#app { display: none; min-height: 100vh; }
+
+/* SIDEBAR */
+.sidebar {
+  position: fixed; top: 0; left: 0; width: 240px; height: 100vh;
+  background: var(--primary-dark); color: white; z-index: 100;
+  display: flex; flex-direction: column; overflow-y: auto;
+  transition: transform 0.3s;
+}
+.sidebar-logo {
+  padding: 20px 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.sidebar-logo h2 { font-size: 18px; font-weight: 700; color: white; letter-spacing: -0.3px; }
+.sidebar-logo p { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+.sidebar-hotel-badge {
+  margin: 8px 20px 0; padding: 4px 10px; background: rgba(255,255,255,0.1);
+  border-radius: 20px; font-size: 11px; color: rgba(255,255,255,0.7);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: none;
+}
+.sidebar-user {
+  padding: 12px 20px; border-bottom: 1px solid rgba(255,255,255,0.08);
+  display: flex; align-items: center; gap: 10px;
+}
+.user-avatar {
+  width: 34px; height: 34px; border-radius: 50%; background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 13px; flex-shrink: 0;
+}
+.user-info p { font-size: 13px; font-weight: 600; color: white; }
+.user-info span { font-size: 11px; color: rgba(255,255,255,0.5); }
+.sidebar-nav { padding: 12px 0; flex: 1; }
+.nav-section { padding: 12px 20px 4px; font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.8px; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px; padding: 9px 20px;
+  color: rgba(255,255,255,0.7); font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all 0.15s; border-left: 3px solid transparent;
+}
+.nav-item:hover { background: rgba(255,255,255,0.06); color: white; }
+.nav-item.active { background: rgba(255,255,255,0.1); color: white; border-left-color: var(--accent-light); }
+.nav-icon { font-size: 16px; width: 20px; text-align: center; }
+.nav-badge {
+  margin-left: auto; background: var(--danger); color: white;
+  font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 10px;
+}
+.sidebar-footer {
+  padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 6px;
+}
+.btn-senha {
+  width: 100%; padding: 8px; background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.7);
+  border: 1px solid rgba(255,255,255,0.12); border-radius: var(--radius-sm);
+  font-size: 12px; font-weight: 600; transition: all 0.15s;
+}
+.btn-senha:hover { background: rgba(255,255,255,0.12); color: white; }
+.btn-logout {
+  width: 100%; padding: 8px; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7);
+  border: 1px solid rgba(255,255,255,0.12); border-radius: var(--radius-sm);
+  font-size: 12px; font-weight: 600; transition: all 0.15s;
+}
+.btn-logout:hover { background: rgba(255,255,255,0.14); color: white; }
+
+/* MAIN */
+.main { margin-left: 240px; min-height: 100vh; display: flex; flex-direction: column; }
+.topbar {
+  background: white; border-bottom: 1px solid var(--border); padding: 0 28px;
+  height: 60px; display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 50;
+}
+.topbar-title { font-size: 17px; font-weight: 700; color: var(--text); }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.topbar-date { font-size: 12px; color: var(--text2); }
+.content { padding: 24px 28px; flex: 1; }
+
+/* PAGE */
+.page { display: none; }
+.page.active { display: block; }
+.page-header { margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.page-title { font-size: 20px; font-weight: 700; color: var(--text); }
+.page-subtitle { font-size: 13px; color: var(--text2); margin-top: 2px; }
+
+/* CARDS */
+.card {
+  background: white; border-radius: var(--radius); border: 1px solid var(--border);
+  padding: 20px; box-shadow: var(--shadow);
+}
+.card-title { font-size: 13px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+
+/* STAT CARDS */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 22px; }
+.stat-card {
+  background: white; border-radius: var(--radius); padding: 16px 18px;
+  border: 1px solid var(--border); box-shadow: var(--shadow); position: relative; overflow: hidden;
+}
+.stat-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+}
+.stat-card.s-blue::before { background: var(--primary-light); }
+.stat-card.s-green::before { background: var(--accent); }
+.stat-card.s-orange::before { background: var(--warning); }
+.stat-card.s-red::before { background: var(--danger); }
+.stat-card.s-purple::before { background: #7d3c98; }
+.stat-label { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+.stat-value { font-size: 28px; font-weight: 700; color: var(--text); margin: 4px 0; line-height: 1; }
+.stat-sub { font-size: 12px; color: var(--text3); }
+
+/* BUTTONS */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;
+  border-radius: var(--radius-sm); font-size: 13px; font-weight: 600;
+  border: none; transition: all 0.15s; white-space: nowrap;
+}
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { background: var(--primary-dark); }
+.btn-success { background: var(--accent); color: white; }
+.btn-success:hover { background: #0e6655; }
+.btn-danger { background: var(--danger); color: white; }
+.btn-danger:hover { background: #a93226; }
+.btn-warning { background: var(--warning); color: white; }
+.btn-outline { background: white; color: var(--primary); border: 1.5px solid var(--primary); }
+.btn-outline:hover { background: #eaf2ff; }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.btn-xs { padding: 3px 8px; font-size: 11px; }
+.btn-ghost { background: transparent; color: var(--text2); border: 1px solid var(--border); }
+.btn-ghost:hover { background: var(--surface2); color: var(--text); }
+
+/* BADGES */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px;
+  border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;
+}
+.badge-livre { background: #d5f5e3; color: #1e8449; }
+.badge-sujo { background: #fdebd0; color: #b9770e; }
+.badge-limpando { background: #d6eaf8; color: #1a5276; }
+.badge-conferencia { background: #f5eef8; color: #7d3c98; }
+.badge-bloqueado { background: #fdecea; color: #c0392b; }
+.badge-ocupado { background: #eaecee; color: #566573; }
+.badge-manutencao { background: #fef9e7; color: #d4ac0d; }
+.badge-aberto { background: #fdebd0; color: #b9770e; }
+.badge-andamento { background: #d6eaf8; color: #1a5276; }
+.badge-concluido { background: #d5f5e3; color: #1e8449; }
+.badge-cancelado { background: #eaecee; color: #566573; }
+.badge-urgente { background: #fdecea; color: #c0392b; }
+.badge-pendente { background: #fef9e7; color: #d4ac0d; }
+.badge-admin_global { background: #1a5276; color: white; }
+.badge-admin_hotel  { background: #148f77; color: white; }
+.badge-gestor       { background: #d68910; color: white; }
+.badge-camareira    { background: #7d3c98; color: white; }
+
+/* TABLE */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th { background: var(--surface2); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text2); padding: 10px 14px; text-align: left; border-bottom: 2px solid var(--border); white-space: nowrap; }
+td { padding: 11px 14px; border-bottom: 1px solid #f0f0f0; font-size: 13px; color: var(--text); }
+tr:hover td { background: #fafbfc; }
+tr:last-child td { border-bottom: none; }
+
+/* GRID APTOS */
+.floor-section { margin-bottom: 24px; }
+.floor-label { font-size: 12px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+.aptos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+.apto-card {
+  background: white; border-radius: var(--radius); border: 2px solid var(--border);
+  padding: 14px 12px; cursor: pointer; transition: all 0.2s; text-align: center;
+  position: relative;
+}
+.apto-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.apto-card.livre { border-color: #27ae60; background: #f0fdf4; }
+.apto-card.sujo { border-color: #e67e22; background: #fffbf5; }
+.apto-card.limpando { border-color: #2e86c1; background: #f0f8ff; }
+.apto-card.conferencia { border-color: #8e44ad; background: #fdf4ff; }
+.apto-card.bloqueado { border-color: #c0392b; background: #fff5f5; }
+.apto-card.ocupado { border-color: #7f8c8d; background: #f8f9fa; }
+.apto-card.manutencao { border-color: #f1c40f; background: #fffef0; }
+.apto-num { font-size: 20px; font-weight: 800; color: var(--text); }
+.apto-tipo { font-size: 10px; color: var(--text2); margin: 2px 0 4px; font-weight: 500; }
+.apto-status-icon { font-size: 18px; margin-bottom: 2px; }
+.apto-priority { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }
+
+/* MODAL */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1000;
+  display: none; align-items: center; justify-content: center; padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: white; border-radius: 14px; width: 100%; max-width: 540px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;
+}
+.modal-header {
+  padding: 20px 24px 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.modal-title { font-size: 16px; font-weight: 700; color: var(--text); }
+.modal-body { padding: 20px 24px; }
+.modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
+.btn-close { background: none; border: none; font-size: 20px; color: var(--text2); cursor: pointer; padding: 0; line-height: 1; }
+.btn-close:hover { color: var(--text); }
+
+/* FORM */
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.form-row.single { grid-template-columns: 1fr; }
+.form-row.three { grid-template-columns: 1fr 1fr 1fr; }
+.field label { display: block; font-size: 11px; font-weight: 700; color: var(--text2); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.3px; }
+.field input, .field select, .field textarea {
+  width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  font-size: 13px; background: var(--surface2); transition: border 0.15s; color: var(--text);
+}
+.field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--primary-light); background: white; }
+.field textarea { resize: vertical; min-height: 80px; }
+
+/* FILTERS */
+.filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+.filter-btn {
+  padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;
+  border: 1.5px solid var(--border); background: white; color: var(--text2); cursor: pointer; transition: all 0.15s;
+}
+.filter-btn:hover { border-color: var(--primary-light); color: var(--primary); }
+.filter-btn.active { background: var(--primary); border-color: var(--primary); color: white; }
+.search-input {
+  padding: 7px 14px; border: 1.5px solid var(--border); border-radius: 20px;
+  font-size: 13px; background: white; width: 200px; transition: border 0.15s;
+}
+.search-input:focus { outline: none; border-color: var(--primary-light); }
+
+/* CHECKLIST */
+.checklist { list-style: none; }
+.checklist-item {
+  display: flex; align-items: center; gap: 10px; padding: 8px 0;
+  border-bottom: 1px solid #f5f5f5; font-size: 13px;
+}
+.checklist-item:last-child { border-bottom: none; }
+.check-circle {
+  width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border);
+  flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+}
+.check-circle.done { background: var(--accent); border-color: var(--accent); color: white; font-size: 11px; }
+
+/* TOAST */
+.toast {
+  position: fixed; bottom: 24px; right: 24px; background: var(--text); color: white;
+  padding: 12px 20px; border-radius: 8px; font-size: 13px; font-weight: 500;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2); z-index: 9999;
+  transform: translateY(100px); transition: transform 0.3s; opacity: 0;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.success { background: var(--accent); }
+.toast.error { background: var(--danger); }
+
+/* PROGRESS */
+.progress-bar { background: var(--border); border-radius: 4px; height: 6px; overflow: hidden; margin-top: 4px; }
+.progress-fill { height: 100%; border-radius: 4px; background: var(--accent); transition: width 0.3s; }
+
+/* MOBILE */
+@media (max-width: 768px) {
+  .sidebar { transform: translateX(-240px); }
+  .sidebar.open { transform: translateX(0); }
+  .main { margin-left: 0; }
+  .topbar { padding: 0 16px; }
+  .content { padding: 16px; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .form-row { grid-template-columns: 1fr; }
+  .form-row.three { grid-template-columns: 1fr 1fr; }
+  .mobile-menu-btn { display: flex !important; }
+}
+.mobile-menu-btn {
+  display: none; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: var(--radius-sm);
+  background: var(--surface2); border: 1px solid var(--border); cursor: pointer; font-size: 18px;
+}
+.overlay-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 90; }
+.overlay-bg.open { display: block; }
+
+/* APP MODE camareira */
+.apto-card-app {
+  background: white; border-radius: var(--radius); border-left: 5px solid var(--border);
+  padding: 14px 16px; margin-bottom: 10px; box-shadow: var(--shadow);
+  display: flex; align-items: center; justify-content: space-between; cursor: pointer;
+}
+.apto-card-app.livre { border-left-color: #27ae60; }
+.apto-card-app.sujo { border-left-color: #e67e22; }
+.apto-card-app.limpando { border-left-color: #2e86c1; }
+.apto-card-app.conferencia { border-left-color: #8e44ad; }
+.app-apto-num { font-size: 22px; font-weight: 800; }
+.app-apto-info { font-size: 12px; color: var(--text2); }
+
+/* CHAMADOS */
+.chamado-card {
+  background: white; border-radius: var(--radius); border: 1px solid var(--border);
+  padding: 16px; margin-bottom: 10px; box-shadow: var(--shadow);
+  border-left: 4px solid var(--border);
+}
+.chamado-card.urgente { border-left-color: var(--danger); }
+.chamado-card.normal { border-left-color: var(--info); }
+.chamado-card.baixa { border-left-color: var(--text3); }
+.chamado-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.chamado-title { font-size: 14px; font-weight: 700; }
+.chamado-meta { display: flex; gap: 12px; font-size: 12px; color: var(--text2); margin-top: 6px; flex-wrap: wrap; }
+
+/* TABS */
+.tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 20px; }
+.tab-btn {
+  padding: 10px 20px; font-size: 13px; font-weight: 600; color: var(--text2);
+  background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -2px;
+  cursor: pointer; transition: all 0.15s;
+}
+.tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+.tab-btn:hover { color: var(--text); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* KANBAN */
+.kanban { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+.kanban-col { background: var(--surface2); border-radius: var(--radius); padding: 12px; }
+.kanban-col-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text2); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+.kanban-count { background: var(--border); color: var(--text2); border-radius: 10px; padding: 1px 7px; font-size: 11px; }
+.kanban-item {
+  background: white; border-radius: var(--radius-sm); padding: 10px 12px;
+  margin-bottom: 8px; border: 1px solid var(--border); box-shadow: var(--shadow); cursor: pointer;
+}
+.kanban-item:hover { box-shadow: var(--shadow-md); }
+.kanban-apto { font-size: 16px; font-weight: 800; color: var(--text); }
+.kanban-detail { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+/* RELATÓRIO */
+.report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.mini-chart { height: 80px; display: flex; align-items: flex-end; gap: 4px; padding-top: 8px; }
+.mini-bar { flex: 1; background: var(--primary-light); border-radius: 3px 3px 0 0; min-height: 4px; transition: height 0.3s; }
+.mini-bar-label { font-size: 9px; color: var(--text3); text-align: center; margin-top: 3px; }
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--text3); border-radius: 3px; }
+
+/* AVATAR COLORS */
+.av-1 { background: #2e86c1; }
+.av-2 { background: #148f77; }
+.av-3 { background: #8e44ad; }
+.av-4 { background: #d35400; }
+.av-5 { background: #c0392b; }
+.av-6 { background: #1a5276; }
+
+/* ACESSO NEGADO */
+.access-denied {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 60px 20px; text-align: center;
+}
+.access-denied .icon { font-size: 48px; margin-bottom: 16px; }
+.access-denied h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+.access-denied p { font-size: 13px; color: var(--text2); }
+
+/* ===== HOTÉIS ===== */
+.hoteis-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+.hoteis-loading {
+  text-align: center; padding: 40px; color: var(--text3); font-size: 13px;
+}
+.hotel-card {
+  background: white; border-radius: var(--radius); border: 1px solid var(--border);
+  box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 0;
+  overflow: hidden; transition: box-shadow 0.2s;
+}
+.hotel-card:hover { box-shadow: var(--shadow-md); }
+.hotel-inativo { opacity: 0.65; }
+.hotel-card-top {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 16px 18px 12px; border-bottom: 1px solid var(--border);
+}
+.hotel-card-icon { font-size: 28px; flex-shrink: 0; line-height: 1; }
+.hotel-card-nome { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+.hotel-card-local { font-size: 12px; color: var(--text2); }
+.hotel-card-dados {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+  padding: 12px 18px; flex: 1;
+}
+.hdado { padding: 5px 0; border-bottom: 1px solid #f5f5f5; }
+.hdado:nth-last-child(-n+2) { border-bottom: none; }
+.hdado span { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.4px; color: var(--text3); margin-bottom: 1px; }
+.hdado strong { font-size: 12px; color: var(--text); font-weight: 600; }
+.hotel-card-actions {
+  display: flex; gap: 8px; padding: 12px 18px;
+  border-top: 1px solid var(--border); background: var(--surface2);
+}
+.hotel-card-actions .btn { flex: 1; justify-content: center; }
+
+/* checkbox toggle */
+.toggle-wrap { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.toggle-wrap label { font-size: 13px; color: var(--text); cursor: pointer; }
+.toggle-wrap input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- ============ LOADING ============ -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <p>Verificando sessão...</p>
+</div>
+
+<!-- ============ LOGIN ============ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <span class="login-badge">Sistema de Governança</span>
+      <h1>🏨 GovHotel</h1>
+      <p>Gestão de limpeza e governança de apartamentos</p>
+    </div>
+    <div class="form-group">
+      <label>E-mail</label>
+      <input type="email" id="login-email" placeholder="seu@email.com" autocomplete="email">
+    </div>
+    <div class="form-group">
+      <label>Senha</label>
+      <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password"
+             onkeydown="if(event.key==='Enter') doLogin()">
+    </div>
+    <div class="login-error" id="login-error"></div>
+    <button class="btn-login" id="btn-login" onclick="doLogin()">Entrar no Sistema</button>
+    <p class="login-hint">v2.0 · Powered by Supabase</p>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app">
+  <div class="overlay-bg" id="overlay-bg" onclick="closeSidebar()"></div>
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <h2>🏨 GovHotel</h2>
+      <p>Gestão de Governança</p>
+      <div class="sidebar-hotel-badge" id="sidebar-hotel-badge"></div>
+    </div>
+    <div class="sidebar-user" id="sidebar-user">
+      <div class="user-avatar" id="user-avatar-sb">--</div>
+      <div class="user-info">
+        <p id="user-name-sb">Usuário</p>
+        <span id="user-role-sb">Perfil</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav" id="sidebar-nav"></nav>
+    <div class="sidebar-footer">
+      <button class="btn-senha" onclick="openModal('modal-senha')">🔑 Alterar senha</button>
+      <button class="btn-logout" onclick="doLogout()">↪ Sair do sistema</button>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <div class="main" id="main-area">
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button class="mobile-menu-btn" onclick="openSidebar()">☰</button>
+        <div>
+          <div class="topbar-title" id="topbar-title">Dashboard</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <span class="topbar-date" id="topbar-date"></span>
+        <button class="btn btn-primary btn-sm" id="btn-nova-acao" onclick="novaAcaoRapida()" style="display:none">+ Novo</button>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- ====== DASHBOARD ====== -->
+      <div class="page active" id="page-dashboard">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Dashboard — Visão Geral</div>
+            <div class="page-subtitle" id="dash-subtitle">Atualizado agora</div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-outline btn-sm" onclick="refreshDash()">↺ Atualizar</button>
+          </div>
+        </div>
+        <div class="stats-grid" id="stats-grid"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+          <div class="card">
+            <div class="card-title">Status dos apartamentos</div>
+            <div id="dash-status-chart" style="margin-top:12px;"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Chamados em aberto</div>
+            <div id="dash-chamados-list" style="margin-top:12px;"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title" style="margin-bottom:12px;">Atividade recente</div>
+          <div id="dash-activity"></div>
+        </div>
+      </div>
+
+      <!-- ====== MAPA DE APTOS ====== -->
+      <div class="page" id="page-mapa">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Mapa de Apartamentos</div>
+            <div class="page-subtitle">Visão em tempo real de todos os andares</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;" id="mapa-header-actions"></div>
+        </div>
+        <div class="filters" id="mapa-filters">
+          <button class="filter-btn active" onclick="filterMapa('todos',this)">Todos</button>
+          <button class="filter-btn" onclick="filterMapa('livre',this)">🟢 Livre</button>
+          <button class="filter-btn" onclick="filterMapa('sujo',this)">🟠 Sujo</button>
+          <button class="filter-btn" onclick="filterMapa('limpando',this)">🔵 Limpando</button>
+          <button class="filter-btn" onclick="filterMapa('conferencia',this)">🟣 Conferência</button>
+          <button class="filter-btn" onclick="filterMapa('bloqueado',this)">🔴 Bloqueado</button>
+          <button class="filter-btn" onclick="filterMapa('manutencao',this)">🟡 Manutenção</button>
+          <input class="search-input" placeholder="🔍 Buscar apto..." oninput="searchMapa(this.value)">
+        </div>
+        <div id="mapa-container"></div>
+      </div>
+
+      <!-- ====== KANBAN ====== -->
+      <div class="page" id="page-kanban">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Kanban de Limpeza</div>
+            <div class="page-subtitle">Fluxo visual de andamento das limpezas</div>
+          </div>
+        </div>
+        <div class="kanban" id="kanban-board"></div>
+      </div>
+
+      <!-- ====== CHAMADOS ====== -->
+      <div class="page" id="page-chamados">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Chamados de Limpeza</div>
+            <div class="page-subtitle">Solicitações da recepção e hóspedes</div>
+          </div>
+          <button class="btn btn-primary btn-sm" id="btn-novo-chamado" onclick="openModal('modal-novo-chamado')">+ Novo Chamado</button>
+        </div>
+        <div class="tabs">
+          <button class="tab-btn active" onclick="switchTab('tab-todos','tab-chamados')">Todos</button>
+          <button class="tab-btn" onclick="switchTab('tab-abertos','tab-chamados')">Abertos</button>
+          <button class="tab-btn" onclick="switchTab('tab-andamento','tab-chamados')">Em andamento</button>
+          <button class="tab-btn" onclick="switchTab('tab-concluidos','tab-chamados')">Concluídos</button>
+        </div>
+        <div class="tab-content active" id="tab-todos"><div id="chamados-list-todos"></div></div>
+        <div class="tab-content" id="tab-abertos"><div id="chamados-list-abertos"></div></div>
+        <div class="tab-content" id="tab-andamento"><div id="chamados-list-andamento"></div></div>
+        <div class="tab-content" id="tab-concluidos"><div id="chamados-list-concluidos"></div></div>
+      </div>
+
+      <!-- ====== CADASTRO APTO ====== -->
+      <div class="page" id="page-cadastro-apto">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Cadastro de Apartamentos</div>
+            <div class="page-subtitle">Gerenciar e cadastrar unidades do hotel</div>
+          </div>
+          <button id="btn-cadastrar-apto" class="btn btn-primary btn-sm" onclick="openAptoForm()">+ Cadastrar Apto</button>
+        </div>
+
+        <!-- Seletor de hotel — visível apenas para admin_global -->
+        <div id="apto-hotel-selector" style="display:none;margin-bottom:16px;">
+          <div class="card" style="padding:12px 18px;">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+              <span style="font-size:13px;font-weight:600;color:var(--text2);">🏨 Hotel:</span>
+              <select id="apto-hotel-select" onchange="selecionarHotelApto(this.value)"
+                style="flex:1;min-width:180px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;">
+                <option value="">Selecione um hotel...</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="filters" style="margin-bottom:16px;">
+          <input class="search-input" placeholder="🔍 Buscar por número, andar ou tipo..." oninput="searchAptos(this.value)">
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Apto</th><th>Andar</th><th>Tipo</th><th>Categoria</th>
+                  <th>Leitos</th><th>Status</th><th>Camareira</th><th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="cadastro-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====== EQUIPE ====== -->
+      <div class="page" id="page-equipe">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Equipe de Governança</div>
+            <div class="page-subtitle">Camareiras, supervisoras e pessoal de apoio</div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openMaidForm()">+ Adicionar Membro</button>
+        </div>
+
+        <!-- Seletor de hotel — visível apenas para admin_global -->
+        <div id="equipe-hotel-selector" style="display:none;margin-bottom:16px;">
+          <div class="card" style="padding:12px 18px;">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+              <span style="font-size:13px;font-weight:600;color:var(--text2);">🏨 Hotel:</span>
+              <select id="equipe-hotel-select" onchange="selecionarHotelEquipe(this.value)"
+                style="flex:1;min-width:180px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;">
+                <option value="">Selecione um hotel...</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="filters" style="margin-bottom:16px;">
+          <input class="search-input" placeholder="🔍 Buscar por nome ou cargo..." oninput="searchEquipe(this.value)">
+        </div>
+
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr)">
+          <div class="stat-card s-blue"><div class="stat-label">Total equipe</div><div class="stat-value" id="eq-total">0</div></div>
+          <div class="stat-card s-green"><div class="stat-label">Ativos</div><div class="stat-value" id="eq-turno">0</div></div>
+          <div class="stat-card s-orange"><div class="stat-label">Produtividade média</div><div class="stat-value">87%</div></div>
+          <div class="stat-card s-purple"><div class="stat-label">Aptos por turno</div><div class="stat-value">14.2</div></div>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Funcionário</th><th>Cargo</th><th>Andar</th><th>Turno</th><th>Aptos hoje</th><th>Status</th><th>Ações</th></tr>
+              </thead>
+              <tbody id="equipe-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====== RELATÓRIOS ====== -->
+      <div class="page" id="page-relatorios">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Relatórios & Analytics</div>
+            <div class="page-subtitle">Produtividade, tempo médio e indicadores</div>
+          </div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card s-blue"><div class="stat-label">Aptos limpos hoje</div><div class="stat-value">34</div><div class="stat-sub">de 48 no turno</div></div>
+          <div class="stat-card s-green"><div class="stat-label">Tempo médio limpeza</div><div class="stat-value">27min</div><div class="stat-sub">padrão: 30min</div></div>
+          <div class="stat-card s-orange"><div class="stat-label">Chamados resolvidos</div><div class="stat-value">12</div><div class="stat-sub">3 pendentes</div></div>
+          <div class="stat-card s-red"><div class="stat-label">Retrabalhos</div><div class="stat-value">2</div><div class="stat-sub">4.1% do total</div></div>
+        </div>
+        <div class="report-grid">
+          <div class="card">
+            <div class="card-title" style="margin-bottom:10px;">Limpezas por dia (semana)</div>
+            <div class="mini-chart" id="chart-week"></div>
+            <div style="display:flex;gap:4px;" id="chart-week-labels"></div>
+          </div>
+          <div class="card">
+            <div class="card-title" style="margin-bottom:10px;">Distribuição de status</div>
+            <div id="rel-status-dist" style="margin-top:8px;"></div>
+          </div>
+          <div class="card">
+            <div class="card-title" style="margin-bottom:10px;">Top camareiras (semana)</div>
+            <div id="rel-ranking" style="margin-top:8px;"></div>
+          </div>
+          <div class="card">
+            <div class="card-title" style="margin-bottom:10px;">Chamados por categoria</div>
+            <div id="rel-chamados-tipo" style="margin-top:8px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====== CONFIGURAÇÕES ====== -->
+      <div class="page" id="page-config">
+        <div class="page-header"><div class="page-title">Configurações</div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="card">
+            <div class="card-title" style="margin-bottom:14px;">Parâmetros de limpeza</div>
+            <div class="field" style="margin-bottom:12px;"><label>Tempo padrão limpeza saída (min)</label><input type="number" value="45"></div>
+            <div class="field" style="margin-bottom:12px;"><label>Tempo padrão limpeza permanência (min)</label><input type="number" value="25"></div>
+            <div class="field" style="margin-bottom:12px;"><label>Turno padrão manhã</label><input type="time" value="07:00"></div>
+            <div class="field" style="margin-bottom:12px;"><label>Turno padrão tarde</label><input type="time" value="14:00"></div>
+            <button class="btn btn-success btn-sm" onclick="toast('Parâmetros salvos!','success')">Salvar parâmetros</button>
+          </div>
+          <div class="card">
+            <div class="card-title" style="margin-bottom:14px;">Tipos de chamado</div>
+            <div id="config-tipos-chamado"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====== VIEW CAMAREIRA ====== -->
+      <div class="page" id="page-app-camareira">
+        <div style="max-width:480px;margin:0 auto;">
+          <div style="background:var(--primary);color:white;padding:16px;border-radius:var(--radius);margin-bottom:16px;text-align:center;">
+            <div style="font-size:13px;opacity:0.8;margin-bottom:4px;">Bom dia,</div>
+            <div style="font-size:18px;font-weight:700;" id="app-camareira-nome">—</div>
+            <div style="font-size:12px;opacity:0.7;margin-top:2px;"><span id="app-aptos-count">carregando aptos...</span></div>
+          </div>
+          <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
+            <div class="stat-card s-orange" style="padding:10px;"><div class="stat-label" style="font-size:10px;">A limpar</div><div class="stat-value" style="font-size:20px;" id="app-a-limpar">0</div></div>
+            <div class="stat-card s-blue" style="padding:10px;"><div class="stat-label" style="font-size:10px;">Limpando</div><div class="stat-value" style="font-size:20px;" id="app-limpando">0</div></div>
+            <div class="stat-card s-green" style="padding:10px;"><div class="stat-label" style="font-size:10px;">Concluídos</div><div class="stat-value" style="font-size:20px;" id="app-concluidos">0</div></div>
+          </div>
+          <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Meus apartamentos</div>
+          <div id="app-apto-list"></div>
+        </div>
+      </div>
+
+      <!-- ====== HOTÉIS (admin_global) ====== -->
+      <div class="page" id="page-hoteis">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Hotéis Cadastrados</div>
+            <div class="page-subtitle">Gestão global de todos os hotéis do sistema</div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openHotelForm()">+ Cadastrar hotel</button>
+        </div>
+
+        <!-- Stats rápidos -->
+        <div class="stats-grid" style="grid-template-columns:repeat(3,minmax(140px,1fr));margin-bottom:20px;">
+          <div class="stat-card s-blue">
+            <div class="stat-label">Total de hotéis</div>
+            <div class="stat-value" id="h-stat-total">—</div>
+          </div>
+          <div class="stat-card s-green">
+            <div class="stat-label">Ativos</div>
+            <div class="stat-value" id="h-stat-ativos">—</div>
+          </div>
+          <div class="stat-card s-red">
+            <div class="stat-label">Inativos</div>
+            <div class="stat-value" id="h-stat-inativos">—</div>
+          </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="filters" style="margin-bottom:16px;">
+          <div id="hoteis-filter-btns" style="display:flex;gap:8px;">
+            <button class="filter-btn active" onclick="filtrarHoteisPorStatus('todos',this)">Todos</button>
+            <button class="filter-btn" onclick="filtrarHoteisPorStatus('ativo',this)">✅ Ativos</button>
+            <button class="filter-btn" onclick="filtrarHoteisPorStatus('inativo',this)">🔒 Inativos</button>
+          </div>
+          <input class="search-input" placeholder="🔍 Buscar hotel, cidade ou CNPJ..."
+                 oninput="filtrarHoteis(this.value)" style="margin-left:auto;">
+        </div>
+
+        <!-- Grid de cards -->
+        <div class="hoteis-grid" id="hoteis-grid">
+          <div class="hoteis-loading">Carregando...</div>
+        </div>
+      </div>
+
+      <!-- ====== USUÁRIOS ====== -->
+      <div class="page" id="page-usuarios">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Usuários do Sistema</div>
+            <div class="page-subtitle">Gerenciar contas de acesso e perfis</div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openUserForm()">+ Novo Usuário</button>
+        </div>
+
+        <div class="stats-grid" style="grid-template-columns:repeat(3,minmax(140px,1fr));margin-bottom:20px;">
+          <div class="stat-card s-blue"><div class="stat-label">Total usuários</div><div class="stat-value" id="us-stat-total">—</div></div>
+          <div class="stat-card s-green"><div class="stat-label">Ativos</div><div class="stat-value" id="us-stat-ativos">—</div></div>
+          <div class="stat-card s-purple"><div class="stat-label">Perfis distintos</div><div class="stat-value" id="us-stat-perfis">—</div></div>
+        </div>
+
+        <!-- Seletor de hotel — admin_global apenas -->
+        <div id="usuarios-hotel-selector" style="display:none;margin-bottom:16px;">
+          <div class="card" style="padding:12px 18px;">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+              <span style="font-size:13px;font-weight:600;color:var(--text2);">🏨 Hotel:</span>
+              <select id="usuarios-hotel-select" onchange="selecionarHotelUsuarios(this.value)"
+                style="flex:1;min-width:200px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;">
+                <option value="">Todos os hotéis</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="filters" style="margin-bottom:16px;">
+          <input class="search-input" placeholder="🔍 Buscar por nome ou e-mail..." oninput="searchUsuarios(this.value)">
+        </div>
+
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Usuário</th><th>E-mail</th><th>Perfil</th>
+                  <th>Hotel</th><th>Status</th><th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="usuarios-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====== ACESSO NEGADO ====== -->
+      <div class="page" id="page-denied">
+        <div class="access-denied">
+          <div class="icon">🔒</div>
+          <h3>Acesso não permitido</h3>
+          <p>Você não tem permissão para acessar
+            "<strong id="denied-page-name"></strong>".<br>
+            Fale com o administrador se precisar desta função.
+          </p>
+          <button class="btn btn-primary btn-sm" style="margin-top:20px;"
+            onclick="openPage(currentUser.perfil === 'camareira' ? 'app-camareira' : 'dashboard')">
+            Voltar ao início
+          </button>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ============ MODAIS ============ -->
+
+<!-- Modal Apto Detail -->
+<div class="modal-overlay" id="modal-apto-detail">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header">
+      <div class="modal-title" id="detail-apto-title">Apartamento</div>
+      <button class="btn-close" onclick="closeModal('modal-apto-detail')">✕</button>
+    </div>
+    <div class="modal-body"><div id="detail-apto-body"></div></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-apto-detail')">Fechar</button>
+      <button class="btn btn-primary" id="detail-btn-iniciar" onclick="iniciarLimpeza()">▶ Iniciar limpeza</button>
+      <button class="btn btn-success" id="detail-btn-concluir" onclick="concluirLimpeza()">✓ Concluir</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Trocar Status -->
+<div class="modal-overlay" id="modal-trocar-status">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <div class="modal-title">Alterar Status de Apartamento</div>
+      <button class="btn-close" onclick="closeModal('modal-trocar-status')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="field"><label>Apartamento</label><select id="ts-apto"><option value="">Selecionar...</option></select></div>
+        <div class="field"><label>Novo status</label>
+          <select id="ts-status">
+            <option value="livre">🟢 Livre</option><option value="sujo">🟠 Sujo</option>
+            <option value="limpando">🔵 Limpando</option><option value="conferencia">🟣 Conferência</option>
+            <option value="bloqueado">🔴 Bloqueado</option><option value="manutencao">🟡 Manutenção</option>
+            <option value="ocupado">⚫ Ocupado</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row single">
+        <div class="field"><label>Observação</label><textarea id="ts-obs" placeholder="Observação (opcional)..."></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-trocar-status')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarTrocarStatus()">Salvar status</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Novo Chamado -->
+<div class="modal-overlay" id="modal-novo-chamado">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Abrir Chamado de Limpeza</div>
+      <button class="btn-close" onclick="closeModal('modal-novo-chamado')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="field"><label>Apartamento</label><select id="nc-apto"><option value="">Selecionar...</option></select></div>
+        <div class="field"><label>Tipo de chamado</label>
+          <select id="nc-tipo">
+            <option value="limpeza_geral">Limpeza geral</option>
+            <option value="troca_roupa">Troca de roupa de cama</option>
+            <option value="reposicao">Reposição de amenidades</option>
+            <option value="limpeza_urgente">Limpeza urgente</option>
+            <option value="mancha">Remoção de mancha</option>
+            <option value="inspecao">Inspeção pós-checkout</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Prioridade</label>
+          <select id="nc-prioridade">
+            <option value="urgente">🔴 Urgente</option>
+            <option value="normal" selected>🟡 Normal</option>
+            <option value="baixa">🟢 Baixa</option>
+          </select>
+        </div>
+        <div class="field"><label>Solicitante</label>
+          <select id="nc-solicitante">
+            <option value="recepcao">Recepção</option>
+            <option value="hospede">Hóspede</option>
+            <option value="supervisora">Supervisora</option>
+            <option value="gerencia">Gerência</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Atribuir para</label><select id="nc-camareira"><option value="">Não atribuído</option></select></div>
+        <div class="field"><label>Prazo</label><input type="datetime-local" id="nc-prazo"></div>
+      </div>
+      <div class="form-row single">
+        <div class="field"><label>Descrição</label><textarea id="nc-desc" placeholder="Detalhe o chamado..."></textarea></div>
+      </div>
+      <div class="form-row single">
+        <div class="field"><label>Nome do hóspede</label><input type="text" id="nc-hospede" placeholder="Nome do hóspede..."></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-novo-chamado')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarNovoChamado()">Abrir chamado</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Usuário -->
+<div class="modal-overlay" id="modal-usuario-form">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-usuario-title">Novo Usuário</div>
+      <button class="btn-close" onclick="closeModal('modal-usuario-form')">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Nome -->
+      <div class="form-row single">
+        <div class="field"><label>Nome completo *</label>
+          <input type="text" id="us-nome" placeholder="Nome completo...">
+        </div>
+      </div>
+      <!-- E-mail (criação) -->
+      <div id="us-email-wrap" class="form-row single">
+        <div class="field"><label>E-mail *</label>
+          <input type="email" id="us-email" placeholder="usuario@hotel.com">
+        </div>
+      </div>
+      <!-- E-mail (edição — somente leitura) -->
+      <div id="us-email-readonly" style="display:none;margin-bottom:16px;">
+        <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">E-mail</div>
+        <div id="us-email-text" style="font-size:13px;color:var(--text3);padding:8px 0;border-bottom:1px solid var(--border);"></div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px;">O e-mail não pode ser alterado após a criação.</div>
+      </div>
+      <!-- Perfil + Hotel -->
+      <div class="form-row">
+        <div class="field"><label>Perfil de acesso *</label>
+          <select id="us-perfil" onchange="_atualizarPermissoesPerfil(this.value)">
+            <option value="camareira">Camareira</option>
+          </select>
+        </div>
+        <div class="field"><label>Hotel vinculado</label>
+          <select id="us-hotel-id"></select>
+        </div>
+      </div>
+      <!-- Permissões (exibição) -->
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-top:4px;">
+        <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">
+          Páginas acessíveis com este perfil
+        </div>
+        <div id="us-permissoes-lista" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
+      </div>
+      <!-- Status -->
+      <div style="margin-top:16px;">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+          <input type="checkbox" id="us-ativo" checked>
+          <span style="font-size:13px;font-weight:600;">Usuário ativo</span>
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-usuario-form')">Cancelar</button>
+      <button id="btn-salvar-usuario" class="btn btn-primary" onclick="salvarUsuario()">Criar usuário</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Cadastro Apto -->
+<div class="modal-overlay" id="modal-cadastro-apto">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-cadastro-apto-title">Cadastrar Apartamento</div>
+      <button class="btn-close" onclick="closeModal('modal-cadastro-apto')">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Seletor de hotel — visível apenas para admin_global -->
+      <div id="ca-hotel-wrap" style="display:none;margin-bottom:4px;">
+        <div class="form-row single">
+          <div class="field">
+            <label>Hotel *</label>
+            <select id="ca-hotel-id">
+              <option value="">Selecione o hotel *</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="form-row three">
+        <div class="field"><label>Número *</label><input type="text" id="ca-numero" placeholder="101"></div>
+        <div class="field"><label>Andar *</label>
+          <select id="ca-andar">
+            <option value="1">1º</option><option value="2">2º</option><option value="3">3º</option>
+            <option value="4">4º</option><option value="5">5º</option><option value="6">6º</option>
+            <option value="7">7º</option><option value="8">8º</option><option value="9">9º</option>
+            <option value="10">10º</option><option value="11">11º</option><option value="12">12º</option>
+          </select>
+        </div>
+        <div class="field"><label>Leitos</label><input type="number" id="ca-leitos" value="2" min="1" max="10"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Tipo</label>
+          <select id="ca-tipo">
+            <option value="Standard">Standard</option><option value="Superior">Superior</option>
+            <option value="Deluxe">Deluxe</option><option value="Suite">Suíte</option>
+            <option value="Master">Master</option>
+          </select>
+        </div>
+        <div class="field"><label>Categoria</label>
+          <select id="ca-categoria">
+            <option value="Regular">Regular</option><option value="VIP">VIP</option>
+            <option value="Acessível">Acessível</option><option value="Família">Família</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Status</label>
+          <select id="ca-status">
+            <option value="livre">Livre</option><option value="ocupado">Ocupado</option>
+            <option value="sujo">Sujo</option><option value="limpando">Limpando</option>
+            <option value="conferencia">Em Conferência</option><option value="bloqueado">Bloqueado</option>
+            <option value="manutencao">Manutenção</option>
+          </select>
+        </div>
+        <div class="field"><label>Camareira responsável</label>
+          <select id="ca-camareira"><option value="">Não atribuída</option></select>
+        </div>
+      </div>
+      <div class="form-row single">
+        <div class="field"><label>Observações</label><textarea id="ca-obs" placeholder="Características especiais, acessibilidade..."></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-cadastro-apto')">Cancelar</button>
+      <button id="btn-salvar-apto" class="btn btn-primary" onclick="salvarCadastroApto()">Salvar apartamento</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Novo/Editar Membro -->
+<div class="modal-overlay" id="modal-novo-membro">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-membro-title">Adicionar Membro da Equipe</div>
+      <button class="btn-close" onclick="closeModal('modal-novo-membro')">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Seletor de hotel — admin_global apenas -->
+      <div id="nm-hotel-wrap" style="display:none;margin-bottom:4px;">
+        <div class="form-row single">
+          <div class="field">
+            <label>Hotel *</label>
+            <select id="nm-hotel-id">
+              <option value="">Selecione o hotel *</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Nome completo *</label><input type="text" id="nm-nome" placeholder="Nome completo..."></div>
+        <div class="field"><label>Cargo</label>
+          <select id="nm-cargo">
+            <option value="Camareira">Camareira</option>
+            <option value="Supervisora">Supervisora</option>
+            <option value="Auxiliar de Limpeza">Auxiliar de Limpeza</option>
+            <option value="Governanta">Governanta</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Telefone</label><input type="text" id="nm-telefone" placeholder="(11) 99999-9999"></div>
+        <div class="field"><label>E-mail</label><input type="email" id="nm-email" placeholder="camareira@hotel.com"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Andar responsável</label>
+          <select id="nm-andar">
+            <option value="">Todos os andares</option>
+            <option value="1">1º Andar</option><option value="2">2º Andar</option>
+            <option value="3">3º Andar</option><option value="4">4º Andar</option>
+            <option value="5">5º Andar</option><option value="6">6º Andar</option>
+            <option value="7">7º Andar</option><option value="8">8º Andar</option>
+          </select>
+        </div>
+        <div class="field"><label>Turno</label>
+          <select id="nm-turno">
+            <option value="Manhã (07:00–15:00)">Manhã (07:00–15:00)</option>
+            <option value="Tarde (14:00–22:00)">Tarde (14:00–22:00)</option>
+            <option value="Noite (22:00–07:00)">Noite (22:00–07:00)</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row single">
+        <div class="field"><label>Status</label>
+          <select id="nm-status">
+            <option value="ativo">Ativo</option>
+            <option value="ferias">Férias</option>
+            <option value="afastado">Afastado</option>
+            <option value="inativo">Inativo</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-novo-membro')">Cancelar</button>
+      <button id="btn-salvar-membro" class="btn btn-primary" onclick="salvarNovoMembro()">Adicionar membro</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Checklist Limpeza -->
+<div class="modal-overlay" id="modal-checklist">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="checklist-title">Limpeza — Apto</div>
+      <button class="btn-close" onclick="closeModal('modal-checklist')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="checklist-progress" style="margin-bottom:16px;"></div>
+      <ul class="checklist" id="checklist-items"></ul>
+      <div class="form-row single" style="margin-top:16px;">
+        <div class="field"><label>Observações</label><textarea id="checklist-obs" placeholder="Anotações sobre o quarto..."></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-checklist')">Cancelar</button>
+      <button class="btn btn-warning btn-sm" onclick="pausarLimpezaChecklist()">⏸ Pausar</button>
+      <button class="btn btn-success" onclick="concluirChecklist()">✓ Concluir limpeza</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL HOTEL (cadastro / edição) ====== -->
+<div class="modal-overlay" id="modal-hotel-form">
+  <div class="modal" style="max-width:620px;">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-hotel-title">Cadastrar Hotel</div>
+      <button class="btn-close" onclick="closeModal('modal-hotel-form')">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Nome -->
+      <div class="form-row single">
+        <div class="field">
+          <label>Nome do hotel <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="h-nome" placeholder="Ex: Hotel Grand Luxe">
+        </div>
+      </div>
+
+      <!-- CNPJ + Telefone -->
+      <div class="form-row">
+        <div class="field">
+          <label>CNPJ</label>
+          <input type="text" id="h-cnpj" placeholder="00.000.000/0000-00">
+        </div>
+        <div class="field">
+          <label>Telefone</label>
+          <input type="text" id="h-telefone" placeholder="(00) 00000-0000">
+        </div>
+      </div>
+
+      <!-- E-mail -->
+      <div class="form-row single">
+        <div class="field">
+          <label>E-mail institucional</label>
+          <input type="email" id="h-email" placeholder="contato@hotel.com.br">
+        </div>
+      </div>
+
+      <!-- Endereço -->
+      <div class="form-row single">
+        <div class="field">
+          <label>Endereço</label>
+          <input type="text" id="h-endereco" placeholder="Av. Paulista, 1000 — Sala 10">
+        </div>
+      </div>
+
+      <!-- Cidade + Estado + Andares -->
+      <div class="form-row three">
+        <div class="field">
+          <label>Cidade</label>
+          <input type="text" id="h-cidade" placeholder="São Paulo">
+        </div>
+        <div class="field">
+          <label>Estado (UF)</label>
+          <select id="h-estado">
+            <option value="">Selecione</option>
+            <option>AC</option><option>AL</option><option>AP</option><option>AM</option>
+            <option>BA</option><option>CE</option><option>DF</option><option>ES</option>
+            <option>GO</option><option>MA</option><option>MT</option><option>MS</option>
+            <option>MG</option><option>PA</option><option>PB</option><option>PR</option>
+            <option>PE</option><option>PI</option><option>RJ</option><option>RN</option>
+            <option>RS</option><option>RO</option><option>RR</option><option>SC</option>
+            <option>SP</option><option>SE</option><option>TO</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Nº de andares</label>
+          <input type="number" id="h-andares" value="1" min="1" max="50">
+        </div>
+      </div>
+
+      <!-- Status ativo -->
+      <div class="toggle-wrap" style="margin-top:4px;">
+        <input type="checkbox" id="h-ativo" checked>
+        <label for="h-ativo">Hotel ativo no sistema</label>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-hotel-form')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar-hotel" onclick="salvarHotel()">Cadastrar hotel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL ALTERAR SENHA ====== -->
+<div class="modal-overlay" id="modal-senha">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <div class="modal-title">🔑 Alterar Senha</div>
+      <button class="btn-close" onclick="closeModal('modal-senha')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">
+        A nova senha deve ter no mínimo 6 caracteres.
+      </p>
+      <div class="form-row single">
+        <div class="field">
+          <label>Nova senha</label>
+          <input type="password" id="nova-senha" placeholder="••••••••">
+        </div>
+      </div>
+      <div class="form-row single">
+        <div class="field">
+          <label>Confirmar nova senha</label>
+          <input type="password" id="confirmar-senha" placeholder="••••••••"
+                 onkeydown="if(event.key==='Enter') changePassword()">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-senha')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar-senha" onclick="changePassword()">Salvar nova senha</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast-msg"></div>
+
+<script src="js/supabase-client.js"></script>
+<script src="js/auth.js"></script>
+<script>
+// ============ STATE ============
+let currentPage = 'dashboard';
+let aptos = [];
+let equipe = [];
+let chamados = [];
+let selectedAptoId = null;
+let checklistState = [];
+let filterMapaStatus = 'todos';
+
+// ============ MOCK DATA (mantido até Etapa 4 — integração Supabase data) ============
+function initData() {
+  equipe = [
+    { id:1, nome:'Ana Paula Silva', cargo:'Camareira', andar:'2', turno:'Manhã', status:'ativo', aptos_hoje:8, avId:1 },
+    { id:2, nome:'Maria Santos', cargo:'Camareira', andar:'3', turno:'Manhã', status:'ativo', aptos_hoje:7, avId:2 },
+    { id:3, nome:'Lucia Ferreira', cargo:'Supervisora', andar:'Todos', turno:'Manhã', status:'ativo', aptos_hoje:0, avId:3 },
+    { id:4, nome:'Carla Mendes', cargo:'Camareira', andar:'1', turno:'Tarde', status:'ativo', aptos_hoje:5, avId:4 },
+    { id:5, nome:'Fátima Oliveira', cargo:'Camareira', andar:'4', turno:'Manhã', status:'ferias', aptos_hoje:0, avId:5 },
+  ];
+
+  const statusList = ['livre','sujo','limpando','conferencia','bloqueado','ocupado','manutencao','livre','sujo','livre'];
+  const tipos = ['Standard','Standard','Superior','Deluxe','Suite','Standard','Superior','Deluxe','Suite Master','Standard'];
+  const cats = ['Regular','Regular','VIP','Regular','VIP','Regular','Regular','VIP','VIP','Família'];
+  aptos = [];
+  let id = 1;
+  for (let andar = 1; andar <= 4; andar++) {
+    for (let num = 1; num <= 12; num++) {
+      const idx = (id-1) % statusList.length;
+      aptos.push({
+        id, numero:`${andar}0${num < 10 ? '0'+num : num}`, andar,
+        tipo:tipos[idx], categoria:cats[idx], status:statusList[idx],
+        leitos:[1,2,2,3,4,2,2,3,4,2][idx], camareira_id:[1,2,4,null,null,1,2,4,null,null][idx],
+        obs:'', prioridade:Math.random()>0.8
+      });
+      id++;
+    }
+  }
+
+  chamados = [
+    { id:1, apto:'101', tipo:'Limpeza urgente', prioridade:'urgente', status:'aberto', solicitante:'recepcao', hospede:'João Silva', desc:'Hóspede encontrou o quarto sem limpar após check-in', camareira_id:1, prazo:'2026-06-12T14:00', criado:'10:30', criado_por:'Recepção' },
+    { id:2, apto:'203', tipo:'Troca de roupa de cama', prioridade:'normal', status:'andamento', solicitante:'hospede', hospede:'Maria Júlia', desc:'Solicitação de troca de toda a roupa de cama', camareira_id:2, prazo:'2026-06-12T15:00', criado:'09:15', criado_por:'Recepção' },
+    { id:3, apto:'305', tipo:'Reposição de amenidades', prioridade:'baixa', status:'aberto', solicitante:'hospede', hospede:'Pedro Alves', desc:'Repor shampoo, condicionador e sabonetes', camareira_id:null, prazo:'2026-06-12T18:00', criado:'11:00', criado_por:'Recepção' },
+    { id:4, apto:'402', tipo:'Inspeção pós-checkout', prioridade:'normal', status:'concluido', solicitante:'supervisora', hospede:'', desc:'Inspeção de saída realizada com sucesso', camareira_id:4, prazo:'2026-06-12T12:00', criado:'08:45', criado_por:'Supervisora' },
+  ];
+}
+
+// ============ INICIALIZAR APP (chamado após login bem-sucedido) ============
+function startApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+
+  updateUserUI();
+  buildSidebar();
+  initData();
+  populateSelects();
+  setTopbarDate();
+  applyProfileRestrictions();
+
+  const startPage = currentUser.perfil === 'camareira' ? 'app-camareira' : 'dashboard';
+  openPage(startPage);
+}
+
+// ============ RESTRIÇÕES DE PERFIL NO UI ============
+function applyProfileRestrictions() {
+  const isCamareira = currentUser.perfil === 'camareira';
+
+  // Camareira não vê botão "+ Novo" na topbar
+  document.getElementById('btn-nova-acao').style.display = isCamareira ? 'none' : '';
+
+  // Mapa: ações de cadastro ocultas para camareira
+  const mapaActions = document.getElementById('mapa-header-actions');
+  if (mapaActions) {
+    if (!isCamareira) {
+      mapaActions.innerHTML = `
+        <button class="btn btn-ghost btn-sm" onclick="openPage('cadastro-apto')">⊕ Cadastrar Apto</button>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-trocar-status')">Alterar Status</button>`;
+    } else {
+      mapaActions.innerHTML = `
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-trocar-status')">Alterar Status</button>`;
+    }
+  }
+
+  // Camareira não pode abrir novo chamado
+  const btnChamado = document.getElementById('btn-novo-chamado');
+  if (btnChamado) btnChamado.style.display = isCamareira ? 'none' : '';
+}
+
+// ============ USER UI ============
+function updateUserUI() {
+  document.getElementById('user-avatar-sb').textContent = currentUser.initials;
+  document.getElementById('user-name-sb').textContent = currentUser.nome;
+  document.getElementById('user-role-sb').textContent = currentUser.role;
+
+  const badge = document.getElementById('sidebar-hotel-badge');
+  if (currentUser.hotelNome) {
+    badge.textContent = '🏨 ' + currentUser.hotelNome;
+    badge.style.display = 'block';
+  } else if (currentUser.perfil === 'admin_global') {
+    badge.textContent = '🌐 Admin Global';
+    badge.style.display = 'block';
+  }
+}
+
+function setTopbarDate() {
+  const d = new Date();
+  document.getElementById('topbar-date').textContent =
+    d.toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+}
+
+// ============ SIDEBAR NAV ============
+const NAV_ITEMS = {
+  admin_global: [
+    { section:'Admin Global' },
+    { id:'hoteis',   icon:'🏨', label:'Hotéis' },
+    { id:'usuarios', icon:'👤', label:'Usuários' },
+    { section:'Principal' },
+    { id:'dashboard', icon:'📊', label:'Dashboard' },
+    { id:'mapa', icon:'🗺️', label:'Mapa de Aptos' },
+    { id:'kanban', icon:'📋', label:'Kanban' },
+    { section:'Operação' },
+    { id:'chamados', icon:'🔔', label:'Chamados', badge:true },
+    { id:'equipe', icon:'👥', label:'Equipe' },
+    { section:'Cadastros' },
+    { id:'cadastro-apto', icon:'🏠', label:'Apartamentos' },
+    { section:'Análise' },
+    { id:'relatorios', icon:'📈', label:'Relatórios' },
+    { section:'Sistema' },
+    { id:'config', icon:'⚙️', label:'Configurações' },
+  ],
+  admin_hotel: [
+    { section:'Administração' },
+    { id:'usuarios', icon:'👤', label:'Usuários' },
+    { section:'Principal' },
+    { id:'dashboard', icon:'📊', label:'Dashboard' },
+    { id:'mapa', icon:'🗺️', label:'Mapa de Aptos' },
+    { id:'kanban', icon:'📋', label:'Kanban' },
+    { section:'Operação' },
+    { id:'chamados', icon:'🔔', label:'Chamados', badge:true },
+    { id:'equipe', icon:'👥', label:'Equipe' },
+    { section:'Cadastros' },
+    { id:'cadastro-apto', icon:'🏠', label:'Apartamentos' },
+    { section:'Análise' },
+    { id:'relatorios', icon:'📈', label:'Relatórios' },
+    { section:'Sistema' },
+    { id:'config', icon:'⚙️', label:'Configurações' },
+  ],
+  gestor: [
+    { section:'Principal' },
+    { id:'dashboard', icon:'📊', label:'Dashboard' },
+    { id:'mapa', icon:'🗺️', label:'Mapa de Aptos' },
+    { id:'kanban', icon:'📋', label:'Kanban' },
+    { section:'Operação' },
+    { id:'chamados', icon:'🔔', label:'Chamados', badge:true },
+    { id:'equipe', icon:'👥', label:'Equipe' },
+    { section:'Análise' },
+    { id:'relatorios', icon:'📈', label:'Relatórios' },
+  ],
+  camareira: [
+    { section:'Meu Turno' },
+    { id:'app-camareira', icon:'🧹', label:'Meus Aptos' },
+    { id:'mapa', icon:'🗺️', label:'Mapa Geral' },
+  ],
+};
+
+function buildSidebar() {
+  const items = NAV_ITEMS[currentUser.perfil] || NAV_ITEMS.gestor;
+  const openCount = chamados.filter(c => c.status === 'aberto').length;
+  let html = '';
+  items.forEach(item => {
+    if (item.section) {
+      html += `<div class="nav-section">${item.section}</div>`;
+    } else {
+      html += `<div class="nav-item" id="nav-${item.id}" onclick="openPage('${item.id}')">
+        <span class="nav-icon">${item.icon}</span>
+        <span>${item.label}</span>
+        ${item.badge && openCount > 0 ? `<span class="nav-badge">${openCount}</span>` : ''}
+      </div>`;
+    }
+  });
+  document.getElementById('sidebar-nav').innerHTML = html;
+}
+
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('overlay-bg').classList.add('open');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay-bg').classList.remove('open');
+}
+
+// ============ PAGES ============
+const PAGE_TITLES = {
+  hoteis:'Hotéis Cadastrados', usuarios:'Usuários do Sistema',
+  dashboard:'Dashboard — Visão Geral', mapa:'Mapa de Apartamentos', kanban:'Kanban de Limpeza',
+  chamados:'Chamados de Limpeza', 'cadastro-apto':'Cadastro de Apartamentos',
+  equipe:'Equipe de Governança', relatorios:'Relatórios & Analytics',
+  config:'Configurações', 'app-camareira':'Meus Apartamentos',
+};
+
+function openPage(id) {
+  // Proteção de rota por perfil
+  if (!canAccess(id)) {
+    if (typeof _showPageDenied === 'function') _showPageDenied(id);
+    else toast('Acesso não permitido para o seu perfil', 'error');
+    return;
+  }
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const page = document.getElementById('page-' + id);
+  if (page) page.classList.add('active');
+  const nav = document.getElementById('nav-' + id);
+  if (nav) nav.classList.add('active');
+  document.getElementById('topbar-title').textContent = PAGE_TITLES[id] || id;
+  currentPage = id;
+  closeSidebar();
+
+  if (id === 'hoteis')        renderHoteis();
+  if (id === 'usuarios')      renderUsuarios();
+  if (id === 'dashboard')     renderDashboard();
+  if (id === 'mapa')          renderMapa();
+  if (id === 'kanban')        renderKanban();
+  if (id === 'chamados')      renderChamados();
+  if (id === 'cadastro-apto') renderApartamentos();
+  if (id === 'equipe')        renderEquipe();
+  if (id === 'relatorios')    renderRelatorios();
+  if (id === 'config')        renderConfig();
+  if (id === 'app-camareira') renderAppCamareira();
+}
+
+// ============ DASHBOARD ============
+function renderDashboard() {
+  const total   = aptos.length;
+  const livre   = aptos.filter(a => a.status === 'livre').length;
+  const sujo    = aptos.filter(a => a.status === 'sujo').length;
+  const limpando= aptos.filter(a => a.status === 'limpando').length;
+  const abertos = chamados.filter(c => c.status === 'aberto').length;
+
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-card s-blue"><div class="stat-label">Total aptos</div><div class="stat-value">${total}</div><div class="stat-sub">unidades cadastradas</div></div>
+    <div class="stat-card s-green"><div class="stat-label">Livres</div><div class="stat-value">${livre}</div><div class="stat-sub">disponíveis agora</div></div>
+    <div class="stat-card s-orange"><div class="stat-label">A limpar</div><div class="stat-value">${sujo}</div><div class="stat-sub">aguardando limpeza</div></div>
+    <div class="stat-card s-blue"><div class="stat-label">Em limpeza</div><div class="stat-value">${limpando}</div></div>
+    <div class="stat-card s-red"><div class="stat-label">Chamados abertos</div><div class="stat-value">${abertos}</div></div>
+    <div class="stat-card s-purple"><div class="stat-label">Equipe ativa</div><div class="stat-value">${equipe.filter(e=>e.status==='ativo').length}</div></div>`;
+
+  const statuses = ['livre','sujo','limpando','conferencia','bloqueado','ocupado','manutencao'];
+  const labels   = {livre:'Livre',sujo:'Sujo',limpando:'Limpando',conferencia:'Conferência',bloqueado:'Bloqueado',ocupado:'Ocupado',manutencao:'Manutenção'};
+  const colors   = {livre:'#27ae60',sujo:'#e67e22',limpando:'#2e86c1',conferencia:'#8e44ad',bloqueado:'#c0392b',ocupado:'#7f8c8d',manutencao:'#f1c40f'};
+  let chartHtml  = '';
+  statuses.forEach(s => {
+    const count = aptos.filter(a => a.status === s).length;
+    const pct   = Math.round((count/total)*100);
+    if (count > 0) chartHtml += `
+      <div style="margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+          <span style="color:var(--text2);font-weight:600;">${labels[s]}</span>
+          <span style="font-weight:700;">${count} <span style="color:var(--text3);font-weight:400;">(${pct}%)</span></span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${colors[s]};"></div></div>
+      </div>`;
+  });
+  document.getElementById('dash-status-chart').innerHTML = chartHtml;
+
+  let chamHtml = '';
+  chamados.filter(c => c.status !== 'concluido').slice(0,4).forEach(c => {
+    chamHtml += `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f5f5f5;">
+      <span class="badge badge-${c.prioridade}">${c.prioridade}</span>
+      <div style="flex:1;"><div style="font-size:13px;font-weight:600;">Apto ${c.apto}</div><div style="font-size:11px;color:var(--text2);">${c.tipo}</div></div>
+      <span class="badge badge-${c.status}">${c.status}</span>
+    </div>`;
+  });
+  document.getElementById('dash-chamados-list').innerHTML = chamHtml || '<p style="font-size:13px;color:var(--text3);padding:12px 0;">Nenhum chamado aberto 🎉</p>';
+
+  const activities = [
+    { time:'11:45', icon:'🔔', msg:'Novo chamado aberto — Apto 210', who:'Recepção' },
+    { time:'11:20', icon:'✅', msg:'Apto 312 marcado como Livre', who:'Lúcia F.' },
+    { time:'10:55', icon:'🧹', msg:'Limpeza iniciada no Apto 203', who:'Ana Paula' },
+    { time:'10:30', icon:'🔔', msg:'Chamado urgente aberto — Apto 101', who:'Recepção' },
+  ];
+  document.getElementById('dash-activity').innerHTML = activities.map(a =>
+    `<div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid #f8f8f8;align-items:flex-start;">
+      <span style="font-size:16px;">${a.icon}</span>
+      <div style="flex:1;"><div style="font-size:13px;">${a.msg}</div><div style="font-size:11px;color:var(--text3);margin-top:2px;">${a.time} · ${a.who}</div></div>
+    </div>`).join('');
+}
+
+function refreshDash() { renderDashboard(); toast('Dashboard atualizado'); }
+
+// ============ MAPA ============
+function renderMapa() {
+  const andares = [...new Set(aptos.map(a => a.andar))].sort((a,b) => a-b);
+  let html = '';
+  andares.forEach(andar => {
+    const list = aptos.filter(a => a.andar === andar && (filterMapaStatus === 'todos' || a.status === filterMapaStatus));
+    if (!list.length) return;
+    html += `<div class="floor-section">
+      <div class="floor-label">🏢 ${andar}º Andar — ${list.length} aptos</div>
+      <div class="aptos-grid">`;
+    list.forEach(a => {
+      const icons = {livre:'✅',sujo:'🧺',limpando:'🧹',conferencia:'🔍',bloqueado:'🔒',ocupado:'🏠',manutencao:'🔧'};
+      html += `<div class="apto-card ${a.status}" onclick="openAptoDetail(${a.id})">
+        ${a.prioridade ? '<div class="apto-priority"></div>' : ''}
+        <div class="apto-status-icon">${icons[a.status]||'❓'}</div>
+        <div class="apto-num">${a.numero}</div>
+        <div class="apto-tipo">${a.tipo}</div>
+        <span class="badge badge-${a.status}" style="font-size:10px;">${a.status}</span>
+      </div>`;
+    });
+    html += '</div></div>';
+  });
+  document.getElementById('mapa-container').innerHTML = html || '<p style="color:var(--text3);text-align:center;padding:32px;">Nenhum apartamento encontrado</p>';
+  populateTsApto();
+}
+
+function filterMapa(status, btn) {
+  filterMapaStatus = status;
+  document.querySelectorAll('#mapa-filters .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderMapa();
+}
+
+function searchMapa(q) {
+  document.querySelectorAll('.apto-card').forEach(card => {
+    const num = card.querySelector('.apto-num').textContent;
+    card.style.display = num.includes(q) ? '' : 'none';
+  });
+}
+
+function openAptoDetail(id) {
+  selectedAptoId = id;
+  const apto = aptos.find(a => a.id === id);
+  if (!apto) return;
+  document.getElementById('detail-apto-title').textContent = `Apartamento ${apto.numero}`;
+  const cam = equipe.find(e => e.id === apto.camareira_id);
+  const icons = {livre:'✅',sujo:'🧺',limpando:'🧹',conferencia:'🔍',bloqueado:'🔒',ocupado:'🏠',manutencao:'🔧'};
+  const isCamareira = currentUser.perfil === 'camareira';
+  document.getElementById('detail-apto-body').innerHTML = `
+    <div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:200px;">
+        <div style="font-size:40px;text-align:center;padding:16px;background:var(--bg);border-radius:var(--radius);margin-bottom:12px;">${icons[apto.status]||'❓'}</div>
+        <div style="text-align:center;"><span class="badge badge-${apto.status}">${apto.status}</span></div>
+      </div>
+      <div style="flex:2;min-width:200px;">
+        <table style="width:100%;font-size:13px;">
+          <tr><td style="color:var(--text2);padding:4px 0;font-weight:600;">Andar</td><td>${apto.andar}º</td></tr>
+          <tr><td style="color:var(--text2);padding:4px 0;font-weight:600;">Tipo</td><td>${apto.tipo}</td></tr>
+          <tr><td style="color:var(--text2);padding:4px 0;font-weight:600;">Categoria</td><td>${apto.categoria}</td></tr>
+          <tr><td style="color:var(--text2);padding:4px 0;font-weight:600;">Leitos</td><td>${apto.leitos}</td></tr>
+          <tr><td style="color:var(--text2);padding:4px 0;font-weight:600;">Camareira</td><td>${cam ? cam.nome : '— não atribuído'}</td></tr>
+        </table>
+        ${apto.obs ? `<div style="margin-top:10px;padding:8px;background:var(--bg);border-radius:var(--radius-sm);font-size:12px;color:var(--text2);">${apto.obs}</div>` : ''}
+      </div>
+    </div>
+    <div>
+      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.4px;">Alterar status</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        ${['livre','sujo','limpando','conferencia','bloqueado','manutencao','ocupado'].map(s =>
+          `<button class="btn btn-xs ${apto.status===s?'btn-primary':'btn-ghost'}" onclick="mudarStatusApto(${id},'${s}')">${s}</button>`
+        ).join('')}
+      </div>
+    </div>`;
+  document.getElementById('detail-btn-iniciar').style.display = apto.status === 'sujo' ? '' : 'none';
+  document.getElementById('detail-btn-concluir').style.display = apto.status === 'limpando' ? '' : 'none';
+  openModal('modal-apto-detail');
+}
+
+function mudarStatusApto(id, novoStatus) {
+  const apto = aptos.find(a => a.id === id);
+  if (apto) { apto.status = novoStatus; toast(`Apto ${apto.numero} → ${novoStatus}`, 'success'); }
+  closeModal('modal-apto-detail');
+  if (currentPage === 'mapa') renderMapa();
+  if (currentPage === 'kanban') renderKanban();
+  if (currentPage === 'dashboard') renderDashboard();
+  if (currentPage === 'app-camareira') renderAppCamareira();
+}
+
+function iniciarLimpeza() { mudarStatusApto(selectedAptoId, 'limpando'); }
+function concluirLimpeza() { mudarStatusApto(selectedAptoId, 'conferencia'); }
+
+function salvarTrocarStatus() {
+  const aptoNum = document.getElementById('ts-apto').value;
+  const novoStatus = document.getElementById('ts-status').value;
+  if (!aptoNum) { toast('Selecione um apartamento', 'error'); return; }
+  const apto = aptos.find(a => a.numero === aptoNum);
+  if (apto) apto.status = novoStatus;
+  closeModal('modal-trocar-status');
+  toast(`Apto ${aptoNum} → ${novoStatus}`, 'success');
+  if (currentPage === 'mapa') renderMapa();
+  if (currentPage === 'kanban') renderKanban();
+}
+
+// ============ KANBAN ============
+function renderKanban() {
+  const cols = [
+    { key:'sujo', label:'A limpar', color:'#e67e22' },
+    { key:'limpando', label:'Limpando', color:'#2e86c1' },
+    { key:'conferencia', label:'Conferência', color:'#8e44ad' },
+    { key:'livre', label:'Livre', color:'#27ae60' },
+    { key:'manutencao', label:'Manutenção', color:'#f1c40f' },
+  ];
+  let html = '';
+  cols.forEach(col => {
+    const items = aptos.filter(a => a.status === col.key);
+    html += `<div class="kanban-col">
+      <div class="kanban-col-title" style="color:${col.color};">${col.label} <span class="kanban-count">${items.length}</span></div>`;
+    items.forEach(a => {
+      const cam = equipe.find(e => e.id === a.camareira_id);
+      html += `<div class="kanban-item" onclick="openAptoDetail(${a.id})">
+        <div class="kanban-apto">${a.numero}</div>
+        <div class="kanban-detail">${a.tipo} · ${a.andar}º andar</div>
+        ${cam ? `<div style="font-size:11px;color:var(--text3);margin-top:4px;">👤 ${cam.nome.split(' ')[0]}</div>` : ''}
+        ${a.prioridade ? '<div style="font-size:10px;font-weight:700;color:var(--danger);margin-top:2px;">⚠️ PRIORIDADE</div>' : ''}
+      </div>`;
+    });
+    html += '</div>';
+  });
+  document.getElementById('kanban-board').innerHTML = html;
+}
+
+// ============ CHAMADOS ============
+function renderChamados() {
+  ['todos','abertos','andamento','concluidos'].forEach(tab => {
+    let filtered = chamados;
+    if (tab === 'abertos')    filtered = chamados.filter(c => c.status === 'aberto');
+    if (tab === 'andamento')  filtered = chamados.filter(c => c.status === 'andamento');
+    if (tab === 'concluidos') filtered = chamados.filter(c => c.status === 'concluido');
+    const el = document.getElementById('chamados-list-' + tab);
+    if (!el) return;
+    if (!filtered.length) { el.innerHTML = '<p style="color:var(--text3);text-align:center;padding:24px;">Nenhum chamado nesta categoria.</p>'; return; }
+    el.innerHTML = filtered.map(c => {
+      const cam = equipe.find(e => e.id === c.camareira_id);
+      const isCamareira = currentUser.perfil === 'camareira';
+      return `<div class="chamado-card ${c.prioridade}">
+        <div class="chamado-header">
+          <div class="chamado-title">Apto ${c.apto} — ${c.tipo}</div>
+          <div style="display:flex;gap:6px;">
+            <span class="badge badge-${c.prioridade}">${c.prioridade}</span>
+            <span class="badge badge-${c.status}">${c.status}</span>
+          </div>
+        </div>
+        <div style="font-size:13px;color:var(--text);">${c.desc}</div>
+        <div class="chamado-meta">
+          <span>🕐 ${c.criado}</span>
+          <span>📌 ${c.solicitante}</span>
+          ${c.hospede ? `<span>👤 ${c.hospede}</span>` : ''}
+          ${cam ? `<span>🧹 ${cam.nome.split(' ')[0]}</span>` : '<span style="color:var(--danger);">⚠️ Sem camareira</span>'}
+        </div>
+        ${!isCamareira ? `<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
+          ${c.status === 'aberto' ? `<button class="btn btn-primary btn-xs" onclick="mudarChamado(${c.id},'andamento')">▶ Iniciar</button>` : ''}
+          ${c.status === 'andamento' ? `<button class="btn btn-success btn-xs" onclick="mudarChamado(${c.id},'concluido')">✓ Concluir</button>` : ''}
+          ${c.status !== 'concluido' && c.status !== 'cancelado' ? `<button class="btn btn-danger btn-xs" onclick="mudarChamado(${c.id},'cancelado')">✕ Cancelar</button>` : ''}
+        </div>` : ''}
+      </div>`;
+    }).join('');
+  });
+}
+
+function mudarChamado(id, novoStatus) {
+  const c = chamados.find(x => x.id === id);
+  if (c) c.status = novoStatus;
+  renderChamados();
+  buildSidebar();
+  toast(`Chamado #${id} → ${novoStatus}`, 'success');
+}
+
+function salvarNovoChamado() {
+  const apto = document.getElementById('nc-apto').value;
+  const tipo = document.getElementById('nc-tipo').value;
+  const prioridade = document.getElementById('nc-prioridade').value;
+  const solicitante = document.getElementById('nc-solicitante').value;
+  const desc = document.getElementById('nc-desc').value;
+  const hospede = document.getElementById('nc-hospede').value;
+  const camId = document.getElementById('nc-camareira').value;
+  const prazo = document.getElementById('nc-prazo').value;
+  if (!apto) { toast('Selecione o apartamento', 'error'); return; }
+  const now = new Date();
+  chamados.unshift({
+    id:chamados.length+1, apto, tipo:tipo.replace(/_/g,' '), prioridade, status:'aberto',
+    solicitante, hospede, desc, camareira_id:camId ? parseInt(camId) : null, prazo,
+    criado:now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}), criado_por:currentUser.nome
+  });
+  closeModal('modal-novo-chamado');
+  toast('Chamado aberto com sucesso!', 'success');
+  renderChamados();
+  buildSidebar();
+}
+
+// ============ CADASTRO APTOS ============
+function renderCadastroTable(filter='') {
+  let list = aptos;
+  if (filter) list = list.filter(a => a.numero.includes(filter) || String(a.andar).includes(filter));
+  const tbody = document.getElementById('cadastro-table-body');
+  if (!tbody) return;
+  tbody.innerHTML = list.map(a => {
+    const cam = equipe.find(e => e.id === a.camareira_id);
+    return `<tr>
+      <td><strong>${a.numero}</strong></td>
+      <td>${a.andar}º Andar</td>
+      <td>${a.tipo}</td>
+      <td><span class="badge" style="background:#eef;color:#556;">${a.categoria}</span></td>
+      <td>${a.leitos} leitos</td>
+      <td><span class="badge badge-${a.status}">${a.status}</span></td>
+      <td>${cam ? cam.nome.split(' ')[0]+' '+cam.nome.split(' ')[1] : '<span style="color:var(--text3);">—</span>'}</td>
+      <td>
+        <button class="btn btn-ghost btn-xs" onclick="editarApto(${a.id})">✏️</button>
+        <button class="btn btn-ghost btn-xs" onclick="openAptoDetail(${a.id})">👁</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function searchAptos(q) { renderCadastroTable(q); }
+
+function editarApto(id) {
+  const a = aptos.find(x => x.id === id);
+  if (!a) return;
+  document.getElementById('ca-edit-id').value = id;
+  document.getElementById('ca-numero').value = a.numero;
+  document.getElementById('ca-andar').value = a.andar;
+  document.getElementById('ca-leitos').value = a.leitos;
+  document.getElementById('ca-tipo').value = a.tipo;
+  document.getElementById('ca-categoria').value = a.categoria;
+  document.getElementById('ca-status').value = a.status;
+  document.getElementById('ca-camareira').value = a.camareira_id || '';
+  document.getElementById('ca-obs').value = a.obs || '';
+  document.getElementById('modal-cadastro-apto-title').textContent = 'Editar Apartamento ' + a.numero;
+  openModal('modal-cadastro-apto');
+}
+
+function salvarCadastroApto() {
+  const editId   = document.getElementById('ca-edit-id').value;
+  const numero   = document.getElementById('ca-numero').value.trim();
+  const andar    = parseInt(document.getElementById('ca-andar').value);
+  const leitos   = parseInt(document.getElementById('ca-leitos').value);
+  const tipo     = document.getElementById('ca-tipo').value;
+  const categoria= document.getElementById('ca-categoria').value;
+  const status   = document.getElementById('ca-status').value;
+  const camId    = document.getElementById('ca-camareira').value;
+  const obs      = document.getElementById('ca-obs').value;
+  if (!numero) { toast('Informe o número do apto', 'error'); return; }
+  if (editId) {
+    const a = aptos.find(x => x.id === parseInt(editId));
+    if (a) Object.assign(a, { numero, andar, leitos, tipo, categoria, status, camareira_id:camId ? parseInt(camId) : null, obs });
+    toast('Apartamento atualizado!', 'success');
+  } else {
+    aptos.push({ id:aptos.length+1, numero, andar, tipo, categoria, status, leitos, camareira_id:camId ? parseInt(camId) : null, obs, prioridade:false });
+    toast('Apartamento cadastrado!', 'success');
+  }
+  document.getElementById('ca-edit-id').value = '';
+  document.getElementById('modal-cadastro-apto-title').textContent = 'Cadastrar Apartamento';
+  closeModal('modal-cadastro-apto');
+  renderCadastroTable();
+}
+
+// ============ EQUIPE ============
+function renderEquipe() {
+  const statusMap = { ativo:'✅ Ativo', ferias:'🌴 Férias', afastado:'🏥 Afastado', inativo:'❌ Inativo' };
+  document.getElementById('eq-total').textContent = equipe.length;
+  document.getElementById('eq-turno').textContent = equipe.filter(e => e.status === 'ativo').length;
+  document.getElementById('equipe-table-body').innerHTML = equipe.map(e => `
+    <tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="user-avatar av-${e.avId}" style="width:28px;height:28px;font-size:11px;">${e.nome.split(' ').map(n=>n[0]).slice(0,2).join('')}</div>
+          <div><div style="font-weight:600;">${e.nome}</div></div>
+        </div>
+      </td>
+      <td>${e.cargo}</td>
+      <td>${e.andar !== 'Todos' ? e.andar+'º Andar' : 'Todos'}</td>
+      <td>${e.turno}</td>
+      <td><strong>${e.aptos_hoje}</strong> aptos</td>
+      <td><span class="badge ${e.status==='ativo'?'badge-livre':e.status==='ferias'?'badge-conferencia':'badge-bloqueado'}">${statusMap[e.status]||e.status}</span></td>
+      <td><button class="btn btn-ghost btn-xs" onclick="toast('Editar em breve...')">✏️</button></td>
+    </tr>`).join('');
+}
+
+function salvarNovoMembro() {
+  const nome = document.getElementById('nm-nome').value.trim();
+  if (!nome) { toast('Informe o nome', 'error'); return; }
+  equipe.push({
+    id:equipe.length+1, nome, cargo:document.getElementById('nm-cargo').value,
+    andar:document.getElementById('nm-andar').value || 'Todos',
+    turno:document.getElementById('nm-turno').value, status:'ativo', aptos_hoje:0, avId:(equipe.length%6)+1
+  });
+  closeModal('modal-novo-membro');
+  toast(nome+' adicionado(a) à equipe!','success');
+  renderEquipe();
+  populateSelects();
+}
+
+// ============ RELATÓRIOS ============
+function renderRelatorios() {
+  const dias = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+  const vals = [32,38,29,41,45,22,15];
+  const max  = Math.max(...vals);
+  let barsHtml = '', labelsHtml = '';
+  vals.forEach((v,i) => {
+    const h = Math.round((v/max)*72);
+    barsHtml  += `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="font-size:10px;color:var(--text2);">${v}</div><div class="mini-bar" style="height:${h}px;width:100%;"></div></div>`;
+    labelsHtml += `<div class="mini-bar-label" style="flex:1;text-align:center;">${dias[i]}</div>`;
+  });
+  document.getElementById('chart-week').innerHTML = barsHtml;
+  document.getElementById('chart-week-labels').innerHTML = labelsHtml;
+
+  const statDist = [
+    {label:'Livre',count:12,color:'#27ae60'},{label:'Sujo',count:8,color:'#e67e22'},
+    {label:'Limpando',count:5,color:'#2e86c1'},{label:'Conferência',count:3,color:'#8e44ad'},
+  ];
+  const tot = statDist.reduce((a,b)=>a+b.count,0);
+  document.getElementById('rel-status-dist').innerHTML = statDist.map(s => `
+    <div style="margin-bottom:7px;">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px;">
+        <span style="color:var(--text2);">${s.label}</span><span style="font-weight:700;">${s.count}</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${Math.round((s.count/tot)*100)}%;background:${s.color};"></div></div>
+    </div>`).join('');
+
+  const ranking = [{nome:'Ana Paula S.',aptos:14},{nome:'Maria Santos',aptos:12},{nome:'Carla Mendes',aptos:9}];
+  document.getElementById('rel-ranking').innerHTML = ranking.map((r,i) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #f5f5f5;">
+      <div style="width:22px;height:22px;border-radius:50%;background:${i<3?'var(--warning)':'var(--border)'};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:${i<3?'white':'var(--text2)'};">${i+1}</div>
+      <div style="flex:1;font-size:13px;">${r.nome}</div>
+      <div style="font-size:13px;font-weight:700;">${r.aptos} aptos</div>
+    </div>`).join('');
+
+  document.getElementById('rel-chamados-tipo').innerHTML = ['Limpeza geral','Troca de roupa','Reposição','Urgente','Inspeção'].map((t,i) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f5f5f5;">
+      <span style="font-size:13px;">${t}</span>
+      <span class="badge badge-andamento">${[18,11,9,5,7][i]}</span>
+    </div>`).join('');
+}
+
+// ============ CONFIG ============
+function renderConfig() {
+  const tipos = ['Limpeza geral','Troca de roupa de cama','Reposição de amenidades','Limpeza urgente','Inspeção pós-checkout'];
+  document.getElementById('config-tipos-chamado').innerHTML = tipos.map(t => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f5f5f5;">
+      <span style="font-size:13px;">${t}</span>
+      <button class="btn btn-ghost btn-xs">✏️</button>
+    </div>`).join('');
+}
+
+// ============ APP CAMAREIRA ============
+function renderAppCamareira() {
+  document.getElementById('app-camareira-nome').textContent = currentUser.nome;
+  const meus = aptos.filter(a => a.camareira_id === 1); // Em Etapa 4, filtrar por ID real
+  const aLimpar   = meus.filter(a => a.status === 'sujo').length;
+  const limpando  = meus.filter(a => a.status === 'limpando').length;
+  const concluidos= meus.filter(a => ['livre','conferencia'].includes(a.status)).length;
+  document.getElementById('app-a-limpar').textContent  = aLimpar;
+  document.getElementById('app-limpando').textContent  = limpando;
+  document.getElementById('app-concluidos').textContent= concluidos;
+  document.getElementById('app-aptos-count').textContent= `${meus.length} aptos atribuídos`;
+
+  const icons = {livre:'✅',sujo:'🧺',limpando:'🧹',conferencia:'🔍',bloqueado:'🔒',ocupado:'🏠',manutencao:'🔧'};
+  document.getElementById('app-apto-list').innerHTML = meus.map(a => `
+    <div class="apto-card-app ${a.status}" onclick="abrirChecklistApp(${a.id})">
+      <div>
+        <div class="app-apto-num">${a.numero}</div>
+        <div class="app-apto-info">${a.tipo} · ${a.andar}º andar</div>
+        <div style="margin-top:4px;"><span class="badge badge-${a.status}">${a.status}</span></div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:28px;">${icons[a.status]||'❓'}</div>
+        ${a.status==='sujo'?'<div style="font-size:11px;color:var(--warning);font-weight:700;margin-top:4px;">TAP PARA INICIAR</div>':''}
+        ${a.status==='limpando'?'<div style="font-size:11px;color:var(--info);font-weight:700;margin-top:4px;">EM ANDAMENTO</div>':''}
+      </div>
+    </div>`).join('');
+}
+
+const CHECKLIST_PADRAO = [
+  'Retirar roupas de cama usadas','Limpar e desinfetar banheiro','Repor toalhas e amenidades',
+  'Aspirar/varrer o piso','Passar pano no piso','Limpar mesa e superfícies','Arrumar as camas',
+  'Limpar espelhos e vidros','Esvaziar lixeiras','Verificar funcionamento TV e AR',
+  'Repor água e cafezinho','Verificar frigobar','Organizar cabides e armário','Foto final do quarto',
+];
+
+function abrirChecklistApp(id) {
+  selectedAptoId = id;
+  const apto = aptos.find(a => a.id === id);
+  if (!apto) return;
+  document.getElementById('checklist-title').textContent = `Limpeza — Apto ${apto.numero}`;
+  checklistState = CHECKLIST_PADRAO.map(item => ({ label:item, done:false }));
+  if (apto.status === 'sujo') apto.status = 'limpando';
+  renderChecklist();
+  openModal('modal-checklist');
+  renderAppCamareira();
+}
+
+function renderChecklist() {
+  const done  = checklistState.filter(i => i.done).length;
+  const total = checklistState.length;
+  const pct   = Math.round((done/total)*100);
+  document.getElementById('checklist-progress').innerHTML = `
+    <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+      <span style="font-weight:600;">Progresso: ${done}/${total} itens</span>
+      <span style="color:var(--accent);font-weight:700;">${pct}%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;"></div></div>`;
+  document.getElementById('checklist-items').innerHTML = checklistState.map((item,i) => `
+    <li class="checklist-item">
+      <div class="check-circle ${item.done?'done':''}" onclick="toggleCheck(${i})">${item.done?'✓':''}</div>
+      <span style="${item.done?'text-decoration:line-through;color:var(--text3);':''}">${item.label}</span>
+    </li>`).join('');
+}
+
+function toggleCheck(i) { checklistState[i].done = !checklistState[i].done; renderChecklist(); }
+function pausarLimpezaChecklist() { closeModal('modal-checklist'); toast('Limpeza pausada — pode continuar depois'); }
+
+function concluirChecklist() {
+  const done = checklistState.filter(i => i.done).length;
+  if (done < checklistState.length * 0.8) { toast('Complete pelo menos 80% dos itens', 'error'); return; }
+  const apto = aptos.find(a => a.id === selectedAptoId);
+  if (apto) apto.status = 'conferencia';
+  closeModal('modal-checklist');
+  toast(`Apto ${apto.numero} enviado para conferência! ✅`, 'success');
+  renderAppCamareira();
+}
+
+// ============ SELECTS ============
+function populateSelects() {
+  ['ts-apto','nc-apto'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = '<option value="">Selecionar...</option>' + aptos.map(a => `<option value="${a.numero}">${a.numero} — ${a.tipo}</option>`).join('');
+  });
+  ['nc-camareira','ca-camareira'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = '<option value="">Não atribuído</option>' + equipe.filter(e => ['Camareira','Auxiliar de Limpeza'].includes(e.cargo)).map(e => `<option value="${e.id}">${e.nome}</option>`).join('');
+  });
+  const prazoEl = document.getElementById('nc-prazo');
+  if (prazoEl) { const d = new Date(); d.setHours(d.getHours()+2); prazoEl.value = d.toISOString().slice(0,16); }
+}
+
+function populateTsApto() {
+  const el = document.getElementById('ts-apto');
+  if (!el) return;
+  el.innerHTML = '<option value="">Selecionar...</option>' + aptos.map(a => `<option value="${a.numero}">${a.numero} — ${a.tipo}</option>`).join('');
+}
+
+// ============ MODAL ============
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+// ============ TABS ============
+function switchTab(tabId) {
+  const parent = document.getElementById(tabId).closest('.page') || document;
+  parent.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  parent.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ============ TOAST ============
+function toast(msg, type='') {
+  const el = document.getElementById('toast-msg');
+  el.textContent = msg;
+  el.className = 'toast show' + (type ? ' '+type : '');
+  setTimeout(() => el.classList.remove('show'), 3200);
+}
+
+// ============ NOVA AÇÃO RÁPIDA ============
+function novaAcaoRapida() {
+  if (currentPage === 'chamados')      openModal('modal-novo-chamado');
+  else if (currentPage === 'cadastro-apto') openModal('modal-cadastro-apto');
+  else if (currentPage === 'equipe')   openModal('modal-novo-membro');
+  else openModal('modal-novo-chamado');
+}
+
+// ============ INICIALIZAÇÃO ============
+// Ocultar loading e verificar sessão
+document.addEventListener('DOMContentLoaded', async () => {
+  await checkSession();
+  document.getElementById('loading-overlay').style.display = 'none';
+});
+</script>
+<script src="js/hotels.js"></script>
+<script src="js/apartments.js"></script>
+<script src="js/maids.js"></script>
+<script src="js/users.js"></script>
+<script src="js/permissions.js"></script>
+</body>
+</html>
