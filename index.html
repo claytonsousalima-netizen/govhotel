@@ -563,6 +563,7 @@ tr:last-child td { border-bottom: none; }
             <button class="btn btn-outline btn-sm" onclick="refreshDash()">↺ Atualizar</button>
           </div>
         </div>
+        <div id="dash-hotel-selector" style="display:none;"></div>
         <div class="stats-grid" id="stats-grid"></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
           <div class="card">
@@ -733,6 +734,7 @@ tr:last-child td { border-bottom: none; }
             <div class="page-subtitle">Produtividade, tempo médio e indicadores</div>
           </div>
         </div>
+        <div id="rel-hotel-selector" style="display:none;"></div>
         <div class="stats-grid">
           <div class="stat-card s-blue"><div class="stat-label">Aptos limpos hoje</div><div class="stat-value">34</div><div class="stat-sub">de 48 no turno</div></div>
           <div class="stat-card s-green"><div class="stat-label">Tempo médio limpeza</div><div class="stat-value">27min</div><div class="stat-sub">padrão: 30min</div></div>
@@ -1423,8 +1425,8 @@ tr:last-child td { border-bottom: none; }
 <!-- TOAST -->
 <div class="toast" id="toast-msg"></div>
 
-<script src="js/supabase-client.js?v=20260613e"></script>
-<script src="js/auth.js?v=20260613e"></script>
+<script src="js/supabase-client.js?v=20260613f"></script>
+<script src="js/auth.js?v=20260613f"></script>
 <script>
 // ============ STATE ============
 let currentPage = 'dashboard';
@@ -1672,62 +1674,8 @@ function openPage(id) {
 }
 
 // ============ DASHBOARD ============
-function renderDashboard() {
-  const total   = aptos.length;
-  const livre   = aptos.filter(a => a.status === 'livre').length;
-  const sujo    = aptos.filter(a => a.status === 'sujo').length;
-  const limpando= aptos.filter(a => a.status === 'limpando').length;
-  const abertos = chamados.filter(c => c.status === 'aberto').length;
-
-  document.getElementById('stats-grid').innerHTML = `
-    <div class="stat-card s-blue"><div class="stat-label">Total aptos</div><div class="stat-value">${total}</div><div class="stat-sub">unidades cadastradas</div></div>
-    <div class="stat-card s-green"><div class="stat-label">Livres</div><div class="stat-value">${livre}</div><div class="stat-sub">disponíveis agora</div></div>
-    <div class="stat-card s-orange"><div class="stat-label">A limpar</div><div class="stat-value">${sujo}</div><div class="stat-sub">aguardando limpeza</div></div>
-    <div class="stat-card s-blue"><div class="stat-label">Em limpeza</div><div class="stat-value">${limpando}</div></div>
-    <div class="stat-card s-red"><div class="stat-label">Chamados abertos</div><div class="stat-value">${abertos}</div></div>
-    <div class="stat-card s-purple"><div class="stat-label">Equipe ativa</div><div class="stat-value">${equipe.filter(e=>e.status==='ativo').length}</div></div>`;
-
-  const statuses = ['livre','sujo','limpando','conferencia','bloqueado','ocupado','manutencao'];
-  const labels   = {livre:'Livre',sujo:'Sujo',limpando:'Limpando',conferencia:'Conferência',bloqueado:'Bloqueado',ocupado:'Ocupado',manutencao:'Manutenção'};
-  const colors   = {livre:'#27ae60',sujo:'#e67e22',limpando:'#2e86c1',conferencia:'#8e44ad',bloqueado:'#c0392b',ocupado:'#7f8c8d',manutencao:'#f1c40f'};
-  let chartHtml  = '';
-  statuses.forEach(s => {
-    const count = aptos.filter(a => a.status === s).length;
-    const pct   = Math.round((count/total)*100);
-    if (count > 0) chartHtml += `
-      <div style="margin-bottom:8px;">
-        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
-          <span style="color:var(--text2);font-weight:600;">${labels[s]}</span>
-          <span style="font-weight:700;">${count} <span style="color:var(--text3);font-weight:400;">(${pct}%)</span></span>
-        </div>
-        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${colors[s]};"></div></div>
-      </div>`;
-  });
-  document.getElementById('dash-status-chart').innerHTML = chartHtml;
-
-  let chamHtml = '';
-  chamados.filter(c => c.status !== 'concluido').slice(0,4).forEach(c => {
-    chamHtml += `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f5f5f5;">
-      <span class="badge badge-${c.prioridade}">${c.prioridade}</span>
-      <div style="flex:1;"><div style="font-size:13px;font-weight:600;">Apto ${c.apto}</div><div style="font-size:11px;color:var(--text2);">${c.tipo}</div></div>
-      <span class="badge badge-${c.status}">${c.status}</span>
-    </div>`;
-  });
-  document.getElementById('dash-chamados-list').innerHTML = chamHtml || '<p style="font-size:13px;color:var(--text3);padding:12px 0;">Nenhum chamado aberto 🎉</p>';
-
-  const activities = [
-    { time:'11:45', icon:'🔔', msg:'Novo chamado aberto — Apto 210', who:'Recepção' },
-    { time:'11:20', icon:'✅', msg:'Apto 312 marcado como Livre', who:'Lúcia F.' },
-    { time:'10:55', icon:'🧹', msg:'Limpeza iniciada no Apto 203', who:'Ana Paula' },
-    { time:'10:30', icon:'🔔', msg:'Chamado urgente aberto — Apto 101', who:'Recepção' },
-  ];
-  document.getElementById('dash-activity').innerHTML = activities.map(a =>
-    `<div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid #f8f8f8;align-items:flex-start;">
-      <span style="font-size:16px;">${a.icon}</span>
-      <div style="flex:1;"><div style="font-size:13px;">${a.msg}</div><div style="font-size:11px;color:var(--text3);margin-top:2px;">${a.time} · ${a.who}</div></div>
-    </div>`).join('');
-}
-
+// renderDashboard e refreshDash gerenciados por dashboard.js
+function renderDashboard() {}
 function refreshDash() { renderDashboard(); toast('Dashboard atualizado'); }
 
 // ============ MAPA ============
@@ -2033,46 +1981,8 @@ function salvarNovoMembro() {
 }
 
 // ============ RELATÓRIOS ============
-function renderRelatorios() {
-  const dias = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
-  const vals = [32,38,29,41,45,22,15];
-  const max  = Math.max(...vals);
-  let barsHtml = '', labelsHtml = '';
-  vals.forEach((v,i) => {
-    const h = Math.round((v/max)*72);
-    barsHtml  += `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="font-size:10px;color:var(--text2);">${v}</div><div class="mini-bar" style="height:${h}px;width:100%;"></div></div>`;
-    labelsHtml += `<div class="mini-bar-label" style="flex:1;text-align:center;">${dias[i]}</div>`;
-  });
-  document.getElementById('chart-week').innerHTML = barsHtml;
-  document.getElementById('chart-week-labels').innerHTML = labelsHtml;
-
-  const statDist = [
-    {label:'Livre',count:12,color:'#27ae60'},{label:'Sujo',count:8,color:'#e67e22'},
-    {label:'Limpando',count:5,color:'#2e86c1'},{label:'Conferência',count:3,color:'#8e44ad'},
-  ];
-  const tot = statDist.reduce((a,b)=>a+b.count,0);
-  document.getElementById('rel-status-dist').innerHTML = statDist.map(s => `
-    <div style="margin-bottom:7px;">
-      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px;">
-        <span style="color:var(--text2);">${s.label}</span><span style="font-weight:700;">${s.count}</span>
-      </div>
-      <div class="progress-bar"><div class="progress-fill" style="width:${Math.round((s.count/tot)*100)}%;background:${s.color};"></div></div>
-    </div>`).join('');
-
-  const ranking = [{nome:'Ana Paula S.',aptos:14},{nome:'Maria Santos',aptos:12},{nome:'Carla Mendes',aptos:9}];
-  document.getElementById('rel-ranking').innerHTML = ranking.map((r,i) => `
-    <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #f5f5f5;">
-      <div style="width:22px;height:22px;border-radius:50%;background:${i<3?'var(--warning)':'var(--border)'};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:${i<3?'white':'var(--text2)'};">${i+1}</div>
-      <div style="flex:1;font-size:13px;">${r.nome}</div>
-      <div style="font-size:13px;font-weight:700;">${r.aptos} aptos</div>
-    </div>`).join('');
-
-  document.getElementById('rel-chamados-tipo').innerHTML = ['Limpeza geral','Troca de roupa','Reposição','Urgente','Inspeção'].map((t,i) => `
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f5f5f5;">
-      <span style="font-size:13px;">${t}</span>
-      <span class="badge badge-andamento">${[18,11,9,5,7][i]}</span>
-    </div>`).join('');
-}
+// renderRelatorios() gerenciada por relatorios.js
+function renderRelatorios() {}
 
 // ============ CONFIG ============
 // renderConfig() delegada para config.js (renderConfigPage)
@@ -2299,12 +2209,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('loading-overlay').style.display = 'none';
 });
 </script>
-<script src="js/hotels.js?v=20260613e"></script>
-<script src="js/apartments.js?v=20260613e"></script>
-<script src="js/maids.js?v=20260613e"></script>
-<script src="js/users.js?v=20260613e"></script>
-<script src="js/permissions.js?v=20260613e"></script>
-<script src="js/chamados.js?v=20260613e"></script>
-<script src="js/config.js?v=20260613e"></script>
+<script src="js/hotels.js?v=20260613f"></script>
+<script src="js/apartments.js?v=20260613f"></script>
+<script src="js/maids.js?v=20260613f"></script>
+<script src="js/users.js?v=20260613f"></script>
+<script src="js/permissions.js?v=20260613f"></script>
+<script src="js/chamados.js?v=20260613f"></script>
+<script src="js/config.js?v=20260613f"></script>
+<script src="js/dashboard.js?v=20260613f"></script>
+<script src="js/relatorios.js?v=20260613f"></script>
 </body>
 </html>

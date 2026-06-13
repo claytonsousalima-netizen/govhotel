@@ -71,20 +71,37 @@ async function _fetchChamados() {
       id, tipo, prioridade, status, solicitante, hospede, descricao, prazo, created_at,
       departamento, responsavel_user_id,
       hotel_id, hotels(nome),
-      apartment_id, apartments(numero),
-      maid_id, maids(nome)
+      apartment_id, apartments(numero)
     `)
     .order('created_at', { ascending: false });
 
-  // Perfil manutencao: ver apenas chamados do seu departamento atribuídos a ele
-  if (currentUser.perfil === 'manutencao') {
-    query = query.eq('departamento', 'manutencao').eq('responsavel_user_id', currentUser.id);
+  // Camareira e manutenção: apenas chamados atribuídos a eles
+  if (currentUser.perfil === 'camareira' || currentUser.perfil === 'manutencao') {
+    query = query.eq('responsavel_user_id', currentUser.id);
+  } else if (currentUser.perfil !== 'admin_global' && currentUser.hotelId) {
+    // gestor, admin_hotel: apenas o próprio hotel
+    query = query.eq('hotel_id', currentUser.hotelId);
   } else if (_chamadoHotelId) {
+    // admin_global com filtro selecionado
     query = query.eq('hotel_id', _chamadoHotelId);
   }
 
   const { data, error } = await query;
   if (error) { console.error('Chamados:', error.message); return; }
+
+  // Busca nomes dos responsáveis via user_profiles
+  const responsavelIds = [...new Set((data || [])
+    .filter(c => c.responsavel_user_id)
+    .map(c => c.responsavel_user_id))];
+
+  let responsavelMap = {};
+  if (responsavelIds.length) {
+    const { data: profiles } = await supabaseClient
+      .from('user_profiles')
+      .select('user_id, nome, perfil')
+      .in('user_id', responsavelIds);
+    (profiles || []).forEach(p => { responsavelMap[p.user_id] = p.nome; });
+  }
 
   _chamadosCache = (data || []).map(c => ({
     id:                  c.id,
@@ -98,8 +115,7 @@ async function _fetchChamados() {
     desc:                c.descricao || '',
     prazo:               c.prazo ? new Date(c.prazo).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '',
     criado:              new Date(c.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
-    camareira_id:        c.maid_id,
-    camareira:           c.maids?.nome || null,
+    camareira:           responsavelMap[c.responsavel_user_id] || null,
     departamento:        c.departamento || 'governanca',
     responsavel_user_id: c.responsavel_user_id,
     hotel_id:            c.hotel_id,
@@ -110,46 +126,36 @@ async function _fetchChamados() {
   chamados = _chamadosCache;
 }
 
-// ── POPULAR ATRIBUÍDOS (camareiras OU manutenção) ─────────────
+// ── POPULAR ATRIBUÍDOS (camareiras OU manutenção via user_profiles) ──
 async function _popularAtribuidosModal(departamento, hotelId) {
   const sel  = document.getElementById('nc-camareira');
   const hint = document.getElementById('nc-atribuir-hint');
   if (!sel) return;
 
-  if (departamento === 'manutencao') {
-    let q = supabaseClient.from('user_profiles')
-      .select('user_id, nome').eq('perfil','manutencao').eq('ativo', true).order('nome');
-    if (hotelId) q = q.eq('hotel_id', hotelId);
-    const { data } = await q;
-    if (!data || !data.length) {
-      sel.innerHTML = '<option value="">Nenhum técnico cadastrado</option>';
-      if (hint) {
-        hint.style.display = '';
-        hint.innerHTML = '⚠️ Nenhum usuário com perfil <strong>Manutenção</strong> cadastrado para este hotel. '
-          + '<a href="#" onclick="openPage(\'usuarios\');return false;" style="color:var(--primary);">Cadastrar agora →</a>';
-      }
-    } else {
-      sel.innerHTML = '<option value="">Não atribuído</option>' +
-        data.map(u=>`<option value="${u.user_id}">${u.nome}</option>`).join('');
-      if (hint) hint.style.display = 'none';
+  // Governança → camareiras; Manutenção → perfil manutenção
+  const perfil = departamento === 'manutencao' ? 'manutencao' : 'camareira';
+  const hId    = hotelId || currentUser.hotelId;
+
+  let q = supabaseClient.from('user_profiles')
+    .select('user_id, nome').eq('perfil', perfil).eq('ativo', true).order('nome');
+  if (hId) q = q.eq('hotel_id', hId);
+
+  const { data } = await q;
+
+  if (!data || !data.length) {
+    sel.innerHTML = `<option value="">Nenhum(a) ${perfil === 'camareira' ? 'camareira' : 'técnico'} cadastrado(a)</option>`;
+    if (hint) {
+      hint.style.display = '';
+      hint.innerHTML = perfil === 'camareira'
+        ? '⚠️ Nenhuma camareira cadastrada para este hotel. '
+          + '<a href="#" onclick="openPage(\'usuarios\');return false;" style="color:var(--primary);">Cadastrar em Usuários →</a>'
+        : '⚠️ Nenhum usuário com perfil <strong>Manutenção</strong> para este hotel. '
+          + '<a href="#" onclick="openPage(\'usuarios\');return false;" style="color:var(--primary);">Cadastrar em Usuários →</a>';
     }
   } else {
-    const hId = hotelId || currentUser.hotelId;
-    let q = supabaseClient.from('maids').select('id, nome').eq('status','ativo').order('nome');
-    if (hId) q = q.eq('hotel_id', hId);
-    const { data } = await q;
-    if (!data || !data.length) {
-      sel.innerHTML = '<option value="">Nenhuma camareira cadastrada</option>';
-      if (hint) {
-        hint.style.display = '';
-        hint.innerHTML = '⚠️ Nenhuma camareira cadastrada para este hotel. '
-          + '<a href="#" onclick="openPage(\'equipe\');return false;" style="color:var(--primary);">Ir para Equipe →</a>';
-      }
-    } else {
-      sel.innerHTML = '<option value="">Não atribuído</option>' +
-        data.map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');
-      if (hint) hint.style.display = 'none';
-    }
+    sel.innerHTML = '<option value="">Não atribuído</option>' +
+      data.map(u => `<option value="${u.user_id}">${u.nome}</option>`).join('');
+    if (hint) hint.style.display = 'none';
   }
 }
 
@@ -239,19 +245,17 @@ async function salvarNovoChamado() {
   const tipoNome       = _tiposChamado.find(t => t.id === tipoVal)?.nome || tipoVal;
   const prioridade     = document.getElementById('nc-prioridade')?.value || 'normal';
   const solicitante    = document.getElementById('nc-solicitante')?.value || '';
-  const atribuidoVal   = document.getElementById('nc-camareira')?.value || null;
-  const prazo          = document.getElementById('nc-prazo')?.value || null;
-  const descricao      = document.getElementById('nc-desc')?.value || '';
-  const hospede        = document.getElementById('nc-hospede')?.value || '';
+  const atribuidoVal        = document.getElementById('nc-camareira')?.value || null;
+  const prazo               = document.getElementById('nc-prazo')?.value || null;
+  const descricao           = document.getElementById('nc-desc')?.value || '';
+  const hospede             = document.getElementById('nc-hospede')?.value || '';
 
-  // Para governança: maid_id; para manutenção: responsavel_user_id
-  const maid_id             = departamento === 'governanca' ? (atribuidoVal || null) : null;
-  const responsavel_user_id = departamento === 'manutencao' ? (atribuidoVal || null) : null;
+  // Ambos os departamentos usam responsavel_user_id (user_profiles.user_id)
+  const responsavel_user_id = atribuidoVal || null;
 
   const { error } = await supabaseClient.from('work_orders').insert([{
     hotel_id,
     apartment_id:        apartment_id || null,
-    maid_id:             maid_id || null,
     responsavel_user_id: responsavel_user_id || null,
     departamento,
     tipo:                tipoNome,
