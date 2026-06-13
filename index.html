@@ -817,6 +817,24 @@ tr:last-child td { border-bottom: none; }
         </div>
       </div>
 
+      <!-- ====== VIEW MANUTENÇÃO ====== -->
+      <div class="page" id="page-app-manutencao">
+        <div style="max-width:480px;margin:0 auto;">
+          <div style="background:#2c3e50;color:white;padding:16px;border-radius:var(--radius);margin-bottom:16px;text-align:center;">
+            <div style="font-size:13px;opacity:0.8;margin-bottom:4px;">Manutenção —</div>
+            <div style="font-size:18px;font-weight:700;" id="app-manutencao-nome">—</div>
+            <div style="font-size:12px;opacity:0.7;margin-top:2px;" id="app-manutencao-sub">carregando chamados...</div>
+          </div>
+          <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
+            <div class="stat-card s-orange" style="padding:10px;"><div class="stat-label" style="font-size:10px;">Abertos</div><div class="stat-value" style="font-size:20px;" id="man-abertos">0</div></div>
+            <div class="stat-card s-blue" style="padding:10px;"><div class="stat-label" style="font-size:10px;">Em andamento</div><div class="stat-value" style="font-size:20px;" id="man-andamento">0</div></div>
+            <div class="stat-card s-green" style="padding:10px;"><div class="stat-label" style="font-size:10px;">Concluídos</div><div class="stat-value" style="font-size:20px;" id="man-concluidos">0</div></div>
+          </div>
+          <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Meus chamados</div>
+          <div id="app-manutencao-list"></div>
+        </div>
+      </div>
+
       <!-- ====== HOTÉIS (admin_global) ====== -->
       <div class="page" id="page-hoteis">
         <div class="page-header">
@@ -997,6 +1015,15 @@ tr:last-child td { border-bottom: none; }
           <div id="nc-hotel-label" style="font-size:13px;font-weight:600;padding:8px 0;border-bottom:1px solid var(--border);color:var(--text2);"></div>
         </div>
       </div>
+      <div class="form-row single">
+        <div class="field">
+          <label>Departamento</label>
+          <select id="nc-departamento" onchange="_onChangeDepartamento(this.value)">
+            <option value="governanca">🧹 Governança (Limpeza)</option>
+            <option value="manutencao">🔧 Manutenção</option>
+          </select>
+        </div>
+      </div>
       <div class="form-row">
         <div class="field"><label>Apartamento</label><select id="nc-apto"><option value="">Selecionar...</option></select></div>
         <div class="field"><label>Tipo de chamado</label>
@@ -1021,7 +1048,7 @@ tr:last-child td { border-bottom: none; }
         </div>
       </div>
       <div class="form-row">
-        <div class="field"><label>Atribuir para</label><select id="nc-camareira"><option value="">Não atribuído</option></select></div>
+        <div class="field"><label class="nc-atribuir-label">Atribuir para (Camareira)</label><select id="nc-camareira"><option value="">Não atribuído</option></select></div>
         <div class="field"><label>Prazo</label><input type="datetime-local" id="nc-prazo"></div>
       </div>
       <div class="form-row single">
@@ -1386,8 +1413,8 @@ tr:last-child td { border-bottom: none; }
 <!-- TOAST -->
 <div class="toast" id="toast-msg"></div>
 
-<script src="js/supabase-client.js?v=20260613c"></script>
-<script src="js/auth.js?v=20260613c"></script>
+<script src="js/supabase-client.js?v=20260613d"></script>
+<script src="js/auth.js?v=20260613d"></script>
 <script>
 // ============ STATE ============
 let currentPage = 'dashboard';
@@ -1446,7 +1473,9 @@ function startApp() {
   setTopbarDate();
   applyProfileRestrictions();
 
-  const startPage = currentUser.perfil === 'camareira' ? 'app-camareira' : 'dashboard';
+  const startPage = currentUser.perfil === 'camareira' ? 'app-camareira'
+    : currentUser.perfil === 'manutencao' ? 'app-manutencao'
+    : 'dashboard';
   openPage(startPage);
 
   document.dispatchEvent(new Event('govhotel:ready'));
@@ -1454,15 +1483,16 @@ function startApp() {
 
 // ============ RESTRIÇÕES DE PERFIL NO UI ============
 function applyProfileRestrictions() {
-  const isCamareira = currentUser.perfil === 'camareira';
+  const perfil = currentUser.perfil;
+  const isOperacional = perfil === 'camareira' || perfil === 'manutencao';
 
-  // Camareira não vê botão "+ Novo" na topbar
-  document.getElementById('btn-nova-acao').style.display = isCamareira ? 'none' : '';
+  // Camareira e Manutenção não vêem botão "+ Novo" na topbar
+  document.getElementById('btn-nova-acao').style.display = isOperacional ? 'none' : '';
 
-  // Mapa: ações de cadastro ocultas para camareira
+  // Mapa: ações de cadastro ocultas para operacionais
   const mapaActions = document.getElementById('mapa-header-actions');
   if (mapaActions) {
-    if (!isCamareira) {
+    if (!isOperacional) {
       mapaActions.innerHTML = `
         <button class="btn btn-ghost btn-sm" onclick="openPage('cadastro-apto')">⊕ Cadastrar Apto</button>
         <button class="btn btn-primary btn-sm" onclick="openModal('modal-trocar-status')">Alterar Status</button>`;
@@ -1472,9 +1502,9 @@ function applyProfileRestrictions() {
     }
   }
 
-  // Camareira não pode abrir novo chamado
+  // Manutenção não pode abrir novo chamado
   const btnChamado = document.getElementById('btn-novo-chamado');
-  if (btnChamado) btnChamado.style.display = isCamareira ? 'none' : '';
+  if (btnChamado) btnChamado.style.display = perfil === 'manutencao' ? 'none' : '';
 }
 
 // ============ USER UI ============
@@ -1554,6 +1584,13 @@ const NAV_ITEMS = {
     { section:'Operação' },
     { id:'chamados', icon:'🔔', label:'Chamados', badge:true },
   ],
+  manutencao: [
+    { section:'Manutenção' },
+    { id:'app-manutencao', icon:'🔧', label:'Meus Chamados' },
+    { id:'mapa', icon:'🗺️', label:'Mapa de Aptos' },
+    { section:'Operação' },
+    { id:'chamados', icon:'🔔', label:'Chamados', badge:true },
+  ],
 };
 
 function buildSidebar() {
@@ -1590,6 +1627,7 @@ const PAGE_TITLES = {
   chamados:'Chamados de Limpeza', 'cadastro-apto':'Cadastro de Apartamentos',
   equipe:'Equipe de Governança', relatorios:'Relatórios & Analytics',
   config:'Configurações', 'app-camareira':'Meus Apartamentos',
+  'app-manutencao':'Meus Chamados — Manutenção',
 };
 
 function openPage(id) {
@@ -1620,6 +1658,7 @@ function openPage(id) {
   if (id === 'relatorios')    renderRelatorios();
   if (id === 'config')        renderConfig();
   if (id === 'app-camareira') renderAppCamareira();
+  if (id === 'app-manutencao') renderAppManutencao();
 }
 
 // ============ DASHBOARD ============
@@ -2063,6 +2102,78 @@ function renderAppCamareira() {
     </div>`).join('');
 }
 
+// ============ APP MANUTENÇÃO ============
+async function renderAppManutencao() {
+  const nomeEl = document.getElementById('app-manutencao-nome');
+  const subEl  = document.getElementById('app-manutencao-sub');
+  const listEl = document.getElementById('app-manutencao-list');
+  if (nomeEl) nomeEl.textContent = currentUser.nome;
+
+  // Busca chamados de manutenção atribuídos ao usuário
+  const { data, error } = await supabaseClient
+    .from('work_orders')
+    .select('id, tipo, status, prioridade, descricao, prazo, created_at, apartments(numero), hotels(nome)')
+    .eq('departamento', 'manutencao')
+    .eq('responsavel_user_id', currentUser.id)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    if (listEl) listEl.innerHTML = `<div style="color:var(--danger);font-size:13px;">Erro: ${error.message}</div>`;
+    return;
+  }
+
+  const lista = data || [];
+  const abertos    = lista.filter(c => c.status === 'aberto').length;
+  const andamento  = lista.filter(c => c.status === 'andamento').length;
+  const concluidos = lista.filter(c => c.status === 'concluido').length;
+
+  if (subEl) subEl.textContent = `${lista.length} chamado${lista.length !== 1 ? 's' : ''} atribuído${lista.length !== 1 ? 's' : ''}`;
+  const elA = document.getElementById('man-abertos');
+  const elB = document.getElementById('man-andamento');
+  const elC = document.getElementById('man-concluidos');
+  if (elA) elA.textContent = abertos;
+  if (elB) elB.textContent = andamento;
+  if (elC) elC.textContent = concluidos;
+
+  if (!listEl) return;
+  if (!lista.length) {
+    listEl.innerHTML = `<div style="text-align:center;padding:32px;color:var(--text3);">Nenhum chamado atribuído.</div>`;
+    return;
+  }
+
+  const prioColor = { urgente:'var(--danger)', normal:'var(--warning)', baixa:'var(--success)' };
+  const statusLabel = { aberto:'Aberto', andamento:'Em andamento', concluido:'Concluído', cancelado:'Cancelado' };
+  listEl.innerHTML = lista.map(c => `
+    <div class="card" style="margin-bottom:10px;border-left:4px solid ${prioColor[c.prioridade]||'var(--border)'};">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:14px;">🔧 ${c.tipo}</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px;">
+            Apto ${c.apartments?.numero || '—'}${c.hotels?.nome ? ' · 🏨 ' + c.hotels.nome : ''}
+          </div>
+          ${c.descricao ? `<div style="font-size:12px;color:var(--text3);margin-top:4px;">${c.descricao}</div>` : ''}
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">
+          <span class="badge badge-${c.prioridade==='urgente'?'ocupado':c.prioridade==='baixa'?'livre':'limpando'}">${c.prioridade}</span>
+          <span class="badge" style="background:var(--surface2);">${statusLabel[c.status] || c.status}</span>
+          ${c.status !== 'concluido' && c.status !== 'cancelado'
+            ? `<button class="btn btn-ghost btn-xs" onclick="_avancarStatusManutencao('${c.id}','${c.status}')">✏️ Avançar</button>`
+            : ''}
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+async function _avancarStatusManutencao(id, statusAtual) {
+  const proximo = statusAtual === 'aberto' ? 'andamento' : 'concluido';
+  const label   = { andamento:'Em andamento', concluido:'Concluído' };
+  if (!confirm(`Marcar como "${label[proximo]}"?`)) return;
+  const { error } = await supabaseClient.from('work_orders').update({ status: proximo }).eq('id', id);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  toast(`Chamado atualizado: ${label[proximo]}`, 'success');
+  renderAppManutencao();
+}
+
 const CHECKLIST_PADRAO = [
   'Retirar roupas de cama usadas','Limpar e desinfetar banheiro','Repor toalhas e amenidades',
   'Aspirar/varrer o piso','Passar pano no piso','Limpar mesa e superfícies','Arrumar as camas',
@@ -2184,12 +2295,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('loading-overlay').style.display = 'none';
 });
 </script>
-<script src="js/hotels.js?v=20260613c"></script>
-<script src="js/apartments.js?v=20260613c"></script>
-<script src="js/maids.js?v=20260613c"></script>
-<script src="js/users.js?v=20260613c"></script>
-<script src="js/permissions.js?v=20260613c"></script>
-<script src="js/chamados.js?v=20260613c"></script>
-<script src="js/config.js?v=20260613c"></script>
+<script src="js/hotels.js?v=20260613d"></script>
+<script src="js/apartments.js?v=20260613d"></script>
+<script src="js/maids.js?v=20260613d"></script>
+<script src="js/users.js?v=20260613d"></script>
+<script src="js/permissions.js?v=20260613d"></script>
+<script src="js/chamados.js?v=20260613d"></script>
+<script src="js/config.js?v=20260613d"></script>
 </body>
 </html>

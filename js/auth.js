@@ -23,7 +23,7 @@ async function doLogin() {
   btnLogin.textContent = 'Entrar no Sistema';
 
   if (error) {
-    toast('E-mail ou senha incorretos', 'error');
+    toast('Usuário ou senha incorretos', 'error');
     return;
   }
 
@@ -59,14 +59,14 @@ async function loadSessionUser(authUser) {
   }
 
   currentUser = {
-    id:       authUser.id,
-    nome:     profile.nome,
-    email:    authUser.email,
-    perfil:   profile.perfil,          // admin_global | admin_hotel | gestor | camareira
-    hotelId:  profile.hotel_id,
+    id:        authUser.id,
+    nome:      profile.nome,
+    email:     authUser.email,
+    perfil:    profile.perfil,
+    hotelId:   profile.hotel_id,
     hotelNome: profile.hotels?.nome || null,
-    initials: profile.nome.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase(),
-    role:     PERFIL_LABELS[profile.perfil] || profile.perfil,
+    initials:  profile.nome.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase(),
+    role:      PERFIL_LABELS[profile.perfil] || profile.perfil,
   };
 
   startApp();
@@ -87,26 +87,20 @@ async function checkSession() {
     document.getElementById('login-screen').style.display = 'flex';
   }
 
-  // Listener para mudanças de sessão (ex: expiração do token)
   supabaseClient.auth.onAuthStateChange(async (event, session) => {
     if (event === 'SIGNED_OUT') {
       currentUser = null;
       document.getElementById('app').style.display = 'none';
       document.getElementById('login-screen').style.display = 'flex';
     }
-    if (event === 'TOKEN_REFRESHED') {
-      // sessão renovada automaticamente — sem ação necessária
-    }
   });
 }
 
 // ---------- TROCA DE SENHA OBRIGATÓRIA (primeiro acesso) ----------
 function _abrirTrocaSenhaObrigatoria() {
-  // Reutiliza o modal-senha mas bloqueia o fechamento
   const modal = document.getElementById('modal-senha');
   if (!modal) return;
 
-  // Adiciona aviso de primeiro acesso se ainda não existe
   if (!document.getElementById('aviso-primeiro-acesso')) {
     const body = modal.querySelector('.modal-body');
     const aviso = document.createElement('div');
@@ -116,7 +110,6 @@ function _abrirTrocaSenhaObrigatoria() {
     body.insertBefore(aviso, body.firstChild);
   }
 
-  // Impede fechar clicando fora ou pelo X
   modal.dataset.obrigatorio = 'true';
   const btnClose = modal.querySelector('.btn-close');
   if (btnClose) btnClose.style.display = 'none';
@@ -126,8 +119,8 @@ function _abrirTrocaSenhaObrigatoria() {
 
 // ---------- ALTERAR SENHA ----------
 async function changePassword() {
-  const nova      = document.getElementById('nova-senha').value;
-  const confirma  = document.getElementById('confirmar-senha').value;
+  const nova     = document.getElementById('nova-senha').value;
+  const confirma = document.getElementById('confirmar-senha').value;
 
   if (!nova || nova.length < 6) {
     toast('A senha deve ter pelo menos 6 caracteres', 'error'); return;
@@ -152,7 +145,6 @@ async function changePassword() {
   document.getElementById('nova-senha').value = '';
   document.getElementById('confirmar-senha').value = '';
 
-  // Remove flag de primeiro acesso, se presente
   const modal = document.getElementById('modal-senha');
   if (modal?.dataset.obrigatorio) {
     await supabaseClient.auth.updateUser({ data: { force_password_change: false } });
@@ -173,6 +165,7 @@ const PERFIL_LABELS = {
   admin_hotel:  'Admin do Hotel',
   gestor:       'Gestor',
   camareira:    'Camareira',
+  manutencao:   'Manutenção',
 };
 
 // ---------- PERMISSÕES POR PERFIL ----------
@@ -181,6 +174,7 @@ const PERFIL_PAGES = {
   admin_hotel:  ['usuarios','dashboard','mapa','kanban','chamados','equipe','cadastro-apto','relatorios','config'],
   gestor:       ['dashboard','mapa','kanban','chamados','equipe','relatorios'],
   camareira:    ['app-camareira','mapa','chamados'],
+  manutencao:   ['app-manutencao','mapa','chamados'],
 };
 
 function canAccess(page) {
