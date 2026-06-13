@@ -455,3 +455,77 @@ async function concluirChecklist() {
   toast(`Apto ${apto.numero} enviado para conferência! ✅`, 'success');
   renderAppCamareira();
 }
+
+// ── MAPA COM SELETOR DE HOTEL (admin_global) ──────────────────
+
+async function initMapaAdmin() {
+  const wrap = document.getElementById('mapa-hotel-selector');
+  if (!wrap) return;
+
+  if (currentUser.perfil !== 'admin_global') {
+    wrap.style.display = 'none';
+    // Para outros perfis, garante que o hotel correto está carregado
+    if (!aptos.length || aptos[0]?.hotel_id !== currentUser.hotelId) {
+      _aptoViewHotelId = currentUser.hotelId;
+      await syncApartamentos();
+    }
+    renderMapa();
+    return;
+  }
+
+  // Admin global: mostra seletor
+  wrap.style.display = '';
+  const { data: hotels } = await supabaseClient
+    .from('hotels').select('id, nome').eq('ativo', true).order('nome');
+
+  wrap.innerHTML = `
+    <div class="card" style="padding:10px 16px;margin-bottom:14px;">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <span style="font-size:13px;font-weight:600;color:var(--text2);">🏨 Hotel:</span>
+        <select id="mapa-hotel-select"
+          style="flex:1;min-width:200px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;"
+          onchange="selecionarHotelMapa(this.value)">
+          <option value="">Selecione um hotel...</option>
+          ${(hotels||[]).map(h =>
+            `<option value="${h.id}" ${h.id === _aptoViewHotelId ? 'selected' : ''}>${h.nome}</option>`
+          ).join('')}
+        </select>
+        ${_aptoViewHotelId ? `<span style="font-size:12px;color:var(--text3);">${aptos.length} apto(s)</span>` : ''}
+      </div>
+    </div>`;
+
+  if (_aptoViewHotelId) {
+    if (!aptos.length || aptos[0]?.hotel_id !== _aptoViewHotelId) {
+      await syncApartamentos();
+    }
+    renderMapa();
+  } else {
+    document.getElementById('mapa-container').innerHTML =
+      '<p style="color:var(--text3);text-align:center;padding:48px;">Selecione um hotel para visualizar o mapa.</p>';
+  }
+}
+
+async function selecionarHotelMapa(hotelId) {
+  _aptoViewHotelId = hotelId || null;
+  if (!hotelId) {
+    document.getElementById('mapa-container').innerHTML =
+      '<p style="color:var(--text3);text-align:center;padding:48px;">Selecione um hotel para visualizar o mapa.</p>';
+    return;
+  }
+  await syncApartamentos();
+  renderMapa();
+  // Atualiza contador no selector
+  const countEl = document.querySelector('#mapa-hotel-selector span[style*="text3"]');
+  if (countEl) countEl.textContent = `${aptos.length} apto(s)`;
+}
+
+// Intercepta openPage para inicializar mapa
+(function patchOpenPageMapa() {
+  if (window._mapaPatch) return;
+  window._mapaPatch = true;
+  const _realOpen = openPage;
+  openPage = function(id) {
+    _realOpen(id);
+    if (id === 'mapa') initMapaAdmin();
+  };
+})();

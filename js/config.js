@@ -86,8 +86,9 @@ async function _toggleTurno(id, ativo) {
 let _tiposCache = [];
 
 async function renderConfigTipos() {
-  const el = document.getElementById('config-tipos-chamado');
-  if (!el) return;
+  const elGov  = document.getElementById('config-tipos-governanca');
+  const elMan  = document.getElementById('config-tipos-manutencao');
+  if (!elGov && !elMan) return;
 
   const hotelId = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
   let query = supabaseClient.from('chamado_tipos').select('*').order('ordem');
@@ -96,23 +97,21 @@ async function renderConfigTipos() {
   const { data } = await query;
   _tiposCache = data || [];
 
-  const deptLabel = { governanca:'Governança', manutencao:'Manutenção', ambos:'Ambos' };
+  const govTipos = _tiposCache.filter(t => !t.departamento || t.departamento === 'governanca' || t.departamento === 'ambos');
+  const manTipos = _tiposCache.filter(t => t.departamento === 'manutencao' || t.departamento === 'ambos');
 
-  el.innerHTML = `
+  const addForm = (dept, placeholder) => `
     <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
-      <input type="text" id="new-tipo-nome" placeholder="Nome do tipo de chamado..."
+      <input type="text" id="new-tipo-nome-${dept}" placeholder="${placeholder}"
         style="flex:1;min-width:180px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;">
-      <select id="new-tipo-dept"
-        style="padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;">
-        <option value="ambos">Ambos</option>
-        <option value="governanca">Governança</option>
-        <option value="manutencao">Manutenção</option>
-      </select>
-      <button class="btn btn-primary btn-sm" onclick="_adicionarTipo()">+ Adicionar</button>
-    </div>
-    <div id="tipos-lista">
-      ${_tiposCache.map(t => _renderTipoRow(t, deptLabel)).join('')}
+      <button class="btn btn-primary btn-sm" onclick="_adicionarTipo('${dept}')">+ Adicionar</button>
     </div>`;
+
+  if (elGov) elGov.innerHTML = addForm('governanca','Novo tipo de limpeza/governança...') +
+    `<div id="tipos-lista-governanca">${govTipos.map(t => _renderTipoRow(t)).join('')}</div>`;
+
+  if (elMan) elMan.innerHTML = addForm('manutencao','Novo tipo de manutenção...') +
+    `<div id="tipos-lista-manutencao">${manTipos.map(t => _renderTipoRow(t)).join('')}</div>`;
 }
 
 function _renderTipoRow(t, deptLabel) {
@@ -171,13 +170,13 @@ async function _salvarEdicaoTipo(id) {
   await renderConfigTipos();
 }
 
-async function _adicionarTipo() {
-  const input = document.getElementById('new-tipo-nome');
+async function _adicionarTipo(dept) {
+  dept = dept || 'governanca';
+  const input = document.getElementById(`new-tipo-nome-${dept}`);
   const nome  = input?.value.trim();
   if (!nome) { toast('Informe o nome do tipo', 'error'); return; }
-  const dept  = document.getElementById('new-tipo-dept')?.value || 'ambos';
   const hotel_id = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
-  const ordem    = (_tiposCache.length || 0) + 1;
+  const ordem    = (_tiposCache.filter(t => t.departamento === dept).length || 0) + 1;
   const { error } = await supabaseClient.from('chamado_tipos').insert([{ nome, hotel_id, ordem, departamento: dept }]);
   if (error) { toast('Erro: ' + error.message, 'error'); return; }
   if (input) input.value = '';

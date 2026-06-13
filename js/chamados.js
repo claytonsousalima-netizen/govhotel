@@ -112,24 +112,44 @@ async function _fetchChamados() {
 
 // ── POPULAR ATRIBUÍDOS (camareiras OU manutenção) ─────────────
 async function _popularAtribuidosModal(departamento, hotelId) {
-  const sel = document.getElementById('nc-camareira');
+  const sel  = document.getElementById('nc-camareira');
+  const hint = document.getElementById('nc-atribuir-hint');
   if (!sel) return;
 
   if (departamento === 'manutencao') {
-    // Carrega usuários com perfil manutencao
-    let q = supabaseClient.from('user_profiles').select('user_id, nome').eq('perfil','manutencao').eq('ativo', true).order('nome');
+    let q = supabaseClient.from('user_profiles')
+      .select('user_id, nome').eq('perfil','manutencao').eq('ativo', true).order('nome');
     if (hotelId) q = q.eq('hotel_id', hotelId);
     const { data } = await q;
-    sel.innerHTML = '<option value="">Não atribuído</option>' +
-      (data||[]).map(u=>`<option value="${u.user_id}">${u.nome}</option>`).join('');
+    if (!data || !data.length) {
+      sel.innerHTML = '<option value="">Nenhum técnico cadastrado</option>';
+      if (hint) {
+        hint.style.display = '';
+        hint.innerHTML = '⚠️ Nenhum usuário com perfil <strong>Manutenção</strong> cadastrado para este hotel. '
+          + '<a href="#" onclick="openPage(\'usuarios\');return false;" style="color:var(--primary);">Cadastrar agora →</a>';
+      }
+    } else {
+      sel.innerHTML = '<option value="">Não atribuído</option>' +
+        data.map(u=>`<option value="${u.user_id}">${u.nome}</option>`).join('');
+      if (hint) hint.style.display = 'none';
+    }
   } else {
-    // Carrega camareiras da tabela maids
     const hId = hotelId || currentUser.hotelId;
     let q = supabaseClient.from('maids').select('id, nome').eq('status','ativo').order('nome');
     if (hId) q = q.eq('hotel_id', hId);
     const { data } = await q;
-    sel.innerHTML = '<option value="">Não atribuído</option>' +
-      (data||[]).map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');
+    if (!data || !data.length) {
+      sel.innerHTML = '<option value="">Nenhuma camareira cadastrada</option>';
+      if (hint) {
+        hint.style.display = '';
+        hint.innerHTML = '⚠️ Nenhuma camareira cadastrada para este hotel. '
+          + '<a href="#" onclick="openPage(\'equipe\');return false;" style="color:var(--primary);">Ir para Equipe →</a>';
+      }
+    } else {
+      sel.innerHTML = '<option value="">Não atribuído</option>' +
+        data.map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');
+      if (hint) hint.style.display = 'none';
+    }
   }
 }
 

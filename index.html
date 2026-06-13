@@ -589,6 +589,7 @@ tr:last-child td { border-bottom: none; }
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;" id="mapa-header-actions"></div>
         </div>
+        <div id="mapa-hotel-selector"></div>
         <div class="filters" id="mapa-filters">
           <button class="filter-btn active" onclick="filterMapa('todos',this)">Todos</button>
           <button class="filter-btn" onclick="filterMapa('livre',this)">🟢 Livre</button>
@@ -778,13 +779,18 @@ tr:last-child td { border-bottom: none; }
             <button class="btn btn-success btn-sm" onclick="toast('Parâmetros salvos!','success')">Salvar parâmetros</button>
           </div>
 
-          <!-- Tipos de chamado -->
-          <div class="card" style="grid-column:1/-1;">
-            <div class="card-title" style="margin-bottom:14px;">🔔 Tipos de Chamado</div>
-            <div style="font-size:12px;color:var(--text3);margin-bottom:12px;">
-              🌐 = padrão do sistema · 🏨 = exclusivo deste hotel
-            </div>
-            <div id="config-tipos-chamado"></div>
+          <!-- Tipos de chamado — Governança -->
+          <div class="card">
+            <div class="card-title" style="margin-bottom:6px;">🧹 Tipos de Chamado — Governança</div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:12px;">Limpeza, troca de roupa, reposição, conferência etc. · 🌐 padrão · 🏨 deste hotel</div>
+            <div id="config-tipos-governanca"></div>
+          </div>
+
+          <!-- Tipos de chamado — Manutenção -->
+          <div class="card">
+            <div class="card-title" style="margin-bottom:6px;">🔧 Tipos de Chamado — Manutenção</div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:12px;">Reparo, troca de lâmpada, encanamento, elétrica etc. · 🌐 padrão · 🏨 deste hotel</div>
+            <div id="config-tipos-manutencao"></div>
           </div>
 
           <!-- Checklist de limpeza -->
@@ -1048,7 +1054,11 @@ tr:last-child td { border-bottom: none; }
         </div>
       </div>
       <div class="form-row">
-        <div class="field"><label class="nc-atribuir-label">Atribuir para (Camareira)</label><select id="nc-camareira"><option value="">Não atribuído</option></select></div>
+        <div class="field">
+          <label class="nc-atribuir-label">Atribuir para (Camareira)</label>
+          <select id="nc-camareira"><option value="">Não atribuído</option></select>
+          <div id="nc-atribuir-hint" style="display:none;margin-top:6px;font-size:11px;color:var(--warning);background:#fffbe6;padding:6px 10px;border-radius:var(--radius-sm);border:1px solid #f59e0b;"></div>
+        </div>
         <div class="field"><label>Prazo</label><input type="datetime-local" id="nc-prazo"></div>
       </div>
       <div class="form-row single">
@@ -1413,8 +1423,8 @@ tr:last-child td { border-bottom: none; }
 <!-- TOAST -->
 <div class="toast" id="toast-msg"></div>
 
-<script src="js/supabase-client.js?v=20260613d"></script>
-<script src="js/auth.js?v=20260613d"></script>
+<script src="js/supabase-client.js?v=20260613e"></script>
+<script src="js/auth.js?v=20260613e"></script>
 <script>
 // ============ STATE ============
 let currentPage = 'dashboard';
@@ -1650,7 +1660,7 @@ function openPage(id) {
   if (id === 'hoteis')        renderHoteis();
   if (id === 'usuarios')      renderUsuarios();
   if (id === 'dashboard')     renderDashboard();
-  if (id === 'mapa')          renderMapa();
+  // renderMapa é gerenciado por initMapaAdmin() em apartments.js (suporte a seletor de hotel)
   if (id === 'kanban')        renderKanban();
   if (id === 'chamados')      renderChamados();
   if (id === 'cadastro-apto') renderApartamentos();
@@ -2295,12 +2305,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('loading-overlay').style.display = 'none';
 });
 </script>
-<script src="js/hotels.js?v=20260613d"></script>
-<script src="js/apartments.js?v=20260613d"></script>
-<script src="js/maids.js?v=20260613d"></script>
-<script src="js/users.js?v=20260613d"></script>
-<script src="js/permissions.js?v=20260613d"></script>
-<script src="js/chamados.js?v=20260613d"></script>
-<script src="js/config.js?v=20260613d"></script>
+<script src="js/hotels.js?v=20260613e"></script>
+<script src="js/apartments.js?v=20260613e"></script>
+<script src="js/maids.js?v=20260613e"></script>
+<script src="js/users.js?v=20260613e"></script>
+<script src="js/permissions.js?v=20260613e"></script>
+<script src="js/chamados.js?v=20260613e"></script>
+<script src="js/config.js?v=20260613e"></script>
 </body>
 </html>
