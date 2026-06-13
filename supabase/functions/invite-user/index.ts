@@ -1,8 +1,8 @@
 // ================================================================
 // Edge Function: invite-user
-// Cria auth user + user_profile usando fetch direto (sem imports).
-// O admin define a senha inicial; force_password_change=true força
-// troca no primeiro acesso.
+// Cria auth user + user_profile.
+// Aceita login simples (ex: "joana.silva") ou e-mail completo.
+// Se não tiver "@", usa email virtual: login@govhotel.local
 // ================================================================
 
 const corsHeaders = {
@@ -16,16 +16,14 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  const SUPABASE_URL          = Deno.env.get('SUPABASE_URL')!;
-  const SERVICE_ROLE_KEY      = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-  const ANON_KEY              = Deno.env.get('SUPABASE_ANON_KEY')!;
+  const SUPABASE_URL     = Deno.env.get('SUPABASE_URL')!;
+  const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const ANON_KEY         = Deno.env.get('SUPABASE_ANON_KEY')!;
 
   try {
     // 1. Valida JWT do solicitante
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return json({ error: 'Não autorizado' }, 401);
-    }
+    if (!authHeader) return json({ error: 'Não autorizado' }, 401);
 
     const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
       headers: { Authorization: authHeader, apikey: ANON_KEY },
@@ -46,14 +44,17 @@ Deno.serve(async (req) => {
     }
 
     // 3. Lê payload
-    const { nome, email, senha, perfil, hotel_id, ativo = true } = await req.json();
+    const { nome, login, senha, perfil, hotel_id, ativo = true } = await req.json();
 
-    if (!nome || !email || !senha || !perfil) {
-      return json({ error: 'nome, email, senha e perfil são obrigatórios' }, 400);
+    if (!nome || !login || !senha || !perfil) {
+      return json({ error: 'nome, login, senha e perfil são obrigatórios' }, 400);
     }
     if (senha.length < 6) {
       return json({ error: 'A senha deve ter pelo menos 6 caracteres' }, 400);
     }
+
+    // Login simples → e-mail virtual para o Supabase Auth
+    const email = login.includes('@') ? login : `${login}@govhotel.local`;
 
     // 4. Restrições admin_hotel
     if (callerProfile.perfil === 'admin_hotel') {
@@ -83,10 +84,10 @@ Deno.serve(async (req) => {
 
     const created = await createRes.json();
     if (!createRes.ok) {
-      return json({ error: created.message || created.msg || 'Erro ao criar usuário' }, 400);
+      return json({ error: created.message || created.msg || 'Erro ao criar usuário no Auth' }, 400);
     }
 
-    // 6. Cria user_profile
+    // 6. Cria user_profile com campo login para exibição
     const profileInsertRes = await fetch(`${SUPABASE_URL}/rest/v1/user_profiles`, {
       method: 'POST',
       headers: {
@@ -96,8 +97,9 @@ Deno.serve(async (req) => {
         Prefer: 'return=minimal',
       },
       body: JSON.stringify({
-        user_id: created.id,
+        user_id:  created.id,
         nome,
+        login,
         perfil,
         hotel_id: hotel_id || null,
         ativo,
@@ -114,7 +116,7 @@ Deno.serve(async (req) => {
       return json({ error: err }, 400);
     }
 
-    return json({ message: `Usuário ${email} criado com sucesso`, user_id: created.id }, 200);
+    return json({ message: `Usuário "${login}" criado com sucesso`, user_id: created.id }, 200);
 
   } catch (err) {
     return json({ error: String(err) }, 500);

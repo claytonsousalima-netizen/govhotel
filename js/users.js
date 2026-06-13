@@ -99,7 +99,7 @@ function _renderUsuariosTabela(filter = '') {
           </div>
         </div>
       </td>
-      <td style="font-size:12px;color:var(--text2);">${u.email || '—'}</td>
+      <td style="font-size:12px;color:var(--text2);">${u.login || u.email || '—'}</td>
       <td><span class="badge badge-${u.perfil}">${PERFIL_LABELS[u.perfil] || u.perfil}</span></td>
       <td style="font-size:13px;">${hotelNome}</td>
       <td><span class="badge ${u.ativo ? 'badge-livre' : 'badge-bloqueado'}">${u.ativo ? 'Ativo' : 'Inativo'}</span></td>
@@ -217,7 +217,8 @@ function _atualizarPermissoesPerfil(perfil) {
 async function salvarUsuario() {
   if (!canAccess('usuarios')) { toast('Sem permissão', 'error'); return; }
   const nome     = document.getElementById('us-nome').value.trim();
-  const email    = document.getElementById('us-email').value.trim().toLowerCase();
+  const login    = document.getElementById('us-email').value.trim().toLowerCase().replace(/\s+/g, '.');
+  const email    = login; // alias — Edge Function converte para email virtual se não tiver @
   const senha    = document.getElementById('us-senha')?.value || '';
   const perfil   = document.getElementById('us-perfil').value;
   const hotel_id = document.getElementById('us-hotel-id').value || null;
@@ -237,15 +238,15 @@ async function salvarUsuario() {
       .update({ nome, perfil, hotel_id, ativo })
       .eq('id', _editingUserId));
   } else {
-    if (!email) {
+    if (!login) {
       btn.disabled = false; btn.textContent = 'Criar usuário';
-      toast('Informe o e-mail', 'error'); return;
+      toast('Informe o login / usuário', 'error'); return;
     }
     if (!senha || senha.length < 6) {
       btn.disabled = false; btn.textContent = 'Criar usuário';
       toast('A senha inicial deve ter pelo menos 6 caracteres', 'error'); return;
     }
-    const result = await _invocarConvite({ nome, email, senha, perfil, hotel_id, ativo });
+    const result = await _invocarConvite({ nome, login, senha, perfil, hotel_id, ativo });
     error = result.error;
   }
 

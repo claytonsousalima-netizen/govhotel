@@ -496,8 +496,8 @@ tr:last-child td { border-bottom: none; }
       <p>Gestão de limpeza e governança de apartamentos</p>
     </div>
     <div class="form-group">
-      <label>E-mail</label>
-      <input type="email" id="login-email" placeholder="seu@email.com" autocomplete="email">
+      <label>Usuário</label>
+      <input type="text" id="login-email" placeholder="seu.usuario ou email@dominio.com" autocomplete="username">
     </div>
     <div class="form-group">
       <label>Senha</label>
@@ -873,7 +873,7 @@ tr:last-child td { border-bottom: none; }
             <table>
               <thead>
                 <tr>
-                  <th>Usuário</th><th>E-mail</th><th>Perfil</th>
+                  <th>Usuário</th><th>Login</th><th>Perfil</th>
                   <th>Hotel</th><th>Status</th><th>Ações</th>
                 </tr>
               </thead>
@@ -1021,10 +1021,11 @@ tr:last-child td { border-bottom: none; }
           <input type="text" id="us-nome" placeholder="Nome completo...">
         </div>
       </div>
-      <!-- E-mail (criação) -->
+      <!-- Login (criação) -->
       <div id="us-email-wrap" class="form-row single">
-        <div class="field"><label>E-mail *</label>
-          <input type="email" id="us-email" placeholder="usuario@hotel.com">
+        <div class="field"><label>Login / Usuário *</label>
+          <input type="text" id="us-email" placeholder="joana.silva (ou email@dominio.com)" autocomplete="off">
+          <div style="font-size:11px;color:var(--text3);margin-top:4px;">Use nome simples (ex: joana.silva) ou e-mail completo para admins.</div>
         </div>
       </div>
       <!-- Senha (criação) -->
@@ -1036,9 +1037,9 @@ tr:last-child td { border-bottom: none; }
       </div>
       <!-- E-mail (edição — somente leitura) -->
       <div id="us-email-readonly" style="display:none;margin-bottom:16px;">
-        <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">E-mail</div>
+        <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">Login / Usuário</div>
         <div id="us-email-text" style="font-size:13px;color:var(--text3);padding:8px 0;border-bottom:1px solid var(--border);"></div>
-        <div style="font-size:11px;color:var(--text3);margin-top:4px;">O e-mail não pode ser alterado após a criação.</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px;">O login não pode ser alterado após a criação.</div>
       </div>
       <!-- Perfil + Hotel -->
       <div class="form-row">
@@ -1354,8 +1355,8 @@ tr:last-child td { border-bottom: none; }
 <!-- TOAST -->
 <div class="toast" id="toast-msg"></div>
 
-<script src="js/supabase-client.js?v=20260613"></script>
-<script src="js/auth.js?v=20260613"></script>
+<script src="js/supabase-client.js?v=20260613b"></script>
+<script src="js/auth.js?v=20260613b"></script>
 <script>
 // ============ STATE ============
 let currentPage = 'dashboard';
@@ -1517,6 +1518,8 @@ const NAV_ITEMS = {
     { section:'Meu Turno' },
     { id:'app-camareira', icon:'🧹', label:'Meus Aptos' },
     { id:'mapa', icon:'🗺️', label:'Mapa Geral' },
+    { section:'Operação' },
+    { id:'chamados', icon:'🔔', label:'Chamados', badge:true },
   ],
 };
 
@@ -2148,10 +2151,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('loading-overlay').style.display = 'none';
 });
 </script>
-<script src="js/hotels.js?v=20260613"></script>
-<script src="js/apartments.js?v=20260613"></script>
-<script src="js/maids.js?v=20260613"></script>
-<script src="js/users.js?v=20260613"></script>
-<script src="js/permissions.js?v=20260613"></script>
+<script src="js/hotels.js?v=20260613b"></script>
+<script src="js/apartments.js?v=20260613b"></script>
+<script src="js/maids.js?v=20260613b"></script>
+<script src="js/users.js?v=20260613b"></script>
+<script src="js/permissions.js?v=20260613b"></script>
 </body>
 </html>

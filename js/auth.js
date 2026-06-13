@@ -5,11 +5,14 @@
 
 // ---------- LOGIN ----------
 async function doLogin() {
-  const email    = document.getElementById('login-email').value.trim();
-  const password = document.getElementById('login-pass').value;
-  const btnLogin = document.getElementById('btn-login');
+  const loginInput = document.getElementById('login-email').value.trim();
+  const password   = document.getElementById('login-pass').value;
+  const btnLogin   = document.getElementById('btn-login');
 
-  if (!email || !password) { toast('Preencha e-mail e senha', 'error'); return; }
+  if (!loginInput || !password) { toast('Preencha usuário e senha', 'error'); return; }
+
+  // Converte username simples para e-mail virtual usado no Auth
+  const email = loginInput.includes('@') ? loginInput : `${loginInput}@govhotel.local`;
 
   btnLogin.disabled = true;
   btnLogin.textContent = 'Entrando...';
