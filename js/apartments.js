@@ -408,9 +408,126 @@ async function pausarLimpeza() {
   await mudarStatusApto(selectedAptoId, 'pausado', obs);
 }
 
-async function concluirLimpeza() {
-  const obs = `Limpeza concluída por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
-  await mudarStatusApto(selectedAptoId, 'conferencia', obs);
+// Redireciona para o checklist antes de concluir
+function concluirLimpeza() {
+  abrirChecklistLimpeza();
+}
+
+// ── CHECKLIST DE LIMPEZA ──────────────────────────────────────
+
+const CHECKLIST_LIMPEZA = [
+  { id: 'banheiro',   label: 'Banheiro limpo',                 obrigatorio: true  },
+  { id: 'enxoval',    label: 'Enxoval conferido',              obrigatorio: true  },
+  { id: 'amenities',  label: 'Amenities repostos',             obrigatorio: true  },
+  { id: 'lixeira',    label: 'Lixeira retirada',               obrigatorio: true  },
+  { id: 'piso',       label: 'Piso limpo',                     obrigatorio: true  },
+  { id: 'frigobar',   label: 'Frigobar conferido',             obrigatorio: false },
+  { id: 'manutencao', label: 'Manutenção aparente verificada', obrigatorio: false },
+];
+
+function abrirChecklistLimpeza() {
+  const apto = aptos.find(a => a.id === selectedAptoId);
+  if (!apto) return;
+
+  const titulo = document.getElementById('cl-apto-titulo');
+  if (titulo) titulo.textContent = `✅ Checklist — Apto ${apto.numero}`;
+
+  const tipoEl = document.getElementById('cl-tipo-limpeza');
+  if (tipoEl) tipoEl.value = 'saida';
+
+  const obsGeralEl = document.getElementById('cl-obs-geral');
+  if (obsGeralEl) obsGeralEl.value = '';
+
+  _renderChecklistItens();
+  closeModal('modal-apto-detail');
+  openModal('modal-checklist-limpeza');
+}
+
+function _renderChecklistItens() {
+  const container = document.getElementById('cl-items');
+  if (!container) return;
+  container.innerHTML = CHECKLIST_LIMPEZA.map(item => `
+    <div class="cl-item" id="cl-item-${item.id}">
+      <div class="cl-item-header">
+        <span class="cl-item-label">
+          ${item.label}${item.obrigatorio ? ' <span style="color:var(--danger);">*</span>' : ''}
+        </span>
+        <div class="cl-opcoes">
+          <input class="cl-radio-btn" type="radio" id="cl-${item.id}-c"  name="cl-${item.id}" value="conforme"     onchange="_clChange('${item.id}')">
+          <label class="cl-radio-label" for="cl-${item.id}-c">Conforme</label>
+          <input class="cl-radio-btn" type="radio" id="cl-${item.id}-nc" name="cl-${item.id}" value="nao_conforme" onchange="_clChange('${item.id}')">
+          <label class="cl-radio-label" for="cl-${item.id}-nc">Não conforme</label>
+          <input class="cl-radio-btn" type="radio" id="cl-${item.id}-na" name="cl-${item.id}" value="nao_aplica"   onchange="_clChange('${item.id}')">
+          <label class="cl-radio-label" for="cl-${item.id}-na">N/A</label>
+        </div>
+      </div>
+      <div class="cl-obs-wrap" id="cl-obs-wrap-${item.id}" style="display:none;">
+        <textarea id="cl-obs-${item.id}" placeholder="Descreva o problema encontrado *" rows="2"></textarea>
+      </div>
+    </div>`).join('');
+}
+
+function _clChange(itemId) {
+  const val = document.querySelector(`input[name="cl-${itemId}"]:checked`)?.value;
+  const wrap = document.getElementById(`cl-obs-wrap-${itemId}`);
+  if (wrap) wrap.style.display = val === 'nao_conforme' ? '' : 'none';
+  // Remove destaque de pendente ao responder
+  const itemEl = document.getElementById(`cl-item-${itemId}`);
+  if (itemEl) itemEl.classList.remove('cl-pendente');
+}
+
+async function concluirChecklistLimpeza() {
+  const apto = aptos.find(a => a.id === selectedAptoId);
+  if (!apto) return;
+
+  const tipo      = document.getElementById('cl-tipo-limpeza')?.value || 'saida';
+  const obsGeral  = document.getElementById('cl-obs-geral')?.value.trim() || null;
+  const respostas = [];
+  const erros     = [];
+
+  for (const item of CHECKLIST_LIMPEZA) {
+    const val = document.querySelector(`input[name="cl-${item.id}"]:checked`)?.value || null;
+    const obs = document.getElementById(`cl-obs-${item.id}`)?.value.trim() || null;
+
+    if (item.obrigatorio && !val) {
+      erros.push(item.id);
+      continue;
+    }
+    if (val === 'nao_conforme' && !obs) {
+      toast(`"${item.label}": descreva o problema encontrado`, 'error');
+      document.getElementById(`cl-obs-${item.id}`)?.focus();
+      // Marca itens sem resposta antes de retornar
+      erros.forEach(id => document.getElementById(`cl-item-${id}`)?.classList.add('cl-pendente'));
+      return;
+    }
+    if (val) respostas.push({ item: item.label, resultado: val, obs });
+  }
+
+  if (erros.length) {
+    erros.forEach(id => document.getElementById(`cl-item-${id}`)?.classList.add('cl-pendente'));
+    toast(`Preencha os itens obrigatórios destacados`, 'error');
+    return;
+  }
+
+  const btn = document.querySelector('#modal-checklist-limpeza .btn-success');
+  if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
+
+  const { error } = await supabaseClient.from('limpeza_checklists').insert({
+    apartment_id: selectedAptoId,
+    hotel_id:     apto.hotel_id,
+    usuario_id:   currentUser.id,
+    tipo_limpeza: tipo,
+    respostas,
+    obs_geral:    obsGeral,
+  });
+
+  if (btn) { btn.disabled = false; btn.textContent = '✓ Concluir limpeza'; }
+
+  if (error) { toast('Erro ao salvar checklist: ' + error.message, 'error'); return; }
+
+  closeModal('modal-checklist-limpeza');
+  const obsHist = `Checklist concluído por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')} (${respostas.length} itens)`;
+  await mudarStatusApto(selectedAptoId, 'conferencia', obsHist);
 }
 
 // ── ADAPTAR renderAppCamareira para usar dados do Supabase ────

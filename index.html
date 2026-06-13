@@ -235,6 +235,26 @@ a { text-decoration: none; }
 .badge-gestor       { background: #d68910; color: white; }
 .badge-camareira    { background: #7d3c98; color: white; }
 
+/* Checklist de limpeza */
+.cl-item { padding: 12px 0; border-bottom: 1px solid var(--border); }
+.cl-item:last-child { border-bottom: none; }
+.cl-item-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.cl-item-label { font-size: 13px; font-weight: 600; color: var(--text); flex: 1; min-width: 140px; }
+.cl-opcoes { display: flex; gap: 6px; flex-shrink: 0; }
+.cl-radio-btn { display: none; }
+.cl-radio-label {
+  display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;
+  cursor: pointer; border: 1.5px solid var(--border); color: var(--text3);
+  background: var(--surface2); text-transform: uppercase; letter-spacing: 0.2px; transition: all .15s;
+}
+.cl-radio-btn:checked + .cl-radio-label { border-color: transparent; }
+.cl-radio-btn[value="conforme"]:checked   + .cl-radio-label { background: #d1f2eb; color: #0e6655; }
+.cl-radio-btn[value="nao_conforme"]:checked + .cl-radio-label { background: #fce4e4; color: #922b21; }
+.cl-radio-btn[value="nao_aplica"]:checked   + .cl-radio-label { background: #eaecee; color: #566573; }
+.cl-obs-wrap { margin-top: 8px; }
+.cl-obs-wrap textarea { width: 100%; padding: 7px 10px; border: 1.5px solid #f1a7a7; border-radius: var(--radius-sm); font-size: 12px; resize: vertical; box-sizing: border-box; }
+.cl-item.cl-pendente .cl-item-label::after { content: ' ⚠'; color: var(--danger); }
+
 /* TABLE */
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }
@@ -1003,6 +1023,41 @@ tr:last-child td { border-bottom: none; }
   </div>
 </div>
 
+<!-- Modal Checklist de Limpeza -->
+<div class="modal-overlay" id="modal-checklist-limpeza">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-header">
+      <div class="modal-title" id="cl-apto-titulo">✅ Checklist de limpeza</div>
+      <button class="btn-close" onclick="closeModal('modal-checklist-limpeza')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row" style="margin-bottom:4px;">
+        <div class="field">
+          <label>Tipo de limpeza</label>
+          <select id="cl-tipo-limpeza">
+            <option value="saida">Saída (checkout)</option>
+            <option value="permanencia">Permanência</option>
+            <option value="pos_manutencao">Pós-manutenção</option>
+          </select>
+        </div>
+      </div>
+      <p style="font-size:12px;color:var(--text3);margin:0 0 12px;">
+        Itens marcados com <span style="color:var(--danger);font-weight:700;">*</span> são obrigatórios.
+        "Não conforme" exige observação.
+      </p>
+      <div id="cl-items"></div>
+      <div class="field" style="margin-top:14px;">
+        <label>Observação geral (opcional)</label>
+        <textarea id="cl-obs-geral" rows="2" placeholder="Alguma observação geral sobre a limpeza..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-checklist-limpeza')">Cancelar</button>
+      <button class="btn btn-success" onclick="concluirChecklistLimpeza()">✓ Concluir limpeza</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Trocar Status -->
 <div class="modal-overlay" id="modal-trocar-status">
   <div class="modal" style="max-width:420px;">
@@ -1468,8 +1523,8 @@ tr:last-child td { border-bottom: none; }
 <!-- TOAST -->
 <div class="toast" id="toast-msg"></div>
 
-<script src="js/supabase-client.js?v=20260613h"></script>
-<script src="js/auth.js?v=20260613h"></script>
+<script src="js/supabase-client.js?v=20260613i"></script>
+<script src="js/auth.js?v=20260613i"></script>
 <script>
 // ============ STATE ============
 let currentPage = 'dashboard';
@@ -2300,14 +2355,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('loading-overlay').style.display = 'none';
 });
 </script>
-<script src="js/hotels.js?v=20260613h"></script>
-<script src="js/apartments.js?v=20260613h"></script>
-<script src="js/maids.js?v=20260613h"></script>
-<script src="js/users.js?v=20260613h"></script>
-<script src="js/permissions.js?v=20260613h"></script>
-<script src="js/chamados.js?v=20260613h"></script>
-<script src="js/config.js?v=20260613h"></script>
-<script src="js/dashboard.js?v=20260613h"></script>
-<script src="js/relatorios.js?v=20260613h"></script>
+<script src="js/hotels.js?v=20260613i"></script>
+<script src="js/apartments.js?v=20260613i"></script>
+<script src="js/maids.js?v=20260613i"></script>
+<script src="js/users.js?v=20260613i"></script>
+<script src="js/permissions.js?v=20260613i"></script>
+<script src="js/chamados.js?v=20260613i"></script>
+<script src="js/config.js?v=20260613i"></script>
+<script src="js/dashboard.js?v=20260613i"></script>
+<script src="js/relatorios.js?v=20260613i"></script>
 </body>
 </html>
