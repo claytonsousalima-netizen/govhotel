@@ -266,16 +266,20 @@ async function salvarUsuario() {
 async function _invocarConvite(payload) {
   try {
     const { data, error } = await supabaseClient.functions.invoke('invite-user', { body: payload });
-    return error ? { error } : { data };
-  } catch {
-    return {
-      error: {
-        message:
-          'A Edge Function "invite-user" não está implantada. '
-          + 'Execute: supabase functions deploy invite-user '
-          + '(arquivo em supabase/functions/invite-user/index.ts).',
-      },
-    };
+    if (error) {
+      let msg = error.message || 'Erro na Edge Function';
+      // Extrai mensagem real do corpo da resposta HTTP
+      if (error.context) {
+        try {
+          const body = await error.context.clone().json();
+          msg = body.error || body.message || msg;
+        } catch {}
+      }
+      return { error: { message: msg } };
+    }
+    return { data };
+  } catch (e) {
+    return { error: { message: String(e) } };
   }
 }
 

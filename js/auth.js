@@ -177,7 +177,7 @@ const PERFIL_PAGES = {
   admin_global: ['hoteis','usuarios','dashboard','mapa','kanban','chamados','equipe','cadastro-apto','relatorios','config'],
   admin_hotel:  ['usuarios','dashboard','mapa','kanban','chamados','equipe','cadastro-apto','relatorios','config'],
   gestor:       ['dashboard','mapa','kanban','chamados','equipe','relatorios'],
-  camareira:    ['app-camareira','mapa'],
+  camareira:    ['app-camareira','mapa','chamados'],
 };
 
 function canAccess(page) {

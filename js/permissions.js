@@ -16,7 +16,7 @@ const WRITE_PERMISSIONS = {
   admin_global: ['hotels','apartments','apartment_status','maids','users','work_orders'],
   admin_hotel:  ['apartments','apartment_status','maids','users','work_orders'],
   gestor:       ['apartments','apartment_status','maids','work_orders'],
-  camareira:    ['apartment_status'],   // apenas troca de status
+  camareira:    ['apartment_status', 'work_orders'],
 };
 
 const DELETE_PERMISSIONS = {

@@ -2105,8 +2105,15 @@ function closeModal(id) {
   if (el?.dataset.obrigatorio) return; // modal de troca obrigatória não pode ser fechado
   el?.classList.remove('open');
 }
+// Modais que não fecham ao clicar fora (requerem ação explícita do usuário)
+const MODAIS_PROTEGIDOS = ['modal-usuario-form', 'modal-senha', 'modal-cadastro-apto', 'modal-novo-membro'];
 document.querySelectorAll('.modal-overlay').forEach(m => {
-  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+  m.addEventListener('click', e => {
+    if (e.target !== m) return;
+    if (m.dataset.obrigatorio) return;
+    if (MODAIS_PROTEGIDOS.includes(m.id)) return;
+    m.classList.remove('open');
+  });
 });
 
 // ============ TABS ============
