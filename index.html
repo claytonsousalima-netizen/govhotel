@@ -974,7 +974,31 @@ tr:last-child td { border-bottom: none; }
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-apto-detail')">Fechar</button>
       <button class="btn btn-primary" id="detail-btn-iniciar" onclick="iniciarLimpeza()">▶ Iniciar limpeza</button>
+      <button class="btn btn-warning" id="detail-btn-pausar" onclick="abrirModalPausa(selectedAptoId)" style="display:none;">⏸ Pausar</button>
       <button class="btn btn-success" id="detail-btn-concluir" onclick="concluirLimpeza()">✓ Concluir</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Pausar Limpeza -->
+<div class="modal-overlay" id="modal-pausar-limpeza">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <div class="modal-title">⏸ Pausar limpeza</div>
+      <button class="btn-close" onclick="closeModal('modal-pausar-limpeza')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">Informe o motivo para registrar no histórico.</p>
+      <div class="form-row single">
+        <div class="field">
+          <label>Motivo da pausa *</label>
+          <textarea id="pausa-motivo" rows="3" placeholder="Ex: Hóspede no quarto, aguardando material de limpeza..."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-pausar-limpeza')">Cancelar</button>
+      <button class="btn btn-primary" onclick="pausarLimpeza()">⏸ Confirmar pausa</button>
     </div>
   </div>
 </div>
@@ -1444,8 +1468,8 @@ tr:last-child td { border-bottom: none; }
 <!-- TOAST -->
 <div class="toast" id="toast-msg"></div>
 
-<script src="js/supabase-client.js?v=20260613g"></script>
-<script src="js/auth.js?v=20260613g"></script>
+<script src="js/supabase-client.js?v=20260613h"></script>
+<script src="js/auth.js?v=20260613h"></script>
 <script>
 // ============ STATE ============
 let currentPage = 'dashboard';
@@ -1756,23 +1780,27 @@ function openAptoDetail(id) {
   const isCamareira  = currentUser.perfil === 'camareira';
   const isManutencao = currentUser.perfil === 'manutencao';
 
-  // Transições permitidas por status (fluxo guiado)
-  const FLOW = {
-    sujo:        [['limpando','▶ Iniciar limpeza'], ['bloqueado','🔒 Bloquear']],
-    limpando:    [['pausado','⏸ Pausar'], ['conferencia','🔍 Enviar conf.']],
-    pausado:     [['limpando','▶ Retomar'], ['sujo','↩ Voltar sujo']],
-    conferencia: [['limpo','✅ Aprovar'], ['reprovado','❌ Reprovar']],
-    reprovado:   [['sujo','🔄 Re-limpar'], ['bloqueado','🔒 Bloquear']],
-    limpo:       [['ocupado','🏠 Marcar ocupado'], ['sujo','↩ Marcar sujo']],
-    bloqueado:   [['sujo','🔓 Desbloquear']],
-    livre:       [['sujo','↩ Marcar sujo'], ['ocupado','🏠 Ocupar']],
-    ocupado:     [['sujo','⬇ Checkout/Sujo']],
-    manutencao:  [['sujo','↩ Liberar limpeza']],
+  // Botões de fluxo contextuais — cada status tem suas ações específicas
+  const _flowMap = {
+    sujo:        `<button class="btn btn-xs btn-primary" onclick="iniciarLimpeza()">▶ Iniciar limpeza</button>
+                  <button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','bloqueado')">🔒 Bloquear</button>`,
+    reprovado:   `<button class="btn btn-xs btn-primary" onclick="iniciarLimpeza()">▶ Re-limpar</button>
+                  <button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','bloqueado')">🔒 Bloquear</button>`,
+    limpando:    `<button class="btn btn-xs btn-primary" onclick="abrirModalPausa('${id}')">⏸ Pausar</button>
+                  <button class="btn btn-xs btn-primary" onclick="concluirLimpeza()">🔍 Enviar conf.</button>`,
+    pausado:     `<button class="btn btn-xs btn-primary" onclick="iniciarLimpeza()">▶ Retomar limpeza</button>
+                  <button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','sujo')">↩ Voltar sujo</button>`,
+    conferencia: `<button class="btn btn-xs btn-primary" onclick="mudarStatusApto('${id}','limpo')">✅ Aprovar</button>
+                  <button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','reprovado')">❌ Reprovar</button>`,
+    limpo:       `<button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','ocupado')">🏠 Marcar ocupado</button>
+                  <button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','sujo')">↩ Marcar sujo</button>`,
+    bloqueado:   `<button class="btn btn-xs btn-primary" onclick="mudarStatusApto('${id}','sujo')">🔓 Desbloquear</button>`,
+    livre:       `<button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','sujo')">↩ Marcar sujo</button>
+                  <button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','ocupado')">🏠 Ocupar</button>`,
+    ocupado:     `<button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','sujo')">⬇ Checkout/Sujo</button>`,
+    manutencao:  `<button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','sujo')">↩ Liberar limpeza</button>`,
   };
-
-  const flowBtns = (FLOW[apto.status] || []).map(([s, label]) =>
-    `<button class="btn btn-xs btn-primary" onclick="mudarStatusApto('${id}','${s}')">${label}</button>`
-  ).join('');
+  const flowBtns = _flowMap[apto.status] || '';
 
   // Botões de força (todos os status) — apenas para gestores e admins
   const allStatuses = ['sujo','limpando','pausado','conferencia','limpo','reprovado','bloqueado','livre','ocupado','manutencao'];
@@ -1811,7 +1839,8 @@ function openAptoDetail(id) {
       ${forceBtns}
     </div>`;
 
-  document.getElementById('detail-btn-iniciar').style.display  = ['sujo','reprovado'].includes(apto.status) ? '' : 'none';
+  document.getElementById('detail-btn-iniciar').style.display  = ['sujo','reprovado','pausado'].includes(apto.status) ? '' : 'none';
+  document.getElementById('detail-btn-pausar').style.display   = apto.status === 'limpando' ? '' : 'none';
   document.getElementById('detail-btn-concluir').style.display = ['limpando','pausado'].includes(apto.status) ? '' : 'none';
   openModal('modal-apto-detail');
 }
@@ -2271,14 +2300,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('loading-overlay').style.display = 'none';
 });
 </script>
-<script src="js/hotels.js?v=20260613g"></script>
-<script src="js/apartments.js?v=20260613g"></script>
-<script src="js/maids.js?v=20260613g"></script>
-<script src="js/users.js?v=20260613g"></script>
-<script src="js/permissions.js?v=20260613g"></script>
-<script src="js/chamados.js?v=20260613g"></script>
-<script src="js/config.js?v=20260613g"></script>
-<script src="js/dashboard.js?v=20260613g"></script>
-<script src="js/relatorios.js?v=20260613g"></script>
+<script src="js/hotels.js?v=20260613h"></script>
+<script src="js/apartments.js?v=20260613h"></script>
+<script src="js/maids.js?v=20260613h"></script>
+<script src="js/users.js?v=20260613h"></script>
+<script src="js/permissions.js?v=20260613h"></script>
+<script src="js/chamados.js?v=20260613h"></script>
+<script src="js/config.js?v=20260613h"></script>
+<script src="js/dashboard.js?v=20260613h"></script>
+<script src="js/relatorios.js?v=20260613h"></script>
 </body>
 </html>

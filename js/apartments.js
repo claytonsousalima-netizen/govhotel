@@ -327,7 +327,7 @@ async function salvarCadastroApto() {
 // ── ALTERAR STATUS (com escrita no Supabase + histórico) ──────
 
 // Override do mudarStatusApto do inline script
-async function mudarStatusApto(id, novoStatus) {
+async function mudarStatusApto(id, novoStatus, obs = null) {
   const apto = aptos.find(a => a.id === id);
   if (!apto) return;
 
@@ -340,16 +340,19 @@ async function mudarStatusApto(id, novoStatus) {
 
   if (error) { toast('Erro ao atualizar: ' + error.message, 'error'); return; }
 
-  // Registrar histórico
-  await supabaseClient.from('apartment_status_history').insert({
+  // Registrar histórico com obs opcional
+  const histPayload = {
     apartment_id:    id,
     status_anterior: statusAnterior,
     status_novo:     novoStatus,
     alterado_por:    currentUser.id,
-  });
+  };
+  if (obs) histPayload.obs = obs;
+  await supabaseClient.from('apartment_status_history').insert(histPayload);
 
   apto.status = novoStatus;
-  toast(`Apto ${apto.numero} → ${novoStatus}`, 'success');
+  const label = (typeof _STATUS_LABELS !== 'undefined' ? _STATUS_LABELS[novoStatus] : null) || novoStatus;
+  toast(`Apto ${apto.numero} → ${label}`, 'success');
   closeModal('modal-apto-detail');
 
   if (currentPage === 'mapa')          renderMapa();
@@ -378,14 +381,36 @@ function alterarStatusRapido(id) {
   openModal('modal-trocar-status');
 }
 
-// ── ADAPTAR initLimpeza / concluirLimpeza para Supabase ───────
+// ── AÇÕES OPERACIONAIS DE LIMPEZA ────────────────────────────
 
 async function iniciarLimpeza() {
-  await mudarStatusApto(selectedAptoId, 'limpando');
+  const apto = aptos.find(a => a.id === selectedAptoId);
+  if (!apto) return;
+  const acao = apto.status === 'pausado' ? 'retomada' : 'iniciada';
+  const obs  = `Limpeza ${acao} por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
+  await mudarStatusApto(selectedAptoId, 'limpando', obs);
+}
+
+function abrirModalPausa(id) {
+  selectedAptoId = id;
+  const el = document.getElementById('pausa-motivo');
+  if (el) el.value = '';
+  closeModal('modal-apto-detail');
+  openModal('modal-pausar-limpeza');
+  if (el) el.focus();
+}
+
+async function pausarLimpeza() {
+  const motivo = (document.getElementById('pausa-motivo')?.value || '').trim();
+  if (!motivo) { toast('Informe o motivo da pausa', 'error'); return; }
+  closeModal('modal-pausar-limpeza');
+  const obs = `Pausado por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}: ${motivo}`;
+  await mudarStatusApto(selectedAptoId, 'pausado', obs);
 }
 
 async function concluirLimpeza() {
-  await mudarStatusApto(selectedAptoId, 'conferencia');
+  const obs = `Limpeza concluída por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
+  await mudarStatusApto(selectedAptoId, 'conferencia', obs);
 }
 
 // ── ADAPTAR renderAppCamareira para usar dados do Supabase ────
