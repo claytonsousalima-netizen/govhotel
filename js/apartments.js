@@ -723,3 +723,366 @@ async function selecionarHotelMapa(hotelId) {
     if (id === 'mapa') initMapaAdmin();
   };
 })();
+
+// ================================================================
+// FILTROS OPERACIONAIS — Mapa e Kanban de Limpeza
+// ================================================================
+
+// Estado dos filtros (compartilhado entre mapa e kanban)
+const _aptoFiltros = {
+  status:     'todos',
+  andar:      '',
+  camareira:  '',
+  tipo:       '',
+  comChamado: false,
+};
+
+// Set de apartment_ids com chamados abertos (carregado sob demanda)
+const _aptosComChamadoAberto = new Set();
+
+// ── APLICAR FILTROS AO ARRAY DE APTOS ────────────────────────
+function _filtrarAptos(lista) {
+  return lista.filter(a => {
+    if (_aptoFiltros.status !== 'todos' && a.status !== _aptoFiltros.status) return false;
+    if (_aptoFiltros.andar     && String(a.andar)       !== String(_aptoFiltros.andar))   return false;
+    if (_aptoFiltros.camareira && a.camareira_id        !== _aptoFiltros.camareira)        return false;
+    if (_aptoFiltros.tipo      && a.tipo                !== _aptoFiltros.tipo)             return false;
+    if (_aptoFiltros.comChamado && !_aptosComChamadoAberto.has(a.id))                      return false;
+    return true;
+  });
+}
+
+// ── CARREGAR APTOS COM CHAMADOS ABERTOS ──────────────────────
+async function _carregarChamadosAbertosAptos(hotelId) {
+  _aptosComChamadoAberto.clear();
+  if (!hotelId) return;
+  const { data } = await supabaseClient
+    .from('work_orders')
+    .select('apartment_id')
+    .eq('hotel_id', hotelId)
+    .in('status', ['aberto', 'em_analise', 'andamento', 'reaberto'])
+    .not('apartment_id', 'is', null);
+  (data || []).forEach(c => { if (c.apartment_id) _aptosComChamadoAberto.add(c.apartment_id); });
+}
+
+// ── RENDERIZAR BARRA DE FILTROS AVANÇADOS ────────────────────
+function _renderFiltrosBar(containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (!aptos.length) { el.innerHTML = ''; return; }
+
+  const andares = [...new Set(aptos.map(a => a.andar))].sort((a, b) => a - b);
+  const tipos   = [...new Set(aptos.map(a => a.tipo).filter(Boolean))].sort();
+
+  // Camareiras: prioriza equipe, complementa com dados dos aptos
+  const camMap = new Map();
+  equipe.forEach(c => { if (c.id && c.nome) camMap.set(c.id, c.nome); });
+  aptos.forEach(a => { if (a.camareira_id && a._maid_nome && !camMap.has(a.camareira_id)) camMap.set(a.camareira_id, a._maid_nome); });
+  const camLista = [...camMap.entries()].map(([id, nome]) => ({ id, nome }));
+
+  const temFiltroAvancado = _aptoFiltros.andar || _aptoFiltros.camareira ||
+                            _aptoFiltros.tipo  || _aptoFiltros.comChamado;
+  const total    = _filtrarAptos(aptos).length;
+  const countMsg = total < aptos.length
+    ? `<span style="font-size:11px;color:var(--primary);font-weight:600;margin-left:4px;">${total} de ${aptos.length} aptos</span>`
+    : '';
+
+  el.innerHTML = `<div class="govfilter-bar">
+    <select class="govfilter-sel${_aptoFiltros.andar ? ' ativo' : ''}"
+            onchange="_onFiltroAndar(this.value)" title="Filtrar por andar">
+      <option value="">🏢 Todos os andares</option>
+      ${andares.map(a =>
+        `<option value="${a}" ${String(_aptoFiltros.andar) === String(a) ? 'selected' : ''}>${a}º Andar</option>`
+      ).join('')}
+    </select>
+    ${camLista.length ? `
+    <select class="govfilter-sel${_aptoFiltros.camareira ? ' ativo' : ''}"
+            onchange="_onFiltroCamareira(this.value)" title="Filtrar por camareira responsável">
+      <option value="">👤 Todas as camareiras</option>
+      ${camLista.map(c =>
+        `<option value="${c.id}" ${_aptoFiltros.camareira === c.id ? 'selected' : ''}>${c.nome.split(' ')[0]}</option>`
+      ).join('')}
+    </select>` : ''}
+    ${tipos.length > 1 ? `
+    <select class="govfilter-sel${_aptoFiltros.tipo ? ' ativo' : ''}"
+            onchange="_onFiltroTipo(this.value)" title="Filtrar por tipo de UH">
+      <option value="">🛏 Todos os tipos</option>
+      ${tipos.map(t =>
+        `<option value="${t}" ${_aptoFiltros.tipo === t ? 'selected' : ''}>${t}</option>`
+      ).join('')}
+    </select>` : ''}
+    <button class="filter-btn${_aptoFiltros.comChamado ? ' active' : ''}"
+            onclick="_onFiltroChamadoAberto()" title="Somente aptos com chamados abertos">
+      📋 Com chamados
+    </button>
+    <button class="filter-btn${_aptoFiltros.status === 'conferencia' ? ' active' : ''}"
+            onclick="_setFiltroStatusRapido('conferencia')" title="Aguardando conferência">
+      🟣 Aguard. conf.
+    </button>
+    <button class="filter-btn${_aptoFiltros.status === 'reprovado' ? ' active' : ''}"
+            onclick="_setFiltroStatusRapido('reprovado')" title="Reprovados">
+      🔴 Reprovados
+    </button>
+    ${temFiltroAvancado ? `
+    <button class="filter-btn" onclick="_limparFiltrosAvancados()"
+            style="background:var(--danger);color:#fff;border-color:var(--danger);">
+      ✕ Limpar filtros
+    </button>` : ''}
+    ${countMsg}
+  </div>`;
+}
+
+// ── HANDLERS DE FILTRO ────────────────────────────────────────
+function _onFiltroAndar(v)     { _aptoFiltros.andar = v;  _reaplicarFiltros(); }
+function _onFiltroCamareira(v) { _aptoFiltros.camareira = v; _reaplicarFiltros(); }
+function _onFiltroTipo(v)      { _aptoFiltros.tipo = v;   _reaplicarFiltros(); }
+
+function _onFiltroChamadoAberto() {
+  _aptoFiltros.comChamado = !_aptoFiltros.comChamado;
+  _reaplicarFiltros();
+}
+
+function _setFiltroStatusRapido(s) {
+  // Toggle: se já está ativo, volta para 'todos'
+  _aptoFiltros.status = _aptoFiltros.status === s ? 'todos' : s;
+  // Sincroniza botões de status do mapa
+  document.querySelectorAll('#mapa-filters .filter-btn').forEach(b => {
+    const isAtivo = _aptoFiltros.status === 'todos'
+      ? b.getAttribute('onclick')?.includes("'todos'")
+      : b.getAttribute('onclick')?.includes(`'${_aptoFiltros.status}'`);
+    b.classList.toggle('active', !!isAtivo);
+  });
+  // Sincroniza botões de status do kanban
+  document.querySelectorAll('#kanban-filtros-status .filter-btn').forEach(b => {
+    const isAtivo = _aptoFiltros.status === 'todos'
+      ? b.getAttribute('onclick')?.includes("'todos'")
+      : b.getAttribute('onclick')?.includes(`'${_aptoFiltros.status}'`);
+    b.classList.toggle('active', !!isAtivo);
+  });
+  _reaplicarFiltros();
+}
+
+function _limparFiltrosAvancados() {
+  _aptoFiltros.andar     = '';
+  _aptoFiltros.camareira = '';
+  _aptoFiltros.tipo      = '';
+  _aptoFiltros.comChamado = false;
+  _reaplicarFiltros();
+}
+
+function _reaplicarFiltros() {
+  _renderFiltrosBar('mapa-filtros-avancados');
+  _renderFiltrosBar('kanban-filtros-aptos');
+  renderMapa();
+  renderAptoKanban();
+}
+
+// ── OVERRIDE: renderMapa (com filtros) ───────────────────────
+function renderMapa() {
+  const lista   = _filtrarAptos(aptos);
+  const andares = [...new Set(lista.map(a => a.andar))].sort((a, b) => a - b);
+  let html = '';
+
+  andares.forEach(andar => {
+    const do_andar = lista.filter(a => a.andar === andar);
+    if (!do_andar.length) return;
+    html += `<div class="floor-section">
+      <div class="floor-label">🏢 ${andar}º Andar — ${do_andar.length} apto${do_andar.length !== 1 ? 's' : ''}</div>
+      <div class="aptos-grid">`;
+    do_andar.forEach(a => {
+      const icon       = (typeof _STATUS_ICONS  !== 'undefined' ? _STATUS_ICONS[a.status]  : null) || '❓';
+      const lbl        = (typeof _STATUS_LABELS !== 'undefined' ? _STATUS_LABELS[a.status] : null) || a.status;
+      const temChamado = _aptosComChamadoAberto.has(a.id);
+      html += `<div class="apto-card ${a.status}" onclick="openAptoDetail('${a.id}')" style="position:relative;">
+        ${a.prioridade ? '<div class="apto-priority"></div>' : ''}
+        ${temChamado ? '<div style="position:absolute;top:4px;right:4px;font-size:9px;font-weight:700;background:var(--danger);color:#fff;border-radius:8px;padding:1px 5px;line-height:1.5;" title="Chamado aberto">📋</div>' : ''}
+        <div class="apto-status-icon">${icon}</div>
+        <div class="apto-num">${a.numero}</div>
+        <div class="apto-tipo">${a.tipo}</div>
+        <span class="badge badge-${a.status}" style="font-size:10px;">${lbl}</span>
+      </div>`;
+    });
+    html += '</div></div>';
+  });
+
+  const container = document.getElementById('mapa-container');
+  if (container) {
+    container.innerHTML = html ||
+      '<p style="color:var(--text3);text-align:center;padding:48px;">Nenhum apartamento encontrado com os filtros aplicados.</p>';
+  }
+  if (typeof populateTsApto === 'function') populateTsApto();
+}
+
+// ── OVERRIDE: filterMapa (status buttons → sincroniza _aptoFiltros) ──
+function filterMapa(status, btn) {
+  _aptoFiltros.status = status;
+  document.querySelectorAll('#mapa-filters .filter-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  // Sincroniza quick-filters no bar avançado
+  _renderFiltrosBar('mapa-filtros-avancados');
+  _renderFiltrosBar('kanban-filtros-aptos');
+  renderMapa();
+  renderAptoKanban();
+}
+
+// ── OVERRIDE: filterKanbanStatus (botões de status no kanban) ──
+function filterKanbanStatus(status, btn) {
+  _aptoFiltros.status = status;
+  document.querySelectorAll('#kanban-filtros-status .filter-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  _renderFiltrosBar('mapa-filtros-avancados');
+  _renderFiltrosBar('kanban-filtros-aptos');
+  renderMapa();
+  renderAptoKanban();
+}
+
+// ── OVERRIDE: searchMapa (busca por número — mantém card no DOM) ──
+function searchMapa(q) {
+  const lq = q.toLowerCase().trim();
+  document.querySelectorAll('.apto-card').forEach(card => {
+    const num = card.querySelector('.apto-num')?.textContent || '';
+    card.style.display = num.toLowerCase().includes(lq) ? '' : 'none';
+  });
+  // Oculta seções de andar que ficaram vazias após a busca
+  document.querySelectorAll('.floor-section').forEach(sec => {
+    const visiveis = [...sec.querySelectorAll('.apto-card')].filter(c => c.style.display !== 'none');
+    sec.style.display = visiveis.length ? '' : 'none';
+  });
+}
+
+// ── KANBAN DE LIMPEZA (apartments) ───────────────────────────
+function renderAptoKanban() {
+  const board = document.getElementById('kanban-board');
+  if (!board) return;
+
+  const lista = _filtrarAptos(aptos);
+  const cols  = [
+    { key:'sujo',        label:'Sujo',          color:'#e67e22' },
+    { key:'limpando',    label:'Em limpeza',     color:'#2e86c1' },
+    { key:'pausado',     label:'Pausado',        color:'#f39c12' },
+    { key:'conferencia', label:'Aguard. conf.',  color:'#8e44ad' },
+    { key:'limpo',       label:'Limpo',          color:'#1abc9c' },
+    { key:'reprovado',   label:'Reprovado',      color:'#e74c3c' },
+    { key:'manutencao',  label:'Manutenção',     color:'#f1c40f' },
+  ];
+
+  // Se há filtro de status ativo, mostrar apenas coluna relevante
+  const colsFiltradas = _aptoFiltros.status !== 'todos'
+    ? cols.filter(c => c.key === _aptoFiltros.status)
+    : cols;
+
+  board.innerHTML = colsFiltradas.map(col => {
+    const items = lista.filter(a => a.status === col.key);
+    return `<div class="kanban-col">
+      <div class="kanban-col-title" style="color:${col.color};">
+        ${col.label} <span class="kanban-count">${items.length}</span>
+      </div>
+      ${items.map(a => {
+        const cam        = equipe.find(e => e.id === a.camareira_id);
+        const temChamado = _aptosComChamadoAberto.has(a.id);
+        return `<div class="kanban-item" onclick="openAptoDetail('${a.id}')">
+          <div class="kanban-apto">
+            ${a.numero}
+            ${temChamado ? '<span style="font-size:10px;color:var(--danger);" title="Chamado aberto">📋</span>' : ''}
+          </div>
+          <div class="kanban-detail">${a.tipo} · ${a.andar}º andar</div>
+          ${cam ? `<div style="font-size:11px;color:var(--text3);margin-top:4px;">👤 ${cam.nome.split(' ')[0]}</div>` : ''}
+          ${a.prioridade ? '<div style="font-size:10px;font-weight:700;color:var(--danger);margin-top:2px;">⚠️ PRIORIDADE</div>' : ''}
+        </div>`;
+      }).join('') || `<div style="font-size:12px;color:var(--text3);text-align:center;padding:12px;">—</div>`}
+    </div>`;
+  }).join('');
+}
+
+// ── INICIALIZAR KANBAN DE LIMPEZA ─────────────────────────────
+async function _initAptoKanban() {
+  const hotelWrap = document.getElementById('kanban-hotel-filter');
+  const hotelId   = _aptoViewHotelId || currentUser.hotelId;
+
+  if (hotelWrap) {
+    if (currentUser.perfil === 'admin_global') {
+      const { data: hotels } = await supabaseClient
+        .from('hotels').select('id, nome').eq('ativo', true).order('nome');
+      hotelWrap.innerHTML = `
+        <div class="card" style="padding:10px 16px;margin-bottom:14px;">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <span style="font-size:13px;font-weight:600;color:var(--text2);">🏨 Hotel:</span>
+            <select style="flex:1;min-width:200px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;"
+              onchange="_onKanbanHotelChange(this.value)">
+              <option value="">Selecione um hotel...</option>
+              ${(hotels || []).map(h =>
+                `<option value="${h.id}" ${h.id === _aptoViewHotelId ? 'selected' : ''}>${h.nome}</option>`
+              ).join('')}
+            </select>
+          </div>
+        </div>`;
+    } else {
+      hotelWrap.innerHTML = '';
+    }
+  }
+
+  if (!hotelId && currentUser.perfil === 'admin_global') {
+    const board = document.getElementById('kanban-board');
+    if (board) board.innerHTML = '<p style="color:var(--text3);text-align:center;padding:48px;">Selecione um hotel para visualizar o kanban.</p>';
+    document.getElementById('kanban-filtros-aptos').innerHTML = '';
+    return;
+  }
+
+  // Sincroniza aptos se necessário
+  if (!aptos.length || (hotelId && aptos[0]?.hotel_id !== hotelId)) {
+    if (hotelId) _aptoViewHotelId = hotelId;
+    await syncApartamentos();
+  }
+  await _carregarChamadosAbertosAptos(hotelId);
+  _renderFiltrosBar('kanban-filtros-aptos');
+  renderAptoKanban();
+}
+
+async function _onKanbanHotelChange(hotelId) {
+  _aptoViewHotelId = hotelId || null;
+  const board = document.getElementById('kanban-board');
+  if (!hotelId) {
+    if (board) board.innerHTML = '<p style="color:var(--text3);text-align:center;padding:48px;">Selecione um hotel.</p>';
+    document.getElementById('kanban-filtros-aptos').innerHTML = '';
+    return;
+  }
+  await syncApartamentos();
+  await _carregarChamadosAbertosAptos(hotelId);
+  _renderFiltrosBar('kanban-filtros-aptos');
+  renderAptoKanban();
+}
+
+// ── PATCH openPage PARA KANBAN DE LIMPEZA ────────────────────
+(function patchOpenPageKanbanLimpeza() {
+  if (window._kanbanLimpezaPatch) return;
+  window._kanbanLimpezaPatch = true;
+  const _prev = openPage;
+  openPage = function(id) {
+    _prev(id);
+    if (id === 'kanban') _initAptoKanban();
+  };
+})();
+
+// ── PATCH: initMapaAdmin — injeta filtros e carrega chamados abertos
+const _origInitMapaAdmin = initMapaAdmin;
+async function initMapaAdmin() {
+  await _origInitMapaAdmin();
+  const hotelId = _aptoViewHotelId || currentUser.hotelId;
+  if (hotelId && aptos.length) {
+    await _carregarChamadosAbertosAptos(hotelId);
+    _renderFiltrosBar('mapa-filtros-avancados');
+  }
+}
+
+// ── PATCH: selecionarHotelMapa — recarrega chamados e filtros
+const _origSelecionarHotelMapa = selecionarHotelMapa;
+async function selecionarHotelMapa(hotelId) {
+  await _origSelecionarHotelMapa(hotelId);
+  if (hotelId) {
+    await _carregarChamadosAbertosAptos(hotelId);
+    _renderFiltrosBar('mapa-filtros-avancados');
+  } else {
+    _aptosComChamadoAberto.clear();
+    document.getElementById('mapa-filtros-avancados').innerHTML = '';
+  }
+}

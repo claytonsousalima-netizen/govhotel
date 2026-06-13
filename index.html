@@ -336,6 +336,21 @@ tr:last-child td { border-bottom: none; }
 }
 .search-input:focus { outline: none; border-color: var(--primary-light); }
 
+/* FILTROS AVANÇADOS */
+.govfilter-bar {
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+  padding: 10px 0 2px; border-top: 1px solid var(--border); margin-top: 8px;
+}
+.govfilter-sel {
+  padding: 6px 10px; border: 1.5px solid var(--border); border-radius: 20px;
+  font-size: 12px; font-weight: 600; background: white; color: var(--text2);
+  cursor: pointer; transition: all 0.15s; appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 8px center; padding-right: 24px;
+}
+.govfilter-sel:focus { outline: none; border-color: var(--primary-light); }
+.govfilter-sel.ativo { background-color: #eaf2ff; border-color: var(--primary); color: var(--primary); }
+
 /* CHECKLIST */
 .checklist { list-style: none; }
 .checklist-item {
@@ -632,6 +647,7 @@ tr:last-child td { border-bottom: none; }
           <button class="filter-btn" onclick="filterMapa('ocupado',this)">🏠 Ocupado</button>
           <button class="filter-btn" onclick="filterMapa('manutencao',this)">🔧 Manutenção</button>
           <input class="search-input" placeholder="🔍 Buscar apto..." oninput="searchMapa(this.value)">
+          <div id="mapa-filtros-avancados"></div>
         </div>
         <div id="mapa-container"></div>
       </div>
@@ -646,6 +662,15 @@ tr:last-child td { border-bottom: none; }
         </div>
         <!-- Filtro de hotel — apenas admin_global -->
         <div id="kanban-hotel-filter"></div>
+        <div class="filters" id="kanban-filtros-status" style="margin-bottom:0;">
+          <button class="filter-btn active" onclick="filterKanbanStatus('todos',this)">Todos</button>
+          <button class="filter-btn" onclick="filterKanbanStatus('sujo',this)">🟠 Sujo</button>
+          <button class="filter-btn" onclick="filterKanbanStatus('limpando',this)">🔵 Em limpeza</button>
+          <button class="filter-btn" onclick="filterKanbanStatus('pausado',this)">🟡 Pausado</button>
+          <button class="filter-btn" onclick="filterKanbanStatus('conferencia',this)">🟣 Aguard. conf.</button>
+          <button class="filter-btn" onclick="filterKanbanStatus('reprovado',this)">🔴 Reprovado</button>
+        </div>
+        <div id="kanban-filtros-aptos"></div>
         <div class="kanban" id="kanban-board"></div>
       </div>
 
@@ -1612,8 +1637,8 @@ tr:last-child td { border-bottom: none; }
 <!-- TOAST -->
 <div class="toast" id="toast-msg"></div>
 
-<script src="js/supabase-client.js?v=20260613k"></script>
-<script src="js/auth.js?v=20260613k"></script>
+<script src="js/supabase-client.js?v=20260613l"></script>
+<script src="js/auth.js?v=20260613l"></script>
 <script>
 // ============ STATE ============
 let currentPage = 'dashboard';
@@ -2447,14 +2472,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('loading-overlay').style.display = 'none';
 });
 </script>
-<script src="js/hotels.js?v=20260613k"></script>
-<script src="js/apartments.js?v=20260613k"></script>
-<script src="js/maids.js?v=20260613k"></script>
-<script src="js/users.js?v=20260613k"></script>
-<script src="js/permissions.js?v=20260613k"></script>
-<script src="js/chamados.js?v=20260613k"></script>
-<script src="js/config.js?v=20260613k"></script>
-<script src="js/dashboard.js?v=20260613k"></script>
-<script src="js/relatorios.js?v=20260613k"></script>
+<script src="js/hotels.js?v=20260613l"></script>
+<script src="js/apartments.js?v=20260613l"></script>
+<script src="js/maids.js?v=20260613l"></script>
+<script src="js/users.js?v=20260613l"></script>
+<script src="js/permissions.js?v=20260613l"></script>
+<script src="js/chamados.js?v=20260613l"></script>
+<script src="js/config.js?v=20260613l"></script>
+<script src="js/dashboard.js?v=20260613l"></script>
+<script src="js/relatorios.js?v=20260613l"></script>
 </body>
 </html>

@@ -595,11 +595,8 @@ async function _initChamados() {
   const _realOpen = openPage;
   openPage = function(id) {
     _realOpen(id);
-    if (id === 'chamados' || id === 'kanban') {
-      _fetchChamados().then(() => {
-        if (id === 'chamados') renderChamados();
-        if (id === 'kanban')   renderKanban();
-      });
+    if (id === 'chamados') {
+      _fetchChamados().then(() => renderChamados());
     }
   };
 })();
