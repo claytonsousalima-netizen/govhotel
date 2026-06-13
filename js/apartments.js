@@ -173,8 +173,9 @@ function renderCadastroTableDb(filter = '') {
     do_andar.forEach(a => {
       const cam = equipe.find(e => e.id === a.camareira_id);
       const statusColor = {
-        livre:'#27ae60', sujo:'#e67e22', limpando:'#2e86c1',
-        conferencia:'#8e44ad', bloqueado:'#c0392b', ocupado:'#7f8c8d', manutencao:'#f1c40f'
+        livre:'#27ae60', sujo:'#e67e22', limpando:'#2e86c1', pausado:'#f39c12',
+        conferencia:'#8e44ad', limpo:'#1abc9c', reprovado:'#e74c3c',
+        bloqueado:'#c0392b', ocupado:'#7f8c8d', manutencao:'#f1c40f'
       }[a.status] || '#999';
 
       html += `<tr>
@@ -411,7 +412,11 @@ async function renderAppCamareira() {
   document.getElementById('app-concluidos').textContent = concluidos;
   document.getElementById('app-aptos-count').textContent= `${meus.length} aptos no hotel`;
 
-  const icons = {livre:'✅',sujo:'🧺',limpando:'🧹',conferencia:'🔍',bloqueado:'🔒',ocupado:'🏠',manutencao:'🔧'};
+  const icons = {
+    livre:'✅', sujo:'🧺', limpando:'🧹', pausado:'⏸',
+    conferencia:'🔍', limpo:'✨', reprovado:'❌',
+    bloqueado:'🔒', ocupado:'🏠', manutencao:'🔧'
+  };
 
   document.getElementById('app-apto-list').innerHTML = meus.map(a => `
     <div class="apto-card-app ${a.status}" onclick="abrirChecklistApp('${a.id}')">

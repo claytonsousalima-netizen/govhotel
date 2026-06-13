@@ -217,7 +217,10 @@ a { text-decoration: none; }
 .badge-livre { background: #d5f5e3; color: #1e8449; }
 .badge-sujo { background: #fdebd0; color: #b9770e; }
 .badge-limpando { background: #d6eaf8; color: #1a5276; }
+.badge-pausado { background: #fef3cd; color: #9a6700; }
 .badge-conferencia { background: #f5eef8; color: #7d3c98; }
+.badge-limpo { background: #d1f2eb; color: #0e6655; }
+.badge-reprovado { background: #fce4e4; color: #922b21; }
 .badge-bloqueado { background: #fdecea; color: #c0392b; }
 .badge-ocupado { background: #eaecee; color: #566573; }
 .badge-manutencao { background: #fef9e7; color: #d4ac0d; }
@@ -593,12 +596,16 @@ tr:last-child td { border-bottom: none; }
         <div id="mapa-hotel-selector"></div>
         <div class="filters" id="mapa-filters">
           <button class="filter-btn active" onclick="filterMapa('todos',this)">Todos</button>
-          <button class="filter-btn" onclick="filterMapa('livre',this)">🟢 Livre</button>
           <button class="filter-btn" onclick="filterMapa('sujo',this)">🟠 Sujo</button>
-          <button class="filter-btn" onclick="filterMapa('limpando',this)">🔵 Limpando</button>
-          <button class="filter-btn" onclick="filterMapa('conferencia',this)">🟣 Conferência</button>
-          <button class="filter-btn" onclick="filterMapa('bloqueado',this)">🔴 Bloqueado</button>
-          <button class="filter-btn" onclick="filterMapa('manutencao',this)">🟡 Manutenção</button>
+          <button class="filter-btn" onclick="filterMapa('limpando',this)">🔵 Em limpeza</button>
+          <button class="filter-btn" onclick="filterMapa('pausado',this)">🟡 Pausado</button>
+          <button class="filter-btn" onclick="filterMapa('conferencia',this)">🟣 Aguard. conf.</button>
+          <button class="filter-btn" onclick="filterMapa('limpo',this)">🟢 Limpo</button>
+          <button class="filter-btn" onclick="filterMapa('reprovado',this)">🔴 Reprovado</button>
+          <button class="filter-btn" onclick="filterMapa('bloqueado',this)">⛔ Bloqueado</button>
+          <button class="filter-btn" onclick="filterMapa('livre',this)">✅ Livre</button>
+          <button class="filter-btn" onclick="filterMapa('ocupado',this)">🏠 Ocupado</button>
+          <button class="filter-btn" onclick="filterMapa('manutencao',this)">🔧 Manutenção</button>
           <input class="search-input" placeholder="🔍 Buscar apto..." oninput="searchMapa(this.value)">
         </div>
         <div id="mapa-container"></div>
@@ -984,10 +991,16 @@ tr:last-child td { border-bottom: none; }
         <div class="field"><label>Apartamento</label><select id="ts-apto"><option value="">Selecionar...</option></select></div>
         <div class="field"><label>Novo status</label>
           <select id="ts-status">
-            <option value="livre">🟢 Livre</option><option value="sujo">🟠 Sujo</option>
-            <option value="limpando">🔵 Limpando</option><option value="conferencia">🟣 Conferência</option>
-            <option value="bloqueado">🔴 Bloqueado</option><option value="manutencao">🟡 Manutenção</option>
-            <option value="ocupado">⚫ Ocupado</option>
+            <option value="sujo">🟠 Sujo</option>
+            <option value="limpando">🔵 Em limpeza</option>
+            <option value="pausado">🟡 Pausado</option>
+            <option value="conferencia">🟣 Aguard. conferência</option>
+            <option value="limpo">🟢 Limpo</option>
+            <option value="reprovado">🔴 Reprovado</option>
+            <option value="bloqueado">⛔ Bloqueado</option>
+            <option value="livre">✅ Livre</option>
+            <option value="ocupado">🏠 Ocupado</option>
+            <option value="manutencao">🔧 Manutenção</option>
           </select>
         </div>
       </div>
@@ -1193,9 +1206,15 @@ tr:last-child td { border-bottom: none; }
       <div class="form-row">
         <div class="field"><label>Status</label>
           <select id="ca-status">
-            <option value="livre">Livre</option><option value="ocupado">Ocupado</option>
-            <option value="sujo">Sujo</option><option value="limpando">Limpando</option>
-            <option value="conferencia">Em Conferência</option><option value="bloqueado">Bloqueado</option>
+            <option value="sujo">Sujo</option>
+            <option value="limpando">Em limpeza</option>
+            <option value="pausado">Pausado</option>
+            <option value="conferencia">Aguard. conferência</option>
+            <option value="limpo">Limpo</option>
+            <option value="reprovado">Reprovado</option>
+            <option value="bloqueado">Bloqueado</option>
+            <option value="livre">Livre</option>
+            <option value="ocupado">Ocupado</option>
             <option value="manutencao">Manutenção</option>
           </select>
         </div>
@@ -1425,8 +1444,8 @@ tr:last-child td { border-bottom: none; }
 <!-- TOAST -->
 <div class="toast" id="toast-msg"></div>
 
-<script src="js/supabase-client.js?v=20260613f"></script>
-<script src="js/auth.js?v=20260613f"></script>
+<script src="js/supabase-client.js?v=20260613g"></script>
+<script src="js/auth.js?v=20260613g"></script>
 <script>
 // ============ STATE ============
 let currentPage = 'dashboard';
@@ -1679,6 +1698,17 @@ function renderDashboard() {}
 function refreshDash() { renderDashboard(); toast('Dashboard atualizado'); }
 
 // ============ MAPA ============
+const _STATUS_ICONS = {
+  livre:'✅', sujo:'🧺', limpando:'🧹', pausado:'⏸',
+  conferencia:'🔍', limpo:'✨', reprovado:'❌',
+  bloqueado:'🔒', ocupado:'🏠', manutencao:'🔧'
+};
+const _STATUS_LABELS = {
+  livre:'Livre', sujo:'Sujo', limpando:'Em limpeza', pausado:'Pausado',
+  conferencia:'Aguard. conf.', limpo:'Limpo', reprovado:'Reprovado',
+  bloqueado:'Bloqueado', ocupado:'Ocupado', manutencao:'Manutenção'
+};
+
 function renderMapa() {
   const andares = [...new Set(aptos.map(a => a.andar))].sort((a,b) => a-b);
   let html = '';
@@ -1689,13 +1719,12 @@ function renderMapa() {
       <div class="floor-label">🏢 ${andar}º Andar — ${list.length} aptos</div>
       <div class="aptos-grid">`;
     list.forEach(a => {
-      const icons = {livre:'✅',sujo:'🧺',limpando:'🧹',conferencia:'🔍',bloqueado:'🔒',ocupado:'🏠',manutencao:'🔧'};
-      html += `<div class="apto-card ${a.status}" onclick="openAptoDetail(${a.id})">
+      html += `<div class="apto-card ${a.status}" onclick="openAptoDetail('${a.id}')">
         ${a.prioridade ? '<div class="apto-priority"></div>' : ''}
-        <div class="apto-status-icon">${icons[a.status]||'❓'}</div>
+        <div class="apto-status-icon">${_STATUS_ICONS[a.status]||'❓'}</div>
         <div class="apto-num">${a.numero}</div>
         <div class="apto-tipo">${a.tipo}</div>
-        <span class="badge badge-${a.status}" style="font-size:10px;">${a.status}</span>
+        <span class="badge badge-${a.status}" style="font-size:10px;">${_STATUS_LABELS[a.status]||a.status}</span>
       </div>`;
     });
     html += '</div></div>';
@@ -1724,13 +1753,44 @@ function openAptoDetail(id) {
   if (!apto) return;
   document.getElementById('detail-apto-title').textContent = `Apartamento ${apto.numero}`;
   const cam = equipe.find(e => e.id === apto.camareira_id);
-  const icons = {livre:'✅',sujo:'🧺',limpando:'🧹',conferencia:'🔍',bloqueado:'🔒',ocupado:'🏠',manutencao:'🔧'};
-  const isCamareira = currentUser.perfil === 'camareira';
+  const isCamareira  = currentUser.perfil === 'camareira';
+  const isManutencao = currentUser.perfil === 'manutencao';
+
+  // Transições permitidas por status (fluxo guiado)
+  const FLOW = {
+    sujo:        [['limpando','▶ Iniciar limpeza'], ['bloqueado','🔒 Bloquear']],
+    limpando:    [['pausado','⏸ Pausar'], ['conferencia','🔍 Enviar conf.']],
+    pausado:     [['limpando','▶ Retomar'], ['sujo','↩ Voltar sujo']],
+    conferencia: [['limpo','✅ Aprovar'], ['reprovado','❌ Reprovar']],
+    reprovado:   [['sujo','🔄 Re-limpar'], ['bloqueado','🔒 Bloquear']],
+    limpo:       [['ocupado','🏠 Marcar ocupado'], ['sujo','↩ Marcar sujo']],
+    bloqueado:   [['sujo','🔓 Desbloquear']],
+    livre:       [['sujo','↩ Marcar sujo'], ['ocupado','🏠 Ocupar']],
+    ocupado:     [['sujo','⬇ Checkout/Sujo']],
+    manutencao:  [['sujo','↩ Liberar limpeza']],
+  };
+
+  const flowBtns = (FLOW[apto.status] || []).map(([s, label]) =>
+    `<button class="btn btn-xs btn-primary" onclick="mudarStatusApto('${id}','${s}')">${label}</button>`
+  ).join('');
+
+  // Botões de força (todos os status) — apenas para gestores e admins
+  const allStatuses = ['sujo','limpando','pausado','conferencia','limpo','reprovado','bloqueado','livre','ocupado','manutencao'];
+  const forceBtns = (!isCamareira && !isManutencao) ? `
+    <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);">
+      <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.3px;">Forçar status</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;">
+        ${allStatuses.map(s =>
+          `<button class="btn btn-xs ${apto.status===s?'btn-primary':'btn-ghost'}" onclick="mudarStatusApto('${id}','${s}')">${_STATUS_LABELS[s]||s}</button>`
+        ).join('')}
+      </div>
+    </div>` : '';
+
   document.getElementById('detail-apto-body').innerHTML = `
     <div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap;">
       <div style="flex:1;min-width:200px;">
-        <div style="font-size:40px;text-align:center;padding:16px;background:var(--bg);border-radius:var(--radius);margin-bottom:12px;">${icons[apto.status]||'❓'}</div>
-        <div style="text-align:center;"><span class="badge badge-${apto.status}">${apto.status}</span></div>
+        <div style="font-size:40px;text-align:center;padding:16px;background:var(--bg);border-radius:var(--radius);margin-bottom:12px;">${_STATUS_ICONS[apto.status]||'❓'}</div>
+        <div style="text-align:center;"><span class="badge badge-${apto.status}">${_STATUS_LABELS[apto.status]||apto.status}</span></div>
       </div>
       <div style="flex:2;min-width:200px;">
         <table style="width:100%;font-size:13px;">
@@ -1744,15 +1804,15 @@ function openAptoDetail(id) {
       </div>
     </div>
     <div>
-      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.4px;">Alterar status</div>
+      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.4px;">Próxima ação</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        ${['livre','sujo','limpando','conferencia','bloqueado','manutencao','ocupado'].map(s =>
-          `<button class="btn btn-xs ${apto.status===s?'btn-primary':'btn-ghost'}" onclick="mudarStatusApto(${id},'${s}')">${s}</button>`
-        ).join('')}
+        ${flowBtns || '<span style="font-size:13px;color:var(--text3);">Nenhuma ação disponível.</span>'}
       </div>
+      ${forceBtns}
     </div>`;
-  document.getElementById('detail-btn-iniciar').style.display = apto.status === 'sujo' ? '' : 'none';
-  document.getElementById('detail-btn-concluir').style.display = apto.status === 'limpando' ? '' : 'none';
+
+  document.getElementById('detail-btn-iniciar').style.display  = ['sujo','reprovado'].includes(apto.status) ? '' : 'none';
+  document.getElementById('detail-btn-concluir').style.display = ['limpando','pausado'].includes(apto.status) ? '' : 'none';
   openModal('modal-apto-detail');
 }
 
@@ -1784,11 +1844,13 @@ function salvarTrocarStatus() {
 // ============ KANBAN ============
 function renderKanban() {
   const cols = [
-    { key:'sujo', label:'A limpar', color:'#e67e22' },
-    { key:'limpando', label:'Limpando', color:'#2e86c1' },
-    { key:'conferencia', label:'Conferência', color:'#8e44ad' },
-    { key:'livre', label:'Livre', color:'#27ae60' },
-    { key:'manutencao', label:'Manutenção', color:'#f1c40f' },
+    { key:'sujo',        label:'Sujo',          color:'#e67e22' },
+    { key:'limpando',    label:'Em limpeza',     color:'#2e86c1' },
+    { key:'pausado',     label:'Pausado',        color:'#f39c12' },
+    { key:'conferencia', label:'Aguard. conf.',  color:'#8e44ad' },
+    { key:'limpo',       label:'Limpo',          color:'#1abc9c' },
+    { key:'reprovado',   label:'Reprovado',      color:'#e74c3c' },
+    { key:'manutencao',  label:'Manutenção',     color:'#f1c40f' },
   ];
   let html = '';
   cols.forEach(col => {
@@ -1797,7 +1859,7 @@ function renderKanban() {
       <div class="kanban-col-title" style="color:${col.color};">${col.label} <span class="kanban-count">${items.length}</span></div>`;
     items.forEach(a => {
       const cam = equipe.find(e => e.id === a.camareira_id);
-      html += `<div class="kanban-item" onclick="openAptoDetail(${a.id})">
+      html += `<div class="kanban-item" onclick="openAptoDetail('${a.id}')">
         <div class="kanban-apto">${a.numero}</div>
         <div class="kanban-detail">${a.tipo} · ${a.andar}º andar</div>
         ${cam ? `<div style="font-size:11px;color:var(--text3);margin-top:4px;">👤 ${cam.nome.split(' ')[0]}</div>` : ''}
@@ -2209,14 +2271,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('loading-overlay').style.display = 'none';
 });
 </script>
-<script src="js/hotels.js?v=20260613f"></script>
-<script src="js/apartments.js?v=20260613f"></script>
-<script src="js/maids.js?v=20260613f"></script>
-<script src="js/users.js?v=20260613f"></script>
-<script src="js/permissions.js?v=20260613f"></script>
-<script src="js/chamados.js?v=20260613f"></script>
-<script src="js/config.js?v=20260613f"></script>
-<script src="js/dashboard.js?v=20260613f"></script>
-<script src="js/relatorios.js?v=20260613f"></script>
+<script src="js/hotels.js?v=20260613g"></script>
+<script src="js/apartments.js?v=20260613g"></script>
+<script src="js/maids.js?v=20260613g"></script>
+<script src="js/users.js?v=20260613g"></script>
+<script src="js/permissions.js?v=20260613g"></script>
+<script src="js/chamados.js?v=20260613g"></script>
+<script src="js/config.js?v=20260613g"></script>
+<script src="js/dashboard.js?v=20260613g"></script>
+<script src="js/relatorios.js?v=20260613g"></script>
 </body>
 </html>
