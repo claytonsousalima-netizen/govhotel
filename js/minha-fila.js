@@ -10,13 +10,27 @@ async function renderMinhaFila() {
   const el = document.getElementById('mf-content');
   if (!el) return;
 
+  // Seletor de hotel para admin_global; chip informativo para os demais
+  if (currentUser.perfil === 'admin_global') {
+    await _mfSetupHotelSelector();
+    if (!_aptoViewHotelId) {
+      el.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text3);">
+        Selecione um hotel para visualizar a fila.</div>`;
+      return;
+    }
+  } else {
+    if (typeof _renderHotelChip === 'function') _renderHotelChip('mf-hotel-selector');
+  }
+
   el.innerHTML = `<div style="text-align:center;padding:48px;color:var(--text3);">
     <div class="spinner" style="margin:0 auto 12px;border-top-color:var(--primary-light);"></div>
     Carregando fila...
   </div>`;
 
   // Garante que aptos estão carregados para o hotel correto
-  const hotelId = currentUser.hotelId;
+  const hotelId = currentUser.perfil === 'admin_global'
+    ? _aptoViewHotelId
+    : currentUser.hotelId;
   if (hotelId && (!aptos.length || aptos[0]?.hotel_id !== hotelId)) {
     if (typeof _aptoViewHotelId !== 'undefined') _aptoViewHotelId = hotelId;
     if (typeof syncApartamentos === 'function') await syncApartamentos();
@@ -28,6 +42,40 @@ async function renderMinhaFila() {
   } else {
     _mfRenderGestor(el);
   }
+}
+
+async function _mfSetupHotelSelector() {
+  const wrap = document.getElementById('mf-hotel-selector');
+  if (!wrap) return;
+  wrap.style.display = '';
+  if (wrap.querySelector('select')) {
+    // Já renderizado — apenas sincroniza seleção
+    const sel = document.getElementById('mf-hotel-select');
+    if (sel && _aptoViewHotelId) sel.value = _aptoViewHotelId;
+    return;
+  }
+  const { data: hotels } = await supabaseClient
+    .from('hotels').select('id, nome').eq('ativo', true).order('nome');
+  wrap.innerHTML = `
+    <div class="card" style="padding:10px 16px;margin-bottom:14px;">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <span style="font-size:13px;font-weight:600;color:var(--text2);">🏨 Hotel:</span>
+        <select id="mf-hotel-select"
+          style="flex:1;min-width:200px;padding:7px 10px;border:1.5px solid var(--border);
+                 border-radius:var(--radius-sm);font-size:13px;"
+          onchange="_mfSelecionarHotel(this.value)">
+          <option value="">Selecione um hotel...</option>
+          ${(hotels||[]).map(h =>
+            `<option value="${h.id}" ${h.id === _aptoViewHotelId ? 'selected' : ''}>${h.nome}</option>`
+          ).join('')}
+        </select>
+      </div>
+    </div>`;
+}
+
+async function _mfSelecionarHotel(hotelId) {
+  if (typeof _aptoViewHotelId !== 'undefined') _aptoViewHotelId = hotelId || null;
+  await renderMinhaFila();
 }
 
 // ── CAMAREIRA: fila de limpeza ────────────────────────────────
