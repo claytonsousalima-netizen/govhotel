@@ -486,7 +486,7 @@ function _renderDetalheConteudo(c) {
   if (elInfo) elInfo.innerHTML = `
     <div><span style="font-size:11px;color:var(--text3);">Apartamento</span><div style="font-weight:600;">${c.apto}</div></div>
     <div><span style="font-size:11px;color:var(--text3);">Solicitante</span><div>${c.solicitante || '—'}</div></div>
-    <div><span style="font-size:11px;color:var(--text3);">Responsável</span><div>${c.camareira ? '🧹 ' + c.camareira : '<em style="color:var(--text3);">Sem responsável</em>'}</div></div>
+    <div><span style="font-size:11px;color:var(--text3);">Responsável</span><div>${c.camareira ? (c.departamento === 'manutencao' ? '🔧 ' : '🧹 ') + c.camareira : '<em style="color:var(--text3);">Sem responsável</em>'}</div></div>
     ${c.hospede ? `<div><span style="font-size:11px;color:var(--text3);">Hóspede</span><div>${c.hospede}</div></div>` : ''}
     <div><span style="font-size:11px;color:var(--text3);">Criado em</span><div>${c.criadoFull}</div></div>
     ${c.prazo ? `<div><span style="font-size:11px;color:var(--text3);">Prazo</span><div style="${_isAtrasado(c) ? 'color:#dc2626;font-weight:700;' : ''}">${c.prazo}${_isAtrasado(c) ? ' ⚠' : ''}</div></div>` : ''}
@@ -683,7 +683,7 @@ function renderChamados() {
               ${dispBadge}
             </div>
             <div style="font-size:12px;color:var(--text2);">
-              Apto ${c.apto}${c.hospede ? ` · ${c.hospede}` : ''}${c.camareira ? ` · 🧹 ${c.camareira}` : ' · Sem responsável'}
+              Apto ${c.apto}${c.hospede ? ` · ${c.hospede}` : ''}${c.camareira ? ` · ${c.departamento === 'manutencao' ? '🔧' : '🧹'} ${c.camareira}` : ' · Sem responsável'}
             </div>
             ${c.categoria ? `<div style="font-size:11px;color:var(--text3);margin-top:2px;">📁 ${c.categoria}</div>` : ''}
             ${c.desc ? `<div style="font-size:12px;color:var(--text3);margin-top:4px;">${c.desc.substring(0,80)}${c.desc.length>80?'…':''}</div>` : ''}
@@ -732,7 +732,7 @@ function renderKanban() {
           ${c.numero ? `<div style="font-size:10px;font-weight:700;color:var(--primary);margin-bottom:2px;">${c.numero}</div>` : ''}
           <div style="font-weight:600;font-size:13px;">${deptIcon} ${c.tipo}</div>
           <div style="font-size:11px;color:var(--text2);margin-top:2px;">Apto ${c.apto}</div>
-          ${c.camareira ? `<div style="font-size:11px;color:var(--text3);">🧹 ${c.camareira}</div>` : ''}
+          ${c.camareira ? `<div style="font-size:11px;color:var(--text3);">${c.departamento === 'manutencao' ? '🔧' : '🧹'} ${c.camareira}</div>` : ''}
           <div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap;">
             <span class="badge ${pr.badge}">${pr.label}</span>
             ${_isAtrasado(c) ? _BADGE_ATRASADO : ''}

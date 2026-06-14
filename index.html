@@ -2084,13 +2084,10 @@ function buildSidebar() {
   // Usa o mesmo filtro da aba "Abertos" — consistente com a listagem real
   const _src  = (typeof _chamadosCache !== 'undefined' && _chamadosCache.length)
     ? _chamadosCache : chamados;
-  // Badge conta apenas chamados acionáveis pelo perfil (exclui os de visualização cruzada)
-  const openCount = _src.filter(c => {
-    if (!['aberto','em_analise','reaberto'].includes(c.status)) return false;
-    if (currentUser.perfil === 'camareira')  return c.departamento === 'governanca';
-    if (currentUser.perfil === 'manutencao') return c.departamento === 'manutencao';
-    return true;
-  }).length;
+  // Badge conta todos os chamados abertos visíveis — consistente com a aba "Abertos" da listagem
+  const openCount = _src.filter(c =>
+    ['aberto','em_analise','reaberto'].includes(c.status)
+  ).length;
   const confCount = (typeof aptos !== 'undefined')
     ? aptos.filter(a => a.status === 'conferencia').length : 0;
   let html = '';
@@ -2556,7 +2553,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 <script src="js/maids.js?v=20260614d"></script>
 <script src="js/users.js?v=20260614b"></script>
 <script src="js/permissions.js?v=20260614b"></script>
-<script src="js/chamados.js?v=20260614e"></script>
+<script src="js/chamados.js?v=20260614f"></script>
 <script src="js/config.js?v=20260613v"></script>
 <script src="js/dashboard.js?v=20260614a"></script>
 <script src="js/relatorios.js?v=20260613p"></script>
