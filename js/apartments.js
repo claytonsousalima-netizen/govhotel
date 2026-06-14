@@ -1087,16 +1087,17 @@ async function _onKanbanHotelChange(hotelId) {
   };
 })();
 
-// ── PATCH: initMapaAdmin — injeta filtros e carrega chamados abertos
-const _origInitMapaAdmin = initMapaAdmin;
-async function initMapaAdmin() {
-  await _origInitMapaAdmin();
+// ── WRAP: initMapaAdmin — injeta filtros após renderização do mapa
+// Usa atribuição (não function declaration) para não sofrer hoisting
+const _baseInitMapaAdmin = initMapaAdmin;
+initMapaAdmin = async function() {
+  await _baseInitMapaAdmin();
   const hotelId = _aptoViewHotelId || currentUser.hotelId;
   if (hotelId && aptos.length) {
     await _carregarChamadosAbertosAptos(hotelId);
     _renderFiltrosBar('mapa-filtros-avancados');
   }
-}
+};
 
 // ── CONFIGURAÇÃO: TIPOS E CATEGORIAS DE APARTAMENTO ──────────
 
