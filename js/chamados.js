@@ -244,16 +244,21 @@ async function _popularAptosModalChamado(hotelId) {
   if (!sel) return;
   sel.innerHTML = '<option value="">Carregando...</option>';
   const hId = hotelId || currentUser?.hotelId;
+  // DEBUG TEMPORÁRIO — remover após diagnóstico
+  console.log('[DEBUG aptos] hotelId param:', hotelId, '| currentUser.hotelId:', currentUser?.hotelId, '| hId usado:', hId, '| hotelNome:', currentUser?.hotelNome);
+  if (typeof toast === 'function') toast(`[DEBUG] Hotel: ${currentUser?.hotelNome||'?'} | ID: ${hId||'NULL'}`, 'info');
   if (!hId) {
     sel.innerHTML = '<option value="">— Selecione o hotel primeiro —</option>';
     return;
   }
-  const { data } = await supabaseClient
+  const { data, error } = await supabaseClient
     .from('apartments')
     .select('id, numero, tipo')
     .eq('ativo', true)
     .eq('hotel_id', hId)
     .order('numero');
+  if (error) console.error('[DEBUG aptos] erro Supabase:', error);
+  console.log('[DEBUG aptos] retornou', data?.length, 'aptos:', data?.map(a=>a.numero));
   sel.innerHTML = '<option value="">Selecionar apartamento...</option>' +
     (data||[]).map(a=>`<option value="${a.id}">${a.numero} — ${a.tipo}</option>`).join('');
   if (!data?.length) {
