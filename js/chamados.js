@@ -150,18 +150,10 @@ async function _fetchChamados() {
     `)
     .order('created_at', { ascending: false });
 
-  if (currentUser.perfil === 'camareira') {
-    // Vê chamados de governança do hotel: atribuídos a ela OU ainda não atribuídos
-    query = query
-      .eq('hotel_id', currentUser.hotelId)
-      .eq('departamento', 'governanca')
-      .or(`responsavel_user_id.eq.${currentUser.id},responsavel_user_id.is.null`);
-  } else if (currentUser.perfil === 'manutencao') {
-    // Vê chamados de manutenção do hotel: atribuídos a ele OU ainda não atribuídos
-    query = query
-      .eq('hotel_id', currentUser.hotelId)
-      .eq('departamento', 'manutencao')
-      .or(`responsavel_user_id.eq.${currentUser.id},responsavel_user_id.is.null`);
+  if (currentUser.perfil === 'camareira' || currentUser.perfil === 'manutencao') {
+    // Vê todos os chamados do hotel (governança + manutenção) para consulta cruzada.
+    // A separação de o que pode atuar é feita no frontend via _podeAtualizarChamado().
+    query = query.eq('hotel_id', currentUser.hotelId);
   } else if (currentUser.perfil !== 'admin_global' && currentUser.hotelId) {
     query = query.eq('hotel_id', currentUser.hotelId);
   } else if (_chamadoHotelId) {
@@ -254,12 +246,24 @@ async function _popularAptosModalChamado(hotelId) {
     .eq('ativo', true)
     .eq('hotel_id', hId)
     .order('numero');
-  if (error) console.error('[DEBUG aptos] erro Supabase:', error);
-  console.log('[DEBUG aptos] retornou', data?.length, 'aptos:', data?.map(a=>a.numero));
   sel.innerHTML = '<option value="">Selecionar apartamento...</option>' +
     (data||[]).map(a=>`<option value="${a.id}">${a.numero} — ${a.tipo}</option>`).join('');
   if (!data?.length) {
     sel.innerHTML = '<option value="">— Nenhum apartamento cadastrado —</option>';
+  }
+  sel.onchange = () => { if (sel.value) _verificarDuplicidadeChamado(sel.value); };
+}
+
+// ── AVISO DE CHAMADO DUPLICADO ────────────────────────────────
+async function _verificarDuplicidadeChamado(aptoId) {
+  if (!aptoId) return;
+  const { data } = await supabaseClient
+    .from('work_orders')
+    .select('id')
+    .eq('apartment_id', aptoId)
+    .in('status', ['aberto','em_analise','andamento','pausado','reaberto']);
+  if (data && data.length > 0) {
+    toast(`⚠️ Já existe ${data.length} chamado(s) aberto(s) para este apartamento. Verifique antes de criar outro.`, 'warning');
   }
 }
 
@@ -448,13 +452,19 @@ function _renderDetalheConteudo(c) {
     ? `<span style="font-size:11px;background:#fef9e7;color:#d4ac0d;padding:3px 8px;border-radius:10px;font-weight:600;">🔧 Manutenção</span>`
     : `<span style="font-size:11px;background:#e8f6f3;color:#148f77;padding:3px 8px;border-radius:10px;font-weight:600;">🧹 Governança</span>`;
 
+  const somenteLeitura = !_podeAtualizarChamado(c);
+  const slBadge = somenteLeitura
+    ? `<span style="font-size:11px;background:#f1f5f9;color:#64748b;padding:3px 8px;border-radius:10px;font-weight:600;">👁 Somente leitura</span>`
+    : '';
+
   const elBadges = document.getElementById('cd-badges');
   if (elBadges) elBadges.innerHTML =
     `<span class="badge ${st.badge}">${st.label}</span>` +
     `<span class="badge ${pr.badge}">${pr.label}</span>` +
     (c.categoria ? `<span style="font-size:11px;background:var(--surface2);color:var(--text2);padding:3px 8px;border-radius:10px;">📁 ${c.categoria}</span>` : '') +
     dB +
-    (!c.responsavel_user_id ? `<span style="font-size:11px;background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:10px;font-weight:600;">📋 Disponível</span>` : '');
+    (!c.responsavel_user_id ? `<span style="font-size:11px;background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:10px;font-weight:600;">📋 Disponível</span>` : '') +
+    slBadge;
 
   // Bloco "Assumir chamado"
   const elAssumirWrap = document.getElementById('cd-assumir-wrap');
@@ -483,23 +493,32 @@ function _renderDetalheConteudo(c) {
     ${c.desc ? `<div style="grid-column:1/-1;"><span style="font-size:11px;color:var(--text3);">Descrição</span><div style="margin-top:2px;">${c.desc}</div></div>` : ''}
   `;
 
-  const nexts   = _GOV_NEXT[c.status] || [];
-  const elAcoes = document.getElementById('cd-acoes');
-  if (elAcoes) {
-    if (!nexts.length) {
-      elAcoes.innerHTML = `<div style="font-size:12px;color:var(--text3);">Nenhuma ação disponível.</div>`;
-    } else {
-      const btns = nexts.map(ns => {
-        const sl  = _GOV_STATUS[ns]?.label || ns;
-        const cls = ns === 'cancelado' ? 'btn-danger'
-          : ns === 'resolvido' || ns === 'concluido' ? 'btn-success'
-          : ns === 'reaberto' ? 'btn-danger'
-          : 'btn-primary';
-        return `<button class="btn ${cls} btn-sm" onclick="atualizarStatusChamado('${c.id}','${ns}')">→ ${sl}</button>`;
-      }).join('');
-      elAcoes.innerHTML = `
-        <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">Ações</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">${btns}</div>`;
+  const elAcoes        = document.getElementById('cd-acoes');
+  const elComentWrap   = document.getElementById('cd-comentario-wrap');
+
+  if (somenteLeitura) {
+    // Perfil vendo chamado da outra área — apenas consulta
+    if (elAcoes)      elAcoes.innerHTML = `<div style="font-size:12px;color:var(--text3);padding:4px 0;">Chamado de outra área — consulta apenas.</div>`;
+    if (elComentWrap) elComentWrap.style.display = 'none';
+  } else {
+    if (elComentWrap) elComentWrap.style.display = '';
+    const nexts = _GOV_NEXT[c.status] || [];
+    if (elAcoes) {
+      if (!nexts.length) {
+        elAcoes.innerHTML = `<div style="font-size:12px;color:var(--text3);">Nenhuma ação disponível.</div>`;
+      } else {
+        const btns = nexts.map(ns => {
+          const sl  = _GOV_STATUS[ns]?.label || ns;
+          const cls = ns === 'cancelado' ? 'btn-danger'
+            : ns === 'resolvido' || ns === 'concluido' ? 'btn-success'
+            : ns === 'reaberto' ? 'btn-danger'
+            : 'btn-primary';
+          return `<button class="btn ${cls} btn-sm" onclick="atualizarStatusChamado('${c.id}','${ns}')">→ ${sl}</button>`;
+        }).join('');
+        elAcoes.innerHTML = `
+          <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">Ações</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">${btns}</div>`;
+      }
     }
   }
 }
@@ -569,6 +588,15 @@ function _podeAssumirChamado(c) {
   if (currentUser.perfil === 'camareira')  return c.departamento === 'governanca';
   if (currentUser.perfil === 'manutencao') return c.departamento === 'manutencao';
   return ['gestor','admin_hotel','admin_global'].includes(currentUser.perfil);
+}
+
+// ── PERMISSÃO DE ATUALIZAR CHAMADO ───────────────────────────
+// Retorna false quando o perfil está visualizando chamado da outra área (somente leitura)
+function _podeAtualizarChamado(c) {
+  if (['admin_global','admin_hotel','gestor','supervisora'].includes(currentUser.perfil)) return true;
+  if (currentUser.perfil === 'camareira')  return c.departamento === 'governanca';
+  if (currentUser.perfil === 'manutencao') return c.departamento === 'manutencao';
+  return false;
 }
 
 async function assumirChamado(id) {

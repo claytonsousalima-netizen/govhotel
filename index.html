@@ -1374,7 +1374,7 @@ tr:last-child td { border-bottom: none; }
         <div id="cd-historico" style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm);padding:0 12px;"></div>
       </div>
       <!-- Comentário -->
-      <div>
+      <div id="cd-comentario-wrap">
         <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">Comentário interno</div>
         <textarea id="cd-comentario" rows="2" placeholder="Adicione um comentário interno..." style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;box-sizing:border-box;resize:vertical;"></textarea>
         <button class="btn btn-ghost btn-sm" style="margin-top:6px;" onclick="salvarComentarioChamado()">💬 Adicionar comentário</button>
@@ -2084,7 +2084,13 @@ function buildSidebar() {
   // Usa o mesmo filtro da aba "Abertos" — consistente com a listagem real
   const _src  = (typeof _chamadosCache !== 'undefined' && _chamadosCache.length)
     ? _chamadosCache : chamados;
-  const openCount = _src.filter(c => ['aberto','em_analise','reaberto'].includes(c.status)).length;
+  // Badge conta apenas chamados acionáveis pelo perfil (exclui os de visualização cruzada)
+  const openCount = _src.filter(c => {
+    if (!['aberto','em_analise','reaberto'].includes(c.status)) return false;
+    if (currentUser.perfil === 'camareira')  return c.departamento === 'governanca';
+    if (currentUser.perfil === 'manutencao') return c.departamento === 'manutencao';
+    return true;
+  }).length;
   const confCount = (typeof aptos !== 'undefined')
     ? aptos.filter(a => a.status === 'conferencia').length : 0;
   let html = '';
