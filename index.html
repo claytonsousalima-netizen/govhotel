@@ -1651,6 +1651,40 @@ tr:last-child td { border-bottom: none; }
   </div>
 </div>
 
+<!-- Modal Confirmar Exclusão de Apartamento -->
+<div class="modal-overlay" id="modal-excluir-apto">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <span class="modal-title" style="color:var(--danger);">⚠️ Excluir Apartamento</span>
+      <button class="btn-close" onclick="closeModal('modal-excluir-apto')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="text-align:center;padding:8px 0 16px;">
+        <div style="font-size:48px;margin-bottom:12px;">🗑️</div>
+        <p style="font-size:15px;font-weight:700;margin-bottom:8px;">
+          Excluir o apartamento <span id="excluir-apto-numero" style="color:var(--danger);"></span>?
+        </p>
+        <p style="font-size:13px;color:var(--text2);line-height:1.6;">
+          Esta ação é <strong>permanente e irreversível</strong>.<br>
+          Todos os dados vinculados serão excluídos:
+        </p>
+        <ul style="margin:12px auto;text-align:left;max-width:280px;font-size:13px;color:var(--text2);line-height:2;">
+          <li>📋 Chamados e histórico de chamados</li>
+          <li>✅ Checklists de limpeza</li>
+          <li>⚠️ Pendências e retrabalhos</li>
+          <li>📜 Histórico de status</li>
+        </ul>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-excluir-apto')">Cancelar</button>
+      <button id="btn-confirmar-excluir-apto" class="btn btn-danger" onclick="executarExclusaoApto()">
+        🗑️ Excluir permanentemente
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Novo/Editar Membro -->
 <div class="modal-overlay" id="modal-novo-membro">
   <div class="modal">
@@ -2730,7 +2764,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <script src="js/hotels.js?v=20260613p"></script>
-<script src="js/apartments.js?v=20260614d"></script>
+<script src="js/apartments.js?v=20260614e"></script>
 <script src="js/maids.js?v=20260614a"></script>
 <script src="js/users.js?v=20260614a"></script>
 <script src="js/permissions.js?v=20260613p"></script>

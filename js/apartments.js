@@ -163,6 +163,7 @@ async function selecionarHotelApto(hotelId) {
 
 function renderCadastroTableDb(filter = '') {
   const isCamareira = currentUser.perfil === 'camareira';
+  const _isAdmin    = ['admin_global','admin_hotel'].includes(currentUser.perfil);
   let lista = aptos.filter(a => a.ativo !== false);
 
   if (filter) {
@@ -230,6 +231,9 @@ function renderCadastroTableDb(filter = '') {
           <button class="btn btn-ghost btn-xs" onclick="openAptoDetail('${a.id}')" title="Ver detalhes">👁</button>
           ${!isCamareira
             ? `<button class="btn btn-ghost btn-xs" onclick="alterarStatusRapido('${a.id}')" title="Status">🔄</button>`
+            : ''}
+          ${_isAdmin
+            ? `<button class="btn btn-ghost btn-xs" onclick="confirmarExclusaoApto('${a.id}','${a.numero}')" title="Excluir apartamento" style="color:var(--danger);">🗑️</button>`
             : ''}
         </td>
       </tr>`;
@@ -349,6 +353,77 @@ async function salvarCadastroApto() {
   closeModal('modal-cadastro-apto');
   toast(_editingAptoId ? 'Apartamento atualizado!' : 'Apartamento cadastrado!', 'success');
   _editingAptoId = null;
+
+  await syncApartamentos();
+  renderCadastroTableDb();
+  populateSelects();
+  if (currentPage === 'mapa')   renderMapa();
+  if (currentPage === 'kanban') renderKanban();
+}
+
+// ── EXCLUSÃO DE APARTAMENTO ──────────────────────────────────
+
+let _excluindoAptoId   = null;
+let _excluindoAptoNum  = null;
+
+function confirmarExclusaoApto(id, numero) {
+  if (!requireWrite('apartments')) return;
+  _excluindoAptoId  = id;
+  _excluindoAptoNum = numero;
+
+  const el = document.getElementById('excluir-apto-numero');
+  if (el) el.textContent = numero;
+
+  const btn = document.getElementById('btn-confirmar-excluir-apto');
+  if (btn) { btn.disabled = false; btn.textContent = '🗑️ Excluir permanentemente'; }
+
+  openModal('modal-excluir-apto');
+}
+
+async function executarExclusaoApto() {
+  if (!_excluindoAptoId) return;
+
+  const btn = document.getElementById('btn-confirmar-excluir-apto');
+  if (btn) { btn.disabled = true; btn.textContent = 'Excluindo...'; }
+
+  const id = _excluindoAptoId;
+
+  // 1. Busca IDs dos chamados vinculados
+  const { data: chamados } = await supabaseClient
+    .from('work_orders').select('id').eq('apartment_id', id);
+  const chamadoIds = (chamados || []).map(c => c.id);
+
+  // 2. Apaga histórico dos chamados
+  if (chamadoIds.length) {
+    await supabaseClient.from('chamado_historico').delete().in('chamado_id', chamadoIds);
+  }
+
+  // 3. Apaga chamados
+  await supabaseClient.from('work_orders').delete().eq('apartment_id', id);
+
+  // 4. Apaga checklists de limpeza
+  await supabaseClient.from('limpeza_checklists').delete().eq('apartment_id', id);
+
+  // 5. Apaga pendências / retrabalho
+  await supabaseClient.from('pendencias_retrabalho').delete().eq('apartment_id', id);
+
+  // 6. Apaga histórico de status
+  await supabaseClient.from('apartment_status_history').delete().eq('apartment_id', id);
+
+  // 7. Apaga o apartamento
+  const { error } = await supabaseClient.from('apartments').delete().eq('id', id);
+
+  if (btn) { btn.disabled = false; btn.textContent = '🗑️ Excluir permanentemente'; }
+
+  if (error) {
+    toast('Erro ao excluir: ' + error.message, 'error');
+    return;
+  }
+
+  closeModal('modal-excluir-apto');
+  toast(`Apartamento ${_excluindoAptoNum} excluído com sucesso.`, 'success');
+  _excluindoAptoId  = null;
+  _excluindoAptoNum = null;
 
   await syncApartamentos();
   renderCadastroTableDb();
