@@ -112,9 +112,12 @@ async function renderApartamentos() {
     }
   }
 
-  // Oculta botão "Cadastrar" para camareira
+  // Oculta botões de escrita para camareira
+  const _isCam = currentUser.perfil === 'camareira';
   const btnCadastrar = document.getElementById('btn-cadastrar-apto');
-  if (btnCadastrar) btnCadastrar.style.display = currentUser.perfil === 'camareira' ? 'none' : '';
+  if (btnCadastrar) btnCadastrar.style.display = _isCam ? 'none' : '';
+  const btnLote = document.getElementById('btn-gerar-lote');
+  if (btnLote) btnLote.style.display = _isCam ? 'none' : '';
 
   if (!_aptoViewHotelId) {
     const tbody = document.getElementById('cadastro-table-body');
@@ -346,6 +349,281 @@ async function salvarCadastroApto() {
   closeModal('modal-cadastro-apto');
   toast(_editingAptoId ? 'Apartamento atualizado!' : 'Apartamento cadastrado!', 'success');
   _editingAptoId = null;
+
+  await syncApartamentos();
+  renderCadastroTableDb();
+  populateSelects();
+  if (currentPage === 'mapa')   renderMapa();
+  if (currentPage === 'kanban') renderKanban();
+}
+
+// ── CADASTRO EM LOTE ─────────────────────────────────────────
+
+let _loteNovos      = [];
+let _loteDuplicados = [];
+let _loteHotelId    = null;
+let _lotePreviewOk  = false;
+
+async function openGerarLoteModal() {
+  if (!requireWrite('apartments')) return;
+
+  _loteNovos = []; _loteDuplicados = []; _loteHotelId = null; _lotePreviewOk = false;
+
+  document.getElementById('gl-stage-config').style.display  = '';
+  document.getElementById('gl-stage-preview').style.display = 'none';
+  const btnCriar = document.getElementById('btn-criar-lote');
+  if (btnCriar) { btnCriar.disabled = true; btnCriar.textContent = '✅ Criar apartamentos'; }
+
+  // Hotel: admin_global vê select; outros têm hotel fixado
+  const hotelWrap = document.getElementById('gl-hotel-wrap');
+  if (hotelWrap) {
+    if (currentUser.perfil === 'admin_global') {
+      hotelWrap.style.display = '';
+      const sel = document.getElementById('gl-hotel-id');
+      if (sel) {
+        const { data } = await supabaseClient
+          .from('hotels').select('id, nome').eq('ativo', true).order('nome');
+        sel.innerHTML = '<option value="">Selecione o hotel *</option>' +
+          (data || []).map(h =>
+            `<option value="${h.id}" ${h.id === _aptoViewHotelId ? 'selected' : ''}>${h.nome}</option>`
+          ).join('');
+      }
+    } else {
+      hotelWrap.style.display = 'none';
+    }
+  }
+
+  // Limpar / resetar campos
+  document.getElementById('gl-andar-ini').value     = '1';
+  document.getElementById('gl-qtd-andares').value   = '1';
+  document.getElementById('gl-qtd-por-andar').value = '4';
+  document.getElementById('gl-num-ini').value       = '1';
+  document.getElementById('gl-digitos').value       = '2';
+  document.getElementById('gl-leitos').value        = '2';
+  document.getElementById('gl-obs').value           = '';
+
+  // Popula tipo/categoria reaproveitando listas configuradas
+  _populateGlTipoSelect();
+  _populateGlCatSelect();
+  document.getElementById('gl-status').value = 'livre';
+
+  // Camareira
+  const hotelIdParaCam = currentUser.perfil === 'admin_global'
+    ? (_aptoViewHotelId || null)
+    : currentUser.hotelId;
+  await _popularGlCamareiraSelect(null, hotelIdParaCam);
+
+  _atualizarGlExemplo();
+  openModal('modal-gerar-lote');
+}
+
+function _populateGlTipoSelect(selected) {
+  const sel = document.getElementById('gl-tipo');
+  if (!sel) return;
+  const vals = _cfgGet(_TIPOS_KEY, _TIPOS_DEFAULT);
+  sel.innerHTML = vals.map(v =>
+    `<option value="${v}" ${v === (selected || vals[0]) ? 'selected' : ''}>${v}</option>`
+  ).join('');
+}
+
+function _populateGlCatSelect(selected) {
+  const sel = document.getElementById('gl-categoria');
+  if (!sel) return;
+  const vals = _cfgGet(_CATS_KEY, _CATS_DEFAULT);
+  sel.innerHTML = vals.map(v =>
+    `<option value="${v}" ${v === (selected || vals[0]) ? 'selected' : ''}>${v}</option>`
+  ).join('');
+}
+
+async function _popularGlCamareiraSelect(selectedId, hotelId) {
+  const sel = document.getElementById('gl-camareira');
+  if (!sel) return;
+  const hId = hotelId || currentUser.hotelId;
+  let q = supabaseClient.from('user_profiles')
+    .select('user_id, nome').eq('perfil', 'camareira').eq('ativo', true).order('nome');
+  if (hId) q = q.eq('hotel_id', hId);
+  const { data } = await q;
+  sel.innerHTML = '<option value="">Não atribuída</option>' +
+    (data || []).map(u =>
+      `<option value="${u.user_id}" ${u.user_id === selectedId ? 'selected' : ''}>${u.nome}</option>`
+    ).join('');
+}
+
+async function _onGlHotelChange(hotelId) {
+  await _popularGlCamareiraSelect(null, hotelId || null);
+}
+
+function _gerarNumerosLote(config) {
+  const { andarIni, qtdAndares, qtdPorAndar, numIni, digitos } = config;
+  const resultado = [];
+  for (let a = andarIni; a < andarIni + qtdAndares; a++) {
+    for (let s = numIni; s < numIni + qtdPorAndar; s++) {
+      const seq    = String(s).padStart(digitos, '0');
+      const numero = String(a) + seq;
+      resultado.push({ numero, andar: a });
+    }
+  }
+  return resultado;
+}
+
+function _atualizarGlExemplo() {
+  const el = document.getElementById('gl-exemplo');
+  if (!el) return;
+  const andarIni    = parseInt(document.getElementById('gl-andar-ini')?.value)     || 1;
+  const qtdAndares  = parseInt(document.getElementById('gl-qtd-andares')?.value)   || 1;
+  const qtdPorAndar = parseInt(document.getElementById('gl-qtd-por-andar')?.value) || 4;
+  const numIni      = parseInt(document.getElementById('gl-num-ini')?.value)       || 1;
+  const digitos     = parseInt(document.getElementById('gl-digitos')?.value)       || 2;
+  if (!andarIni || !qtdAndares || !qtdPorAndar) { el.textContent = 'Preencha os campos para ver o exemplo.'; return; }
+  const gerados   = _gerarNumerosLote({ andarIni, qtdAndares, qtdPorAndar, numIni, digitos });
+  const total     = gerados.length;
+  const primeiros = gerados.slice(0, 6).map(a => a.numero).join(', ');
+  const mais      = total > 6 ? ` ... ${gerados[total-1].numero}` : '';
+  el.innerHTML = `<strong>Exemplo:</strong> ${primeiros}${mais} &nbsp;·&nbsp; <strong>${total}</strong> apartamento${total !== 1 ? 's' : ''} no total`;
+}
+
+async function previewGerarLote() {
+  // Ler hotel
+  const hotelId = currentUser.perfil === 'admin_global'
+    ? (document.getElementById('gl-hotel-id')?.value || '')
+    : currentUser.hotelId;
+
+  const andarIni    = parseInt(document.getElementById('gl-andar-ini').value);
+  const qtdAndares  = parseInt(document.getElementById('gl-qtd-andares').value);
+  const qtdPorAndar = parseInt(document.getElementById('gl-qtd-por-andar').value);
+  const numIni      = parseInt(document.getElementById('gl-num-ini').value);
+  const digitos     = parseInt(document.getElementById('gl-digitos').value);
+
+  // Validações
+  if (!hotelId)                          { toast('Selecione o hotel', 'error'); return; }
+  if (!andarIni    || andarIni < 1)      { toast('Andar inicial deve ser maior que zero', 'error'); return; }
+  if (!qtdAndares  || qtdAndares < 1)    { toast('Quantidade de andares deve ser maior que zero', 'error'); return; }
+  if (!qtdPorAndar || qtdPorAndar < 1)   { toast('Apartamentos por andar deve ser maior que zero', 'error'); return; }
+  if (isNaN(numIni) || numIni < 0)       { toast('Número inicial inválido', 'error'); return; }
+  if (!digitos)                          { toast('Selecione a quantidade de dígitos', 'error'); return; }
+
+  const btnPreview = document.getElementById('btn-preview-lote');
+  if (btnPreview) { btnPreview.disabled = true; btnPreview.textContent = 'Verificando...'; }
+
+  const gerados = _gerarNumerosLote({ andarIni, qtdAndares, qtdPorAndar, numIni, digitos });
+
+  // Buscar existentes no banco
+  const { data: existentes, error } = await supabaseClient
+    .from('apartments').select('numero').eq('hotel_id', hotelId).eq('ativo', true);
+
+  if (btnPreview) { btnPreview.disabled = false; btnPreview.textContent = '🔍 Gerar prévia'; }
+
+  if (error) { toast('Erro ao verificar apartamentos: ' + error.message, 'error'); return; }
+
+  const setExist   = new Set((existentes || []).map(a => a.numero));
+  _loteNovos       = gerados.filter(a => !setExist.has(a.numero));
+  _loteDuplicados  = gerados.filter(a =>  setExist.has(a.numero));
+  _loteHotelId     = hotelId;
+  _lotePreviewOk   = true;
+
+  // Nome do hotel
+  let hotelNome = currentUser.hotelNome || hotelId;
+  if (currentUser.perfil === 'admin_global') {
+    const sel = document.getElementById('gl-hotel-id');
+    if (sel) hotelNome = sel.options[sel.selectedIndex]?.text || hotelId;
+  }
+
+  // Montar HTML da prévia
+  const andarFinal = andarIni + qtdAndares - 1;
+  let html = `
+    <div style="background:var(--surface2);padding:12px 14px;border-radius:var(--radius-sm);
+                margin-bottom:14px;font-size:13px;line-height:1.7;">
+      <div>🏨 <strong>Hotel:</strong> ${hotelNome}</div>
+      <div>📐 <strong>Andares:</strong> ${andarIni}º ao ${andarFinal}º &nbsp;·&nbsp;
+           ${qtdPorAndar} apto${qtdPorAndar !== 1 ? 's' : ''}/andar</div>
+      <div>📊 <strong>Total calculado:</strong> ${gerados.length} apartamentos
+           (${_loteNovos.length} novos · ${_loteDuplicados.length} já existem)</div>
+    </div>`;
+
+  if (_loteNovos.length) {
+    const porAndar = {};
+    _loteNovos.forEach(a => { if (!porAndar[a.andar]) porAndar[a.andar] = []; porAndar[a.andar].push(a.numero); });
+    html += `<div style="margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:700;color:#27ae60;text-transform:uppercase;
+                  letter-spacing:0.4px;margin-bottom:8px;">✅ Serão criados (${_loteNovos.length})</div>`;
+    Object.entries(porAndar).forEach(([andar, nums]) => {
+      html += `<div style="font-size:12px;margin-bottom:3px;">
+        <span style="color:var(--text3);min-width:60px;display:inline-block;">${andar}º andar:</span>
+        <span style="font-weight:600;">${nums.join(', ')}</span></div>`;
+    });
+    html += '</div>';
+  }
+
+  if (_loteDuplicados.length) {
+    const dupNums = _loteDuplicados.map(a => a.numero).join(', ');
+    html += `<div style="margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:700;color:#e67e22;text-transform:uppercase;
+                  letter-spacing:0.4px;margin-bottom:6px;">⚠️ Já existem — serão ignorados (${_loteDuplicados.length})</div>
+      <div style="font-size:12px;color:var(--text2);">${dupNums}</div>
+    </div>`;
+  }
+
+  if (_loteNovos.length === 0) {
+    html += `<div style="background:#fef9e7;border:1px solid #f9c74f;padding:10px 14px;
+      border-radius:var(--radius-sm);font-size:13px;color:#b7770d;">
+      ⚠️ Todos os apartamentos já existem neste hotel. Nenhum será inserido.
+    </div>`;
+  }
+
+  document.getElementById('gl-preview-content').innerHTML = html;
+  document.getElementById('gl-stage-config').style.display  = 'none';
+  document.getElementById('gl-stage-preview').style.display = '';
+
+  const btnCriar = document.getElementById('btn-criar-lote');
+  if (btnCriar) {
+    btnCriar.disabled    = _loteNovos.length === 0;
+    btnCriar.textContent = _loteNovos.length
+      ? `✅ Criar ${_loteNovos.length} apartamento${_loteNovos.length !== 1 ? 's' : ''}`
+      : '✅ Criar apartamentos';
+  }
+}
+
+async function confirmarGerarLote() {
+  if (!_lotePreviewOk)       { toast('Gere a prévia antes de salvar', 'error'); return; }
+  if (!_loteNovos.length)    { toast('Nenhum apartamento novo para inserir', 'error'); return; }
+
+  if (_loteNovos.length > 500) {
+    if (!confirm(`Você está prestes a criar ${_loteNovos.length} apartamentos. Confirma?`)) return;
+  }
+
+  const tipo      = document.getElementById('gl-tipo')?.value      || 'Standard';
+  const categoria = document.getElementById('gl-categoria')?.value || 'Regular';
+  const leitos    = parseInt(document.getElementById('gl-leitos')?.value)   || 2;
+  const status    = document.getElementById('gl-status')?.value    || 'livre';
+  const maid_id   = document.getElementById('gl-camareira')?.value || null;
+  const obs       = document.getElementById('gl-obs')?.value?.trim()        || null;
+
+  const payload = _loteNovos.map(a => ({
+    numero: a.numero, andar: a.andar, leitos, tipo, categoria, status,
+    maid_id: maid_id || null, obs: obs || null,
+    hotel_id: _loteHotelId, ativo: true,
+  }));
+
+  const btnCriar = document.getElementById('btn-criar-lote');
+  if (btnCriar) { btnCriar.disabled = true; btnCriar.textContent = 'Criando...'; }
+
+  const { error } = await supabaseClient.from('apartments').insert(payload);
+
+  if (btnCriar) { btnCriar.disabled = false; }
+
+  if (error) { toast('Erro ao criar apartamentos: ' + error.message, 'error'); return; }
+
+  const criados  = _loteNovos.length;
+  const ignorados = _loteDuplicados.length;
+
+  closeModal('modal-gerar-lote');
+  toast(
+    `${criados} apartamento${criados !== 1 ? 's' : ''} criado${criados !== 1 ? 's' : ''} com sucesso.` +
+    (ignorados ? ` ${ignorados} já existiam e foram ignorados.` : ''),
+    'success'
+  );
+
+  _loteNovos = []; _loteDuplicados = []; _lotePreviewOk = false;
 
   await syncApartamentos();
   renderCadastroTableDb();

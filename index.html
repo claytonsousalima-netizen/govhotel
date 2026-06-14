@@ -711,7 +711,10 @@ tr:last-child td { border-bottom: none; }
             <div class="page-title">Cadastro de Apartamentos</div>
             <div class="page-subtitle">Gerenciar e cadastrar unidades do hotel</div>
           </div>
-          <button id="btn-cadastrar-apto" class="btn btn-primary btn-sm" onclick="openAptoForm()">+ Cadastrar Apto</button>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button id="btn-gerar-lote" class="btn btn-outline btn-sm" onclick="openGerarLoteModal()">⚡ Gerar em lote</button>
+            <button id="btn-cadastrar-apto" class="btn btn-primary btn-sm" onclick="openAptoForm()">+ Cadastrar Apto</button>
+          </div>
         </div>
 
         <!-- Seletor de hotel — visível apenas para admin_global -->
@@ -1466,6 +1469,135 @@ tr:last-child td { border-bottom: none; }
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-cadastro-apto')">Cancelar</button>
       <button id="btn-salvar-apto" class="btn btn-primary" onclick="salvarCadastroApto()">Salvar apartamento</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Gerar Apartamentos em Lote -->
+<div class="modal-overlay" id="modal-gerar-lote">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header">
+      <div class="modal-title">⚡ Gerar Apartamentos em Lote</div>
+      <button class="btn-close" onclick="closeModal('modal-gerar-lote')">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- ESTÁGIO 1: Configuração -->
+      <div id="gl-stage-config">
+
+        <!-- Hotel (admin_global apenas) -->
+        <div id="gl-hotel-wrap" style="display:none;margin-bottom:4px;">
+          <div class="form-row single">
+            <div class="field">
+              <label>Hotel *</label>
+              <select id="gl-hotel-id" onchange="_onGlHotelChange(this.value)">
+                <option value="">Selecione o hotel *</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Linha: andar inicial / qtd andares / aptos por andar -->
+        <div class="form-row three">
+          <div class="field">
+            <label>Andar inicial *</label>
+            <input type="number" id="gl-andar-ini" value="1" min="1" max="99" oninput="_atualizarGlExemplo()">
+          </div>
+          <div class="field">
+            <label>Qtd de andares *</label>
+            <input type="number" id="gl-qtd-andares" value="1" min="1" max="99" oninput="_atualizarGlExemplo()">
+          </div>
+          <div class="field">
+            <label>Aptos por andar *</label>
+            <input type="number" id="gl-qtd-por-andar" value="4" min="1" max="99" oninput="_atualizarGlExemplo()">
+          </div>
+        </div>
+
+        <!-- Linha: número inicial / dígitos / leitos -->
+        <div class="form-row three">
+          <div class="field">
+            <label>Nº inicial no andar *</label>
+            <input type="number" id="gl-num-ini" value="1" min="0" max="999" oninput="_atualizarGlExemplo()">
+          </div>
+          <div class="field">
+            <label>Dígitos do seq. *</label>
+            <select id="gl-digitos" onchange="_atualizarGlExemplo()">
+              <option value="1">1 dígito  (ex: 11, 21)</option>
+              <option value="2" selected>2 dígitos (ex: 101, 201)</option>
+              <option value="3">3 dígitos (ex: 1001, 2001)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Leitos padrão *</label>
+            <input type="number" id="gl-leitos" value="2" min="1" max="10">
+          </div>
+        </div>
+
+        <!-- Linha: tipo / categoria -->
+        <div class="form-row">
+          <div class="field">
+            <label>Tipo padrão</label>
+            <select id="gl-tipo"></select>
+          </div>
+          <div class="field">
+            <label>Categoria padrão</label>
+            <select id="gl-categoria"></select>
+          </div>
+        </div>
+
+        <!-- Linha: status / camareira -->
+        <div class="form-row">
+          <div class="field">
+            <label>Status inicial</label>
+            <select id="gl-status">
+              <option value="livre" selected>Livre</option>
+              <option value="sujo">Sujo</option>
+              <option value="limpando">Em limpeza</option>
+              <option value="pausado">Pausado</option>
+              <option value="conferencia">Aguard. conferência</option>
+              <option value="limpo">Limpo</option>
+              <option value="reprovado">Reprovado</option>
+              <option value="bloqueado">Bloqueado</option>
+              <option value="ocupado">Ocupado</option>
+              <option value="manutencao">Manutenção</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Camareira responsável</label>
+            <select id="gl-camareira"><option value="">Não atribuída</option></select>
+          </div>
+        </div>
+
+        <!-- Observações -->
+        <div class="form-row single">
+          <div class="field">
+            <label>Observações (aplicada a todos)</label>
+            <textarea id="gl-obs" rows="2" placeholder="Opcional — será aplicada a todos os apartamentos gerados"></textarea>
+          </div>
+        </div>
+
+        <!-- Exemplo de numeração (dinâmico) -->
+        <div id="gl-exemplo" style="font-size:12px;color:var(--text3);background:var(--surface2);
+          padding:8px 12px;border-radius:var(--radius-sm);margin-top:4px;line-height:1.6;">
+          Preencha os campos acima para ver o exemplo de numeração.
+        </div>
+      </div>
+
+      <!-- ESTÁGIO 2: Prévia -->
+      <div id="gl-stage-preview" style="display:none;">
+        <div id="gl-preview-content"></div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:8px;"
+          onclick="document.getElementById('gl-stage-config').style.display='';
+                   document.getElementById('gl-stage-preview').style.display='none';">
+          ← Voltar e editar
+        </button>
+      </div>
+
+    </div><!-- /modal-body -->
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-gerar-lote')">Cancelar</button>
+      <button id="btn-preview-lote" class="btn btn-outline" onclick="previewGerarLote()">🔍 Gerar prévia</button>
+      <button id="btn-criar-lote"   class="btn btn-primary" onclick="confirmarGerarLote()" disabled>✅ Criar apartamentos</button>
     </div>
   </div>
 </div>
@@ -2549,7 +2681,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <script src="js/hotels.js?v=20260613p"></script>
-<script src="js/apartments.js?v=20260614b"></script>
+<script src="js/apartments.js?v=20260614c"></script>
 <script src="js/maids.js?v=20260614a"></script>
 <script src="js/users.js?v=20260614a"></script>
 <script src="js/permissions.js?v=20260613p"></script>
