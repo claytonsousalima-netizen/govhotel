@@ -45,6 +45,13 @@ async function renderEquipe() {
   _renderEquipeTabela();
   _atualizarStatsEquipe();
 
+  // Oculta botão "Adicionar Membro" para gestor (somente admin gerencia equipe)
+  const btnAddMembro = document.querySelector('[onclick="openMaidForm()"]');
+  if (btnAddMembro) {
+    const isAdmin = ['admin_global','admin_hotel'].includes(currentUser.perfil);
+    btnAddMembro.style.display = isAdmin ? '' : 'none';
+  }
+
   // Sincroniza seletor de camareira no formulário de aptos
   populateSelects();
 }
@@ -172,15 +179,17 @@ function _renderEquipeTabela(filter = '') {
         </span>
       </td>
       <td>
-        ${e._source === 'user_profiles'
-          ? `<button class="btn btn-ghost btn-xs" onclick="openPage('usuarios')" title="Editar usuário">✏️</button>`
-          : `<button class="btn btn-ghost btn-xs" onclick="openMaidForm('${e.id}')" title="Editar">✏️</button>`
+        ${['admin_global','admin_hotel'].includes(currentUser.perfil) ? `
+          ${e._source === 'user_profiles'
+            ? `<button class="btn btn-ghost btn-xs" onclick="openPage('usuarios')" title="Editar usuário">✏️</button>`
+            : `<button class="btn btn-ghost btn-xs" onclick="openMaidForm('${e.id}')" title="Editar">✏️</button>`
+          }
+          <button class="btn btn-ghost btn-xs"
+            onclick="toggleMaidStatus('${e.id}', '${e.status}')"
+            title="${e.status === 'ativo' ? 'Inativar' : 'Ativar'}">
+            ${e.status === 'ativo' ? '⏸' : '▶'}
+          </button>` : '<span style="font-size:11px;color:var(--text3);">—</span>'
         }
-        <button class="btn btn-ghost btn-xs"
-          onclick="toggleMaidStatus('${e.id}', '${e.status}')"
-          title="${e.status === 'ativo' ? 'Inativar' : 'Ativar'}">
-          ${e.status === 'ativo' ? '⏸' : '▶'}
-        </button>
       </td>
     </tr>`;
   }).join('');

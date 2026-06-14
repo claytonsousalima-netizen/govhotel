@@ -347,12 +347,16 @@ function mfAcao(id, acao) {
 }
 
 // ── RE-RENDER APÓS MUDANÇA DE STATUS ─────────────────────────
-// Wraps mudarStatusApto para também atualizar Minha Fila
-const _mfOrigMudar = mudarStatusApto;
-async function mudarStatusApto(id, novoStatus, obs = null) {
-  await _mfOrigMudar(id, novoStatus, obs);
-  if (currentPage === 'minha-fila') renderMinhaFila();
-}
+// Usa IIFE com variável para evitar hoisting de function declaration
+// (function declaration seria hoisted antes de _mfOrigMudar ser capturado,
+//  capturando a si mesmo e causando recursão infinita)
+(function _patchMudarStatus() {
+  const _orig = mudarStatusApto; // captura apartments.js version corretamente
+  mudarStatusApto = async function(id, novoStatus, obs) {
+    await _orig(id, novoStatus, obs);
+    if (currentPage === 'minha-fila') renderMinhaFila();
+  };
+})();
 
 // ── PATCH openPage ────────────────────────────────────────────
 (function patchOpenPageMinhaFila() {

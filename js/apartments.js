@@ -57,6 +57,9 @@ async function syncApartamentos() {
 
   // Sincroniza equipe (maids) do mesmo hotel
   await _syncEquipe(hotelId);
+
+  // Atualiza badge do menu (confCount depende de aptos frescos)
+  if (typeof buildSidebar === 'function') buildSidebar();
 }
 
 // ── POPULAR SELECT DE CAMAREIRA (de user_profiles) ───────────
