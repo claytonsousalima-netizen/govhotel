@@ -2502,40 +2502,7 @@ function salvarCadastroApto() {
 }
 
 // ============ EQUIPE ============
-function renderEquipe() {
-  const statusMap = { ativo:'✅ Ativo', ferias:'🌴 Férias', afastado:'🏥 Afastado', inativo:'❌ Inativo' };
-  document.getElementById('eq-total').textContent = equipe.length;
-  document.getElementById('eq-turno').textContent = equipe.filter(e => e.status === 'ativo').length;
-  document.getElementById('equipe-table-body').innerHTML = equipe.map(e => `
-    <tr>
-      <td>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <div class="user-avatar av-${e.avId}" style="width:28px;height:28px;font-size:11px;">${e.nome.split(' ').map(n=>n[0]).slice(0,2).join('')}</div>
-          <div><div style="font-weight:600;">${e.nome}</div></div>
-        </div>
-      </td>
-      <td>${e.cargo}</td>
-      <td>${e.andar !== 'Todos' ? e.andar+'º Andar' : 'Todos'}</td>
-      <td>${e.turno}</td>
-      <td><strong>${e.aptos_hoje}</strong> aptos</td>
-      <td><span class="badge ${e.status==='ativo'?'badge-livre':e.status==='ferias'?'badge-conferencia':'badge-bloqueado'}">${statusMap[e.status]||e.status}</span></td>
-      <td><button class="btn btn-ghost btn-xs" onclick="toast('Editar em breve...')">✏️</button></td>
-    </tr>`).join('');
-}
-
-function salvarNovoMembro() {
-  const nome = document.getElementById('nm-nome').value.trim();
-  if (!nome) { toast('Informe o nome', 'error'); return; }
-  equipe.push({
-    id:equipe.length+1, nome, cargo:document.getElementById('nm-cargo').value,
-    andar:document.getElementById('nm-andar').value || 'Todos',
-    turno:document.getElementById('nm-turno').value, status:'ativo', aptos_hoje:0, avId:(equipe.length%6)+1
-  });
-  closeModal('modal-novo-membro');
-  toast(nome+' adicionado(a) à equipe!','success');
-  renderEquipe();
-  populateSelects();
-}
+// renderEquipe() e salvarNovoMembro() gerenciadas por maids.js
 
 // ============ RELATÓRIOS ============
 // renderRelatorios() gerenciada por relatorios.js
