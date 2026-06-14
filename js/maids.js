@@ -61,31 +61,62 @@ async function _popularSeletorHotelEquipe() {
 }
 
 async function _fetchMaids(hotelId) {
-  const { data, error } = await supabaseClient
-    .from('maids')
-    .select('*')
+  // Fonte primária: user_profiles (camareiras e manutenção do sistema de login)
+  const { data: perfilData, error: perfilErr } = await supabaseClient
+    .from('user_profiles')
+    .select('user_id, nome, perfil, ativo, hotel_id, turnos(label)')
+    .in('perfil', ['camareira', 'manutencao'])
     .eq('hotel_id', hotelId)
+    .eq('ativo', true)
     .order('nome');
 
-  if (error) {
-    console.error('Erro maids:', error.message);
-    return;
-  }
+  if (perfilErr) console.error('Erro equipe (user_profiles):', perfilErr.message);
 
-  // Atualiza array local compatível com mapa/kanban/select
-  equipe = (data || []).map((m, i) => ({
-    id:        m.id,
-    nome:      m.nome,
-    cargo:     m.cargo             || 'Camareira',
-    andar:     m.andar_responsavel || 'Todos',
-    turno:     m.turno             || 'Manhã (07:00–15:00)',
-    status:    m.status,
-    telefone:  m.telefone          || '',
-    email:     m.email             || '',
-    hotel_id:  m.hotel_id,
+  // Fonte legada: tabela maids (registros operacionais sem login no sistema)
+  const { data: maidsData } = await supabaseClient
+    .from('maids').select('*').eq('hotel_id', hotelId).order('nome');
+
+  const cargoMap = { camareira: 'Camareira', manutencao: 'Manutenção' };
+  const nomesDoSistema = new Set(
+    (perfilData || []).map(u => u.nome.toLowerCase().trim())
+  );
+
+  const fromProfiles = (perfilData || []).map((u, i) => ({
+    id:         'up_' + u.user_id,
+    user_id:    u.user_id,
+    nome:       u.nome,
+    cargo:      cargoMap[u.perfil] || u.perfil,
+    andar:      'Todos',
+    turno:      u.turnos?.label || '—',
+    status:     'ativo',
+    telefone:   '',
+    email:      '',
+    hotel_id:   u.hotel_id,
     aptos_hoje: 0,
-    avId:      (i % 6) + 1,
+    avId:       (i % 6) + 1,
+    _source:    'user_profiles',
   }));
+
+  // Inclui maids sem correspondência em user_profiles (evita duplicatas por nome)
+  const fromMaids = (maidsData || [])
+    .filter(m => !nomesDoSistema.has(m.nome.toLowerCase().trim()))
+    .map((m, i) => ({
+      id:         m.id,
+      user_id:    null,
+      nome:       m.nome,
+      cargo:      m.cargo             || 'Camareira',
+      andar:      m.andar_responsavel || 'Todos',
+      turno:      m.turno             || '—',
+      status:     m.status,
+      telefone:   m.telefone          || '',
+      email:      m.email             || '',
+      hotel_id:   m.hotel_id,
+      aptos_hoje: 0,
+      avId:       ((fromProfiles.length + i) % 6) + 1,
+      _source:    'maids',
+    }));
+
+  equipe = [...fromProfiles, ...fromMaids];
 }
 
 async function selecionarHotelEquipe(hotelId) {
@@ -141,7 +172,10 @@ function _renderEquipeTabela(filter = '') {
         </span>
       </td>
       <td>
-        <button class="btn btn-ghost btn-xs" onclick="openMaidForm('${e.id}')" title="Editar">✏️</button>
+        ${e._source === 'user_profiles'
+          ? `<button class="btn btn-ghost btn-xs" onclick="openPage('usuarios')" title="Editar usuário">✏️</button>`
+          : `<button class="btn btn-ghost btn-xs" onclick="openMaidForm('${e.id}')" title="Editar">✏️</button>`
+        }
         <button class="btn btn-ghost btn-xs"
           onclick="toggleMaidStatus('${e.id}', '${e.status}')"
           title="${e.status === 'ativo' ? 'Inativar' : 'Ativar'}">
@@ -276,19 +310,27 @@ async function toggleMaidStatus(id, statusAtual) {
   const maid = equipe.find(m => m.id === id);
   if (!maid) return;
 
-  const novoStatus = statusAtual === 'ativo' ? 'inativo' : 'ativo';
-  const acao       = statusAtual === 'ativo' ? 'inativar' : 'ativar';
-
+  const ativar = statusAtual !== 'ativo';
+  const acao   = ativar ? 'ativar' : 'inativar';
   if (!confirm(`Deseja ${acao} "${maid.nome}"?`)) return;
 
-  const { error } = await supabaseClient
-    .from('maids').update({ status: novoStatus }).eq('id', id);
+  let error;
+  if (maid._source === 'user_profiles') {
+    // Usuário do sistema — alterna campo ativo em user_profiles
+    ({ error } = await supabaseClient
+      .from('user_profiles').update({ ativo: ativar }).eq('user_id', maid.user_id));
+    if (!error) maid.status = ativar ? 'ativo' : 'inativo';
+  } else {
+    // Registro legado — alterna status em maids
+    const novoStatus = ativar ? 'ativo' : 'inativo';
+    ({ error } = await supabaseClient
+      .from('maids').update({ status: novoStatus }).eq('id', id));
+    if (!error) maid.status = novoStatus;
+  }
 
   if (error) { toast('Erro: ' + error.message, 'error'); return; }
 
-  maid.status = novoStatus;
-  toast(`${maid.nome} ${novoStatus === 'ativo' ? 'ativado(a)' : 'inativado(a)'}!`, 'success');
+  toast(`${maid.nome} ${ativar ? 'ativado(a)' : 'inativado(a)'}!`, 'success');
   _renderEquipeTabela();
   _atualizarStatsEquipe();
-  populateSelects(); // atualiza select de camareira no form de aptos
 }

@@ -112,12 +112,12 @@ async function renderApartamentos() {
     }
   }
 
-  // Oculta botões de escrita para camareira
-  const _isCam = currentUser.perfil === 'camareira';
+  // Cadastro/lote/exclusão restrito a admin; gestor e demais não veem
+  const _isAdminUser = ['admin_global','admin_hotel'].includes(currentUser.perfil);
   const btnCadastrar = document.getElementById('btn-cadastrar-apto');
-  if (btnCadastrar) btnCadastrar.style.display = _isCam ? 'none' : '';
+  if (btnCadastrar) btnCadastrar.style.display = _isAdminUser ? '' : 'none';
   const btnLote = document.getElementById('btn-gerar-lote');
-  if (btnLote) btnLote.style.display = _isCam ? 'none' : '';
+  if (btnLote) btnLote.style.display = _isAdminUser ? '' : 'none';
 
   if (!_aptoViewHotelId) {
     const tbody = document.getElementById('cadastro-table-body');
@@ -249,6 +249,9 @@ function searchAptos(q) { renderCadastroTableDb(q); }
 // ── FORMULÁRIO DE APARTAMENTO ─────────────────────────────────
 
 async function openAptoForm(id = null) {
+  if (!['admin_global','admin_hotel'].includes(currentUser.perfil)) {
+    toast('Somente administradores podem cadastrar apartamentos', 'error'); return;
+  }
   if (!requireWrite('apartments')) return;
   _editingAptoId = id;
   const isEdit   = !!id;
@@ -440,6 +443,9 @@ let _loteHotelId    = null;
 let _lotePreviewOk  = false;
 
 async function openGerarLoteModal() {
+  if (!['admin_global','admin_hotel'].includes(currentUser.perfil)) {
+    toast('Somente administradores podem gerar apartamentos em lote', 'error'); return;
+  }
   if (!requireWrite('apartments')) return;
 
   _loteNovos = []; _loteDuplicados = []; _loteHotelId = null; _lotePreviewOk = false;
@@ -724,14 +730,24 @@ async function mudarStatusApto(id, novoStatus, obs = null) {
   const apto = aptos.find(a => a.id === id);
   if (!apto) return;
 
+  // Gestor só pode alterar aptos do próprio hotel
+  if (!sameHotel(apto.hotel_id)) {
+    toast('Sem permissão para alterar apartamento de outro hotel', 'error'); return;
+  }
+
   const statusAnterior = apto.status;
 
-  const { error } = await supabaseClient
+  const { data: updated, error } = await supabaseClient
     .from('apartments')
     .update({ status: novoStatus })
-    .eq('id', id);
+    .eq('id', id)
+    .select('id');
 
   if (error) { toast('Erro ao atualizar: ' + error.message, 'error'); return; }
+  if (!updated || !updated.length) {
+    toast('Não foi possível alterar o status. Verifique suas permissões no banco de dados.', 'error');
+    return;
+  }
 
   // Registrar histórico com obs opcional
   const histPayload = {

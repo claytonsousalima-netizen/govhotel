@@ -54,6 +54,11 @@ async function _fetchUsuarios() {
 
   if (_userViewHotelId) query = query.eq('hotel_id', _userViewHotelId);
 
+  // admin_hotel não visualiza admin_global; gestor não acessa esta tela (PERFIL_PAGES)
+  if (currentUser.perfil !== 'admin_global') {
+    query = query.neq('perfil', 'admin_global');
+  }
+
   const { data, error } = await query;
   if (error) { console.error('Erro usuarios:', error.message); _usuariosCache = []; return; }
   _usuariosCache = data || [];
@@ -122,13 +127,23 @@ function _renderUsuariosTabela(filter = '') {
       }</td>
       <td><span class="badge ${u.ativo ? 'badge-livre' : 'badge-bloqueado'}">${u.ativo ? 'Ativo' : 'Inativo'}</span></td>
       <td>
-        <button class="btn btn-ghost btn-xs" onclick="openUserForm('${u.id}')" title="Editar">✏️</button>
-        ${!isMe ? `<button class="btn btn-ghost btn-xs"
+        ${_podeEditarUser(u)
+          ? `<button class="btn btn-ghost btn-xs" onclick="openUserForm('${u.id}')" title="Editar">✏️</button>`
+          : ''}
+        ${(!isMe && _podeEditarUser(u)) ? `<button class="btn btn-ghost btn-xs"
           onclick="toggleUserAtivo('${u.id}', ${u.ativo})"
           title="${u.ativo ? 'Inativar' : 'Ativar'}">${u.ativo ? '⏸' : '▶'}</button>` : ''}
       </td>
     </tr>`;
   }).join('');
+}
+
+// Retorna true se o usuário logado pode editar o perfil informado
+function _podeEditarUser(u) {
+  if (currentUser.perfil === 'admin_global') return true;
+  // admin_hotel não edita admin_global
+  if (u.perfil === 'admin_global') return false;
+  return true;
 }
 
 function searchUsuarios(q) { _renderUsuariosTabela(q); }
@@ -287,6 +302,11 @@ async function salvarUsuario() {
     : null;
 
   if (!nome) { toast('Informe o nome completo', 'error'); return; }
+
+  // Somente admin_global pode criar/editar perfis admin_global
+  if (perfil === 'admin_global' && currentUser.perfil !== 'admin_global') {
+    toast('Sem permissão para atribuir o perfil Administrador Global', 'error'); return;
+  }
 
   const btn = document.getElementById('btn-salvar-usuario');
   btn.disabled = true;

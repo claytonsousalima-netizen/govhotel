@@ -101,12 +101,12 @@ function applyProfileRestrictions() {
     btn.style.display = canWrite('maids') ? '' : 'none';
   });
 
-  // Mapa: ações do cabeçalho
+  // Mapa: ações do cabeçalho — cadastro restrito a admin
   const mapaActions = document.getElementById('mapa-header-actions');
   if (mapaActions) {
-    const editaAptos = canWrite('apartments');
+    const isAdminUser = ['admin_global','admin_hotel'].includes(currentUser.perfil);
     mapaActions.innerHTML = [
-      editaAptos
+      isAdminUser
         ? `<button class="btn btn-ghost btn-sm" onclick="openPage('cadastro-apto')">⊕ Cadastrar Apto</button>`
         : '',
       `<button class="btn btn-primary btn-sm" onclick="openModal('modal-trocar-status')">Alterar Status</button>`,

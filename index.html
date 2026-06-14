@@ -381,8 +381,11 @@ tr:last-child td { border-bottom: none; }
 
 /* MOBILE */
 @media (max-width: 768px) {
-  .sidebar { transform: translateX(-240px); }
+  .sidebar { transform: translateX(-240px); overflow-y: hidden; }
   .sidebar.open { transform: translateX(0); }
+  /* Sidebar: nav rola, footer fica fixo no rodapé */
+  .sidebar-nav { overflow-y: auto; -webkit-overflow-scrolling: touch; min-height: 0; flex: 1; }
+  .sidebar-footer { flex-shrink: 0; background: var(--primary-dark); }
   .main { margin-left: 0; }
   .topbar { padding: 0 16px; }
   .content { padding: 16px; }
@@ -2095,8 +2098,11 @@ const NAV_ITEMS = {
 };
 
 function buildSidebar() {
-  const items     = NAV_ITEMS[currentUser.perfil] || NAV_ITEMS.gestor;
-  const openCount = chamados.filter(c => c.status === 'aberto').length;
+  const items = NAV_ITEMS[currentUser.perfil] || NAV_ITEMS.gestor;
+  // Usa o mesmo filtro da aba "Abertos" — consistente com a listagem real
+  const _src  = (typeof _chamadosCache !== 'undefined' && _chamadosCache.length)
+    ? _chamadosCache : chamados;
+  const openCount = _src.filter(c => ['aberto','em_analise','reaberto'].includes(c.status)).length;
   const confCount = (typeof aptos !== 'undefined')
     ? aptos.filter(a => a.status === 'conferencia').length : 0;
   let html = '';
@@ -2239,7 +2245,7 @@ function openAptoDetail(id) {
   const apto = aptos.find(a => a.id === id);
   if (!apto) return;
   document.getElementById('detail-apto-title').textContent = `Apartamento ${apto.numero}`;
-  const cam = equipe.find(e => e.id === apto.camareira_id);
+  const cam = apto._maid_nome ? { nome: apto._maid_nome } : null;
   const isCamareira  = currentUser.perfil === 'camareira';
   const isManutencao = currentUser.perfil === 'manutencao';
 
@@ -2347,11 +2353,11 @@ function renderKanban() {
     html += `<div class="kanban-col">
       <div class="kanban-col-title" style="color:${col.color};">${col.label} <span class="kanban-count">${items.length}</span></div>`;
     items.forEach(a => {
-      const cam = equipe.find(e => e.id === a.camareira_id);
+      const camNome = a._maid_nome || null;
       html += `<div class="kanban-item" onclick="openAptoDetail('${a.id}')">
         <div class="kanban-apto">${a.numero}</div>
         <div class="kanban-detail">${a.tipo} · ${a.andar}º andar</div>
-        ${cam ? `<div style="font-size:11px;color:var(--text3);margin-top:4px;">👤 ${cam.nome.split(' ')[0]}</div>` : ''}
+        ${camNome ? `<div style="font-size:11px;color:var(--text3);margin-top:4px;">👤 ${camNome.split(' ')[0]}</div>` : ''}
         ${a.prioridade ? '<div style="font-size:10px;font-weight:700;color:var(--danger);margin-top:2px;">⚠️ PRIORIDADE</div>' : ''}
       </div>`;
     });
@@ -2693,16 +2699,14 @@ function concluirChecklist() {
 
 // ============ SELECTS ============
 function populateSelects() {
+  // Popula selects de apartamento (ts-apto para troca de status, nc-apto para chamados)
   ['ts-apto','nc-apto'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     el.innerHTML = '<option value="">Selecionar...</option>' + aptos.map(a => `<option value="${a.numero}">${a.numero} — ${a.tipo}</option>`).join('');
   });
-  ['nc-camareira','ca-camareira'].forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.innerHTML = '<option value="">Não atribuído</option>' + equipe.filter(e => ['Camareira','Auxiliar de Limpeza'].includes(e.cargo)).map(e => `<option value="${e.id}">${e.nome}</option>`).join('');
-  });
+  // nc-camareira e ca-camareira são populados dinamicamente do Supabase
+  // (via _popularAtribuidosModal e _popularCamareiraSelect) — não usar mock equipe aqui
   const prazoEl = document.getElementById('nc-prazo');
   if (prazoEl) { const d = new Date(); d.setHours(d.getHours()+2); prazoEl.value = d.toISOString().slice(0,16); }
 }
@@ -2764,11 +2768,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <script src="js/hotels.js?v=20260613p"></script>
-<script src="js/apartments.js?v=20260614e"></script>
-<script src="js/maids.js?v=20260614a"></script>
-<script src="js/users.js?v=20260614a"></script>
-<script src="js/permissions.js?v=20260613p"></script>
-<script src="js/chamados.js?v=20260614a"></script>
+<script src="js/apartments.js?v=20260614f"></script>
+<script src="js/maids.js?v=20260614b"></script>
+<script src="js/users.js?v=20260614b"></script>
+<script src="js/permissions.js?v=20260614b"></script>
+<script src="js/chamados.js?v=20260614b"></script>
 <script src="js/config.js?v=20260613v"></script>
 <script src="js/dashboard.js?v=20260614a"></script>
 <script src="js/relatorios.js?v=20260613p"></script>

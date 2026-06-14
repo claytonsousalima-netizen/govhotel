@@ -27,10 +27,7 @@ const _GOV_PRIO = {
   urgente: { label:'Urgente', badge:'badge-bloqueado' },
 };
 
-const _GOV_CATEGORIAS = [
-  'Enxoval','Amenities','Limpeza complementar','Achados e perdidos',
-  'Reclamação de hóspede','Frigobar','Odor','Sujeira','Apoio operacional','Outro'
-];
+// Categorias hardcoded removidas — carregadas do Supabase via _popularCategoriasSelect()
 
 // Fluxo de status — próximos estados permitidos
 const _GOV_NEXT = {
@@ -64,20 +61,33 @@ function _populateTipoSelect(selId, departamento) {
   ).join('');
 }
 
-// ── POPULAR SELECT DE CATEGORIAS ──────────────────────────────
-function _populateCategoriaSelect() {
+// ── POPULAR SELECT DE CATEGORIAS (do Supabase por departamento) ───────────────
+async function _popularCategoriasSelect(departamento) {
   const sel = document.getElementById('nc-categoria');
   if (!sel) return;
+
+  // Garante que _tiposChamado esteja carregado
+  if (!_tiposChamado.length) await _loadTiposChamado();
+
+  const tipos = _tiposChamado.filter(t =>
+    t.departamento === departamento || t.departamento === 'ambos'
+  );
+
+  if (!tipos.length) {
+    sel.innerHTML = `<option value="">Nenhuma categoria cadastrada para este tipo</option>`;
+    return;
+  }
   sel.innerHTML = '<option value="">Selecionar categoria *</option>' +
-    _GOV_CATEGORIAS.map(c => `<option value="${c}">${c}</option>`).join('');
+    tipos.map(t => `<option value="${t.nome}">${t.nome}</option>`).join('');
 }
 
 // ── TOGGLE CAMPOS POR DEPARTAMENTO ───────────────────────────
+// Usa apenas nc-categoria para ambos os departamentos; nc-tipo-wrap está oculto
 function _toggleCamposDepartamento(dept) {
   const wrapCat  = document.getElementById('nc-categoria-wrap');
   const wrapTipo = document.getElementById('nc-tipo-wrap');
-  if (wrapCat)  wrapCat.style.display  = dept === 'governanca' ? '' : 'none';
-  if (wrapTipo) wrapTipo.style.display = dept === 'manutencao' ? '' : 'none';
+  if (wrapCat)  wrapCat.style.display  = '';       // sempre visível
+  if (wrapTipo) wrapTipo.style.display = 'none';   // não mais utilizado
 }
 
 // ── FILTRO DE HOTEL (admin_global) ────────────────────────────
@@ -140,8 +150,18 @@ async function _fetchChamados() {
     `)
     .order('created_at', { ascending: false });
 
-  if (currentUser.perfil === 'camareira' || currentUser.perfil === 'manutencao') {
-    query = query.eq('responsavel_user_id', currentUser.id);
+  if (currentUser.perfil === 'camareira') {
+    // Vê chamados de governança do hotel: atribuídos a ela OU ainda não atribuídos
+    query = query
+      .eq('hotel_id', currentUser.hotelId)
+      .eq('departamento', 'governanca')
+      .or(`responsavel_user_id.eq.${currentUser.id},responsavel_user_id.is.null`);
+  } else if (currentUser.perfil === 'manutencao') {
+    // Vê chamados de manutenção do hotel: atribuídos a ele OU ainda não atribuídos
+    query = query
+      .eq('hotel_id', currentUser.hotelId)
+      .eq('departamento', 'manutencao')
+      .or(`responsavel_user_id.eq.${currentUser.id},responsavel_user_id.is.null`);
   } else if (currentUser.perfil !== 'admin_global' && currentUser.hotelId) {
     query = query.eq('hotel_id', currentUser.hotelId);
   } else if (_chamadoHotelId) {
@@ -160,7 +180,7 @@ async function _fetchChamados() {
     (profiles||[]).forEach(p => { responsavelMap[p.user_id] = p.nome; });
   }
 
-  _chamadosCache = (data||[]).map(c => ({
+  _chamadosCache = (data || []).map(c => ({
     id:                  c.id,
     numero:              c.numero || null,
     apto:                c.apartments?.numero || '—',
@@ -185,6 +205,9 @@ async function _fetchChamados() {
   }));
 
   chamados = _chamadosCache;
+
+  // Atualiza badge do menu lateral com a contagem real já filtrada por perfil
+  if (typeof buildSidebar === 'function') buildSidebar();
 }
 
 // ── POPULAR ATRIBUÍDOS ────────────────────────────────────────
@@ -263,8 +286,7 @@ async function openModalNovoChamado() {
   }
 
   await _loadTiposChamado();
-  _populateTipoSelect('nc-tipo', 'governanca');
-  _populateCategoriaSelect();
+  await _popularCategoriasSelect('governanca');
   openModal('modal-novo-chamado');
 }
 
@@ -281,7 +303,7 @@ function _atualizarLabelAtribuir(departamento) {
 async function _onChangeDepartamento(valor) {
   _atualizarLabelAtribuir(valor);
   _toggleCamposDepartamento(valor);
-  _populateTipoSelect('nc-tipo', valor);
+  await _popularCategoriasSelect(valor);
   const hotelId = document.getElementById('nc-hotel-id')?.value || currentUser.hotelId;
   await _popularAtribuidosModal(valor, hotelId);
 }
@@ -303,15 +325,9 @@ async function salvarNovoChamado() {
   const descricao    = document.getElementById('nc-desc')?.value || '';
   const hospede      = document.getElementById('nc-hospede')?.value || '';
 
-  let tipo, categoria = null;
-  if (departamento === 'governanca') {
-    categoria = document.getElementById('nc-categoria')?.value || null;
-    if (!categoria) { toast('Selecione a categoria', 'error'); return; }
-    tipo = categoria;
-  } else {
-    const tipoVal = document.getElementById('nc-tipo')?.value || '';
-    tipo = _tiposChamado.find(t => t.id === tipoVal)?.nome || tipoVal || 'Manutenção';
-  }
+  const categoria = document.getElementById('nc-categoria')?.value || null;
+  if (!categoria) { toast('Selecione a categoria', 'error'); return; }
+  const tipo = categoria;
 
   const { data: inserted, error } = await supabaseClient
     .from('work_orders').insert([{
