@@ -332,13 +332,4 @@ async function abrirChecklistApp(id) {
   openModal('modal-checklist');
 }
 
-// Intercepta openPage para carregar config
-(function patchOpenPageConfig() {
-  if (window._configPatch) return;
-  window._configPatch = true;
-  const _realOpen = openPage;
-  openPage = function(id) {
-    _realOpen(id);
-    if (id === 'config') renderConfigPage();
-  };
-})();
+// Rendering chamado diretamente por renderConfig() em index.html

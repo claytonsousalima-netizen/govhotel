@@ -1180,16 +1180,7 @@ function _cfgEdit(key, idx) {
   toast('Atualizado!', 'success');
 }
 
-// Patch openPage para renderizar config (flag próprio para não colidir com config.js)
-(function patchOpenPageConfigApto() {
-  if (window._configAptoPatch) return;
-  window._configAptoPatch = true;
-  const _prev = openPage;
-  openPage = function(id) {
-    _prev(id);
-    if (id === 'config') renderConfigAptoTiposCats();
-  };
-})();
+// renderConfigAptoTiposCats() chamada diretamente por renderConfig() em index.html
 
 // ── PATCH: selecionarHotelMapa — recarrega chamados e filtros
 const _origSelecionarHotelMapa = selecionarHotelMapa;

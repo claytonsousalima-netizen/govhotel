@@ -2302,8 +2302,11 @@ function salvarNovoMembro() {
 function renderRelatorios() {}
 
 // ============ CONFIG ============
-// renderConfig() delegada para config.js (renderConfigPage)
-function renderConfig() { /* gerenciado por config.js via patchOpenPageConfig */ }
+function renderConfig() {
+  // Chama funções de config.js e apartments.js diretamente, sem depender de patch chain
+  if (typeof renderConfigPage === 'function')         renderConfigPage();
+  if (typeof renderConfigAptoTiposCats === 'function') renderConfigAptoTiposCats();
+}
 
 // ============ APP CAMAREIRA ============
 function renderAppCamareira() {
@@ -2527,12 +2530,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <script src="js/hotels.js?v=20260613p"></script>
-<script src="js/apartments.js?v=20260613u"></script>
+<script src="js/apartments.js?v=20260613v"></script>
 <script src="js/maids.js?v=20260613p"></script>
 <script src="js/users.js?v=20260613u"></script>
 <script src="js/permissions.js?v=20260613p"></script>
 <script src="js/chamados.js?v=20260613r"></script>
-<script src="js/config.js?v=20260613p"></script>
+<script src="js/config.js?v=20260613v"></script>
 <script src="js/dashboard.js?v=20260613q"></script>
 <script src="js/relatorios.js?v=20260613p"></script>
 <script src="js/minha-fila.js?v=20260613p"></script>
