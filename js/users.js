@@ -24,7 +24,7 @@ async function renderUsuarios() {
 
   const tbody = document.getElementById('usuarios-table-body');
   if (tbody) tbody.innerHTML = `
-    <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text3);">
+    <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text3);">
       <div class="spinner" style="margin:0 auto 8px;border-top-color:var(--primary-light);"></div>
       Carregando usuários...
     </td></tr>`;
@@ -48,7 +48,7 @@ async function _popularSeletorHotelUsuarios() {
 async function _fetchUsuarios() {
   let query = supabaseClient
     .from('user_profiles')
-    .select('*, hotels(nome)')
+    .select('*, hotels(nome), turnos(label, periodo, hora_inicio, hora_fim)')
     .order('nome');
 
   if (_userViewHotelId) query = query.eq('hotel_id', _userViewHotelId);
@@ -92,7 +92,7 @@ function _renderUsuariosTabela(filter = '') {
   }
 
   if (!lista.length) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text3);">
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text3);">
       Nenhum usuário encontrado.
     </td></tr>`;
     return;
@@ -115,6 +115,10 @@ function _renderUsuariosTabela(filter = '') {
       <td style="font-size:12px;color:var(--text2);font-family:monospace;">${_loginDisplay(u)}</td>
       <td><span class="badge badge-${u.perfil}">${PERFIL_LABELS[u.perfil] || u.perfil}</span></td>
       <td style="font-size:13px;">${hotelNome}</td>
+      <td style="font-size:12px;">${u.perfil === 'camareira' && u.turnos
+        ? `<span style="background:var(--surface2);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">${u.turnos.label}<br><span style="font-weight:400;color:var(--text3);">${(u.turnos.hora_inicio||'').slice(0,5)}–${(u.turnos.hora_fim||'').slice(0,5)}</span></span>`
+        : u.perfil === 'camareira' ? '<span style="color:var(--text3);font-size:11px;">Sem turno</span>' : '—'
+      }</td>
       <td><span class="badge ${u.ativo ? 'badge-livre' : 'badge-bloqueado'}">${u.ativo ? 'Ativo' : 'Inativo'}</span></td>
       <td>
         <button class="btn btn-ghost btn-xs" onclick="openUserForm('${u.id}')" title="Editar">✏️</button>
@@ -165,16 +169,18 @@ async function openUserForm(profileId = null) {
   await _popularHotelSelectUsuario();
   _popularPerfilSelectUsuario();
   _atualizarPermissoesPerfil('camareira');
+  await _popularTurnoSelect(null);
 
   if (isEdit) {
     const u = _usuariosCache.find(x => x.id === profileId);
     if (u) {
-      document.getElementById('us-nome').value            = u.nome;
+      document.getElementById('us-nome').value             = u.nome;
       document.getElementById('us-email-text').textContent = _loginDisplay(u);
-      document.getElementById('us-perfil').value          = u.perfil;
-      document.getElementById('us-hotel-id').value        = u.hotel_id || '';
-      document.getElementById('us-ativo').checked         = u.ativo !== false;
+      document.getElementById('us-perfil').value           = u.perfil;
+      document.getElementById('us-hotel-id').value         = u.hotel_id || '';
+      document.getElementById('us-ativo').checked          = u.ativo !== false;
       _atualizarPermissoesPerfil(u.perfil);
+      await _popularTurnoSelect(u.turno_id || null);
     }
   }
 
@@ -212,7 +218,41 @@ function _popularPerfilSelectUsuario() {
   ).join('');
 }
 
+async function _popularTurnoSelect(selectedId) {
+  const wrap = document.getElementById('us-turno-wrap');
+  const sel  = document.getElementById('us-turno-id');
+  if (!wrap || !sel) return;
+
+  const { data } = await supabaseClient
+    .from('turnos').select('id, periodo, numero, label, hora_inicio, hora_fim')
+    .eq('ativo', true).order('periodo').order('numero');
+
+  const periodos = { manha: '☀️ Manhã', tarde: '🌤 Tarde', noite: '🌙 Noite' };
+  const grupos = {};
+  (data || []).forEach(t => {
+    if (!grupos[t.periodo]) grupos[t.periodo] = [];
+    grupos[t.periodo].push(t);
+  });
+
+  sel.innerHTML = '<option value="">Não definido</option>' +
+    Object.entries(periodos).map(([key, label]) => {
+      if (!grupos[key]) return '';
+      return `<optgroup label="${label}">` +
+        grupos[key].map(t =>
+          `<option value="${t.id}" ${t.id == selectedId ? 'selected' : ''}>` +
+          `${t.label} (${t.hora_inicio.slice(0,5)}–${t.hora_fim.slice(0,5)})` +
+          `</option>`
+        ).join('') + '</optgroup>';
+    }).join('');
+}
+
+function _toggleTurnoField(perfil) {
+  const wrap = document.getElementById('us-turno-wrap');
+  if (wrap) wrap.style.display = perfil === 'camareira' ? '' : 'none';
+}
+
 function _atualizarPermissoesPerfil(perfil) {
+  _toggleTurnoField(perfil);
   const labels = {
     hoteis:'Hotéis', usuarios:'Usuários', dashboard:'Dashboard', mapa:'Mapa',
     kanban:'Kanban', chamados:'Chamados', equipe:'Equipe',
@@ -235,11 +275,14 @@ async function salvarUsuario() {
   if (!canAccess('usuarios')) { toast('Sem permissão', 'error'); return; }
   const nome     = document.getElementById('us-nome').value.trim();
   const login    = _normalizarLogin(document.getElementById('us-email').value.trim());
-  const email    = login; // alias — Edge Function converte para email virtual se não tiver @
+  const email    = login;
   const senha    = document.getElementById('us-senha')?.value || '';
   const perfil   = document.getElementById('us-perfil').value;
   const hotel_id = document.getElementById('us-hotel-id').value || null;
   const ativo    = document.getElementById('us-ativo').checked;
+  const turno_id = perfil === 'camareira'
+    ? (parseInt(document.getElementById('us-turno-id')?.value) || null)
+    : null;
 
   if (!nome) { toast('Informe o nome completo', 'error'); return; }
 
@@ -252,7 +295,7 @@ async function salvarUsuario() {
   if (_editingUserId) {
     ({ error } = await supabaseClient
       .from('user_profiles')
-      .update({ nome, perfil, hotel_id, ativo })
+      .update({ nome, perfil, hotel_id, ativo, turno_id })
       .eq('id', _editingUserId));
   } else {
     if (!login) {
@@ -263,7 +306,7 @@ async function salvarUsuario() {
       btn.disabled = false; btn.textContent = 'Criar usuário';
       toast('A senha inicial deve ter pelo menos 6 caracteres', 'error'); return;
     }
-    const result = await _invocarConvite({ nome, login, senha, perfil, hotel_id, ativo });
+    const result = await _invocarConvite({ nome, login, senha, perfil, hotel_id, ativo, turno_id });
     error = result.error;
   }
 

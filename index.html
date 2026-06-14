@@ -1009,7 +1009,7 @@ tr:last-child td { border-bottom: none; }
               <thead>
                 <tr>
                   <th>Usuário</th><th>Login</th><th>Perfil</th>
-                  <th>Hotel</th><th>Status</th><th>Ações</th>
+                  <th>Hotel</th><th>Turno</th><th>Status</th><th>Ações</th>
                 </tr>
               </thead>
               <tbody id="usuarios-table-body"></tbody>
@@ -1361,6 +1361,15 @@ tr:last-child td { border-bottom: none; }
           Páginas acessíveis com este perfil
         </div>
         <div id="us-permissoes-lista" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
+      </div>
+      <!-- Turno (somente camareira) -->
+      <div id="us-turno-wrap" style="display:none;margin-top:16px;">
+        <div class="field">
+          <label>Turno de trabalho</label>
+          <select id="us-turno-id">
+            <option value="">Não definido</option>
+          </select>
+        </div>
       </div>
       <!-- Status -->
       <div style="margin-top:16px;">
@@ -2520,7 +2529,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 <script src="js/hotels.js?v=20260613p"></script>
 <script src="js/apartments.js?v=20260613s"></script>
 <script src="js/maids.js?v=20260613p"></script>
-<script src="js/users.js?v=20260613s"></script>
+<script src="js/users.js?v=20260613t"></script>
 <script src="js/permissions.js?v=20260613p"></script>
 <script src="js/chamados.js?v=20260613r"></script>
 <script src="js/config.js?v=20260613p"></script>
