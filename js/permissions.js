@@ -90,9 +90,12 @@ function applyProfileRestrictions() {
   const btnChamado = document.getElementById('btn-novo-chamado');
   if (btnChamado) btnChamado.style.display = canWrite('work_orders') ? '' : 'none';
 
-  // Cadastro de aptos: botão "Cadastrar Apto"
+  // Cadastro de aptos: botão "Cadastrar Apto" — somente admin
+  const isAdminUser = ['admin_global','admin_hotel'].includes(currentUser.perfil);
   const btnCadApto = document.getElementById('btn-cadastrar-apto');
-  if (btnCadApto) btnCadApto.style.display = canWrite('apartments') ? '' : 'none';
+  if (btnCadApto) btnCadApto.style.display = isAdminUser ? '' : 'none';
+  const btnGerLote = document.getElementById('btn-gerar-lote');
+  if (btnGerLote) btnGerLote.style.display = isAdminUser ? '' : 'none';
 
   // Equipe: botão "Adicionar Membro"
   // A camareira não tem 'equipe' no PERFIL_PAGES, então nunca chega aqui.

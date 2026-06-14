@@ -2370,7 +2370,7 @@ function renderKanban() {
 function renderChamados() {
   ['todos','abertos','andamento','concluidos'].forEach(tab => {
     let filtered = chamados;
-    if (tab === 'abertos')    filtered = chamados.filter(c => c.status === 'aberto');
+    if (tab === 'abertos')    filtered = chamados.filter(c => ['aberto','em_analise','reaberto'].includes(c.status));
     if (tab === 'andamento')  filtered = chamados.filter(c => c.status === 'andamento');
     if (tab === 'concluidos') filtered = chamados.filter(c => c.status === 'concluido');
     const el = document.getElementById('chamados-list-' + tab);
