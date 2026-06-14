@@ -20,8 +20,9 @@ async function renderEquipe() {
       selectorWrap.style.display = '';
       await _popularSeletorHotelEquipe();
     } else {
-      selectorWrap.style.display = 'none';
       _maidViewHotelId = currentUser.hotelId;
+      if (typeof _renderHotelChip === 'function') _renderHotelChip('equipe-hotel-selector');
+      else selectorWrap.style.display = 'none';
     }
   }
 

@@ -18,8 +18,9 @@ async function renderUsuarios() {
     if (selectorWrap) selectorWrap.style.display = '';
     await _popularSeletorHotelUsuarios();
   } else {
-    if (selectorWrap) selectorWrap.style.display = 'none';
     _userViewHotelId = currentUser.hotelId;
+    if (typeof _renderHotelChip === 'function') _renderHotelChip('usuarios-hotel-selector');
+    else if (selectorWrap) selectorWrap.style.display = 'none';
   }
 
   const tbody = document.getElementById('usuarios-table-body');

@@ -16,8 +16,8 @@ async function renderDashboard() {
     }
   } else {
     _dashHotelId = currentUser.hotelId;
-    const selector = document.getElementById('dash-hotel-selector');
-    if (selector) selector.style.display = 'none';
+    if (typeof _renderHotelChip === 'function') _renderHotelChip('dash-hotel-selector');
+    else { const s = document.getElementById('dash-hotel-selector'); if (s) s.style.display = 'none'; }
   }
 
   await _carregarDashboard(_dashHotelId);

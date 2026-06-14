@@ -106,8 +106,9 @@ async function renderApartamentos() {
       selectorWrap.style.display = '';
       await _popularSeletorHotelPagina();
     } else {
-      selectorWrap.style.display = 'none';
       _aptoViewHotelId = currentUser.hotelId;
+      if (typeof _renderHotelChip === 'function') _renderHotelChip('apto-hotel-selector');
+      else selectorWrap.style.display = 'none';
     }
   }
 
@@ -679,7 +680,8 @@ async function initMapaAdmin() {
   if (!wrap) return;
 
   if (currentUser.perfil !== 'admin_global') {
-    wrap.style.display = 'none';
+    if (typeof _renderHotelChip === 'function') _renderHotelChip('mapa-hotel-selector');
+    else wrap.style.display = 'none';
     // Para outros perfis, garante que o hotel correto está carregado
     if (!aptos.length || aptos[0]?.hotel_id !== currentUser.hotelId) {
       _aptoViewHotelId = currentUser.hotelId;

@@ -5,6 +5,7 @@
 
 let _chamadosCache    = [];
 let _chamadoHotelId   = null;
+let _chamadoDept      = null;   // null=todos | 'governanca' | 'manutencao'
 let _tiposChamado     = [];
 let _chamadoDetalheId = null;
 
@@ -80,8 +81,20 @@ function _toggleCamposDepartamento(dept) {
 }
 
 // ── FILTRO DE HOTEL (admin_global) ────────────────────────────
+function setDeptFilterChamados(dept, btn) {
+  _chamadoDept = dept;
+  document.querySelectorAll('[id^="dept-btn-"]').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderChamados();
+}
+
 async function _popularFiltroHotelChamados() {
-  if (currentUser.perfil !== 'admin_global') return;
+  if (currentUser.perfil !== 'admin_global') {
+    ['chamados-hotel-filter', 'kanban-hotel-filter'].forEach(id => {
+      if (typeof _renderHotelChip === 'function') _renderHotelChip(id);
+    });
+    return;
+  }
   const { data: hotels } = await supabaseClient
     .from('hotels').select('id, nome').eq('ativo', true).order('nome');
 
@@ -500,11 +513,12 @@ const _BADGE_ATRASADO = `<span style="font-size:10px;background:#fee2e2;color:#9
 // ── RENDER CHAMADOS ───────────────────────────────────────────
 function renderChamados() {
   const showHotel = currentUser.perfil === 'admin_global';
+  const deptFn    = _chamadoDept ? (c => c.departamento === _chamadoDept) : () => true;
   const tabFilter = {
-    todos:      () => true,
-    abertos:    c => ['aberto','em_analise','reaberto'].includes(c.status),
-    andamento:  c => ['andamento','pausado'].includes(c.status),
-    concluidos: c => ['resolvido','concluido','cancelado'].includes(c.status),
+    todos:      c => deptFn(c),
+    abertos:    c => deptFn(c) && ['aberto','em_analise','reaberto'].includes(c.status),
+    andamento:  c => deptFn(c) && ['andamento','pausado'].includes(c.status),
+    concluidos: c => deptFn(c) && ['resolvido','concluido','cancelado'].includes(c.status),
   };
   const prioColors = { urgente:'var(--danger)', alta:'#e67e22', normal:'var(--warning)', baixa:'var(--success)' };
 
