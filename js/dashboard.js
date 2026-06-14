@@ -53,6 +53,8 @@ async function _renderDashHotelSelector() {
 
 function _renderDashSemHotel() {
   document.getElementById('stats-grid').innerHTML = '';
+  const govEl = document.getElementById('dash-gov-indicadores');
+  if (govEl) govEl.innerHTML = '';
   document.getElementById('dash-status-chart').innerHTML =
     '<p style="color:var(--text3);text-align:center;padding:24px;">Selecione um hotel para ver o dashboard.</p>';
   document.getElementById('dash-chamados-list').innerHTML = '';
@@ -66,13 +68,35 @@ async function _selecionarHotelDash(hotelId) {
 }
 
 async function _carregarDashboard(hotelId) {
-  // Carrega em paralelo
-  const [aptosRes, chamadosRes, equipeRes] = await Promise.all([
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const hojeISO = hoje.toISOString();
+
+  // Carrega em paralelo — dados gerais + indicadores de governança
+  const agora = new Date().toISOString();
+
+  const [
+    aptosRes, chamadosRes, equipeRes,
+    govAbertosRes, govAtrasadosRes, retrabalhoRes,
+  ] = await Promise.all([
     supabaseClient.from('apartments').select('id, status').eq('hotel_id', hotelId).eq('ativo', true),
     supabaseClient.from('work_orders').select('id, status, tipo, prioridade, departamento, created_at, apartments(numero)')
       .eq('hotel_id', hotelId).order('created_at', { ascending: false }).limit(50),
     supabaseClient.from('user_profiles').select('id').eq('hotel_id', hotelId)
       .in('perfil', ['camareira','manutencao']).eq('ativo', true),
+    // chamados da governança em aberto
+    supabaseClient.from('work_orders').select('id', { count: 'exact', head: true })
+      .eq('hotel_id', hotelId).eq('departamento', 'governanca')
+      .in('status', ['aberto','em_analise','andamento','pausado','reaberto']),
+    // chamados com prazo vencido e ainda ativos
+    supabaseClient.from('work_orders').select('id', { count: 'exact', head: true })
+      .eq('hotel_id', hotelId).eq('departamento', 'governanca')
+      .not('status', 'in', '("resolvido","concluido","cancelado")')
+      .not('prazo', 'is', null)
+      .lt('prazo', agora),
+    // retrabalhos registrados sem resolução (todos, sem filtro de data)
+    supabaseClient.from('pendencias_retrabalho').select('id', { count: 'exact', head: true })
+      .eq('hotel_id', hotelId),
   ]);
 
   const aptosArr   = aptosRes.data   || [];
@@ -83,8 +107,16 @@ async function _carregarDashboard(hotelId) {
   const livre      = aptosArr.filter(a => a.status === 'livre').length;
   const sujo       = aptosArr.filter(a => a.status === 'sujo').length;
   const limpando   = aptosArr.filter(a => a.status === 'limpando').length;
+  const pausado    = aptosArr.filter(a => a.status === 'pausado').length;
+  const conferencia= aptosArr.filter(a => a.status === 'conferencia').length;
+  const limpo      = aptosArr.filter(a => a.status === 'limpo').length;
+  const reprovado  = aptosArr.filter(a => a.status === 'reprovado').length;
   const abertos    = chamArr.filter(c => c.status === 'aberto').length;
   const andamento  = chamArr.filter(c => c.status === 'andamento').length;
+
+  const govAbertos   = govAbertosRes.count  ?? 0;
+  const govAtrasados = govAtrasadosRes.count ?? 0;
+  const retrabalhos  = retrabalhoRes.count  ?? 0;
 
   // Stats grid
   document.getElementById('stats-grid').innerHTML = `
@@ -118,6 +150,33 @@ async function _carregarDashboard(hotelId) {
       <div class="stat-value">${equipeArr.length}</div>
       <div class="stat-sub">camareiras + manutenção</div>
     </div>`;
+
+  // Indicadores de Governança
+  const _govCard = (label, value, color, sub) =>
+    `<div class="stat-card" style="border-top:3px solid ${color};padding:14px 16px;">
+      <div class="stat-label" style="font-size:11px;">${label}</div>
+      <div class="stat-value" style="font-size:26px;color:${color};">${value}</div>
+      ${sub ? `<div class="stat-sub">${sub}</div>` : ''}
+    </div>`;
+
+  const govEl = document.getElementById('dash-gov-indicadores');
+  if (govEl) {
+    govEl.innerHTML = `
+      <div class="card" style="padding:16px 18px;">
+        <div class="card-title" style="margin-bottom:14px;">Governança — Indicadores do Dia</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;">
+          ${_govCard('Sujos',          sujo,       '#e67e22', 'aguardando limpeza')}
+          ${_govCard('Em limpeza',     limpando,   '#2e86c1', 'em andamento')}
+          ${_govCard('Pausados',       pausado,    '#f39c12', 'limpeza interrompida')}
+          ${_govCard('Ag. conferência',conferencia,'#8e44ad', 'aguardando vistoria')}
+          ${_govCard('Limpos',         limpo,      '#27ae60', 'prontos')}
+          ${_govCard('Reprovados',     reprovado,  '#c0392b', 'exigem retrabalho')}
+          ${_govCard('Chamados abertos', govAbertos,   '#e74c3c', 'gov. em aberto')}
+          ${_govCard('Atrasados',       govAtrasados, '#c0392b', 'prazo vencido')}
+          ${_govCard('Retrabalhos abertos', retrabalhos, '#e67e22', 'aguardando refazer')}
+        </div>
+      </div>`;
+  }
 
   // Gráfico status
   const statuses = ['livre','sujo','limpando','conferencia','bloqueado','ocupado','manutencao'];

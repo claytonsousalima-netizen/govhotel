@@ -11,8 +11,12 @@ async function doLogin() {
 
   if (!loginInput || !password) { toast('Preencha usuário e senha', 'error'); return; }
 
-  // Converte username simples para e-mail virtual usado no Auth
-  const email = loginInput.includes('@') ? loginInput : `${loginInput}@govhotel.local`;
+  // Remove acentos e chars inválidos antes de montar o e-mail virtual
+  const loginNorm = loginInput.includes('@')
+    ? loginInput
+    : loginInput.normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .toLowerCase().replace(/[^a-z0-9._-]/g, '');
+  const email = loginNorm.includes('@') ? loginNorm : `${loginNorm}@govhotel.local`;
 
   btnLogin.disabled = true;
   btnLogin.textContent = 'Entrando...';

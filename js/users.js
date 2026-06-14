@@ -63,6 +63,19 @@ async function selecionarHotelUsuarios(hotelId) {
   await renderUsuarios();
 }
 
+// Remove acentos e caracteres inválidos para uso em e-mail virtual
+function _normalizarLogin(s) {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase().replace(/[^a-z0-9._-]/g, '');
+}
+
+// Extrai o username legível de um e-mail virtual (@govhotel.local)
+function _loginDisplay(u) {
+  if (u.login) return u.login;
+  if (u.email) return u.email.replace(/@govhotel\.local$/, '');
+  return '—';
+}
+
 // ── RENDER TABELA ─────────────────────────────────────────────
 
 function _renderUsuariosTabela(filter = '') {
@@ -74,7 +87,7 @@ function _renderUsuariosTabela(filter = '') {
     const q = filter.toLowerCase();
     lista = lista.filter(u =>
       u.nome.toLowerCase().includes(q) ||
-      (u.email && u.email.toLowerCase().includes(q))
+      _loginDisplay(u).toLowerCase().includes(q)
     );
   }
 
@@ -87,7 +100,7 @@ function _renderUsuariosTabela(filter = '') {
 
   tbody.innerHTML = lista.map(u => {
     const iniciais  = u.nome.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
-    const hotelNome = u.hotels?.nome || (u.perfil === 'admin_global' ? '—' : '—');
+    const hotelNome = u.hotels?.nome || '—';
     const isMe      = u.user_id === currentUser.id;
     return `<tr>
       <td>
@@ -99,7 +112,7 @@ function _renderUsuariosTabela(filter = '') {
           </div>
         </div>
       </td>
-      <td style="font-size:12px;color:var(--text2);">${u.login || u.email || '—'}</td>
+      <td style="font-size:12px;color:var(--text2);font-family:monospace;">${_loginDisplay(u)}</td>
       <td><span class="badge badge-${u.perfil}">${PERFIL_LABELS[u.perfil] || u.perfil}</span></td>
       <td style="font-size:13px;">${hotelNome}</td>
       <td><span class="badge ${u.ativo ? 'badge-livre' : 'badge-bloqueado'}">${u.ativo ? 'Ativo' : 'Inativo'}</span></td>
@@ -157,7 +170,7 @@ async function openUserForm(profileId = null) {
     const u = _usuariosCache.find(x => x.id === profileId);
     if (u) {
       document.getElementById('us-nome').value            = u.nome;
-      document.getElementById('us-email-text').textContent = u.email || '—';
+      document.getElementById('us-email-text').textContent = _loginDisplay(u);
       document.getElementById('us-perfil').value          = u.perfil;
       document.getElementById('us-hotel-id').value        = u.hotel_id || '';
       document.getElementById('us-ativo').checked         = u.ativo !== false;
@@ -175,8 +188,12 @@ async function _popularHotelSelectUsuario() {
   if (currentUser.perfil === 'admin_global') {
     const { data } = await supabaseClient
       .from('hotels').select('id, nome').eq('ativo', true).order('nome');
+    // pré-seleciona o hotel filtrado atualmente na lista de usuários
+    const presel = _userViewHotelId || '';
     sel.innerHTML = '<option value="">Sem hotel vinculado (admin_global)</option>' +
-      (data || []).map(h => `<option value="${h.id}">${h.nome}</option>`).join('');
+      (data || []).map(h =>
+        `<option value="${h.id}" ${h.id === presel ? 'selected' : ''}>${h.nome}</option>`
+      ).join('');
     sel.disabled = false;
   } else {
     sel.innerHTML = `<option value="${currentUser.hotelId}">${currentUser.hotelNome}</option>`;
@@ -217,7 +234,7 @@ function _atualizarPermissoesPerfil(perfil) {
 async function salvarUsuario() {
   if (!canAccess('usuarios')) { toast('Sem permissão', 'error'); return; }
   const nome     = document.getElementById('us-nome').value.trim();
-  const login    = document.getElementById('us-email').value.trim().toLowerCase().replace(/\s+/g, '.');
+  const login    = _normalizarLogin(document.getElementById('us-email').value.trim());
   const email    = login; // alias — Edge Function converte para email virtual se não tiver @
   const senha    = document.getElementById('us-senha')?.value || '';
   const perfil   = document.getElementById('us-perfil').value;

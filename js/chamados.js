@@ -85,6 +85,9 @@ async function _popularFiltroHotelChamados() {
   const { data: hotels } = await supabaseClient
     .from('hotels').select('id, nome').eq('ativo', true).order('nome');
 
+  // pré-seleciona o hotel já escolhido anteriormente (persiste entre páginas)
+  const presel = _chamadoHotelId || '';
+
   ['chamados-hotel-filter','kanban-hotel-filter'].forEach(filterId => {
     const wrap = document.getElementById(filterId);
     if (!wrap) return;
@@ -95,7 +98,9 @@ async function _popularFiltroHotelChamados() {
           <select style="flex:1;min-width:180px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;"
             onchange="_filtrarChamadosPorHotel(this.value)">
             <option value="">Todos os hotéis</option>
-            ${(hotels||[]).map(h=>`<option value="${h.id}">${h.nome}</option>`).join('')}
+            ${(hotels||[]).map(h =>
+              `<option value="${h.id}" ${h.id === presel ? 'selected' : ''}>${h.nome}</option>`
+            ).join('')}
           </select>
         </div>
       </div>`;
@@ -153,6 +158,7 @@ async function _fetchChamados() {
     solicitante:         c.solicitante || '',
     hospede:             c.hospede || '',
     desc:                c.descricao || '',
+    prazo_raw:           c.prazo || null,
     prazo:               c.prazo ? new Date(c.prazo).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}) : '',
     criado:              new Date(c.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
     criadoFull:          new Date(c.created_at).toLocaleString('pt-BR'),
@@ -407,7 +413,7 @@ function _renderDetalheConteudo(c) {
     ${c.camareira ? `<div><span style="font-size:11px;color:var(--text3);">Responsável</span><div>🧹 ${c.camareira}</div></div>` : ''}
     ${c.hospede ? `<div><span style="font-size:11px;color:var(--text3);">Hóspede</span><div>${c.hospede}</div></div>` : ''}
     <div><span style="font-size:11px;color:var(--text3);">Criado em</span><div>${c.criadoFull}</div></div>
-    ${c.prazo ? `<div><span style="font-size:11px;color:var(--text3);">Prazo</span><div>${c.prazo}</div></div>` : ''}
+    ${c.prazo ? `<div><span style="font-size:11px;color:var(--text3);">Prazo</span><div style="${_isAtrasado(c) ? 'color:#dc2626;font-weight:700;' : ''}">${c.prazo}${_isAtrasado(c) ? ' ⚠' : ''}</div></div>` : ''}
     ${c.desc ? `<div style="grid-column:1/-1;"><span style="font-size:11px;color:var(--text3);">Descrição</span><div style="margin-top:2px;">${c.desc}</div></div>` : ''}
   `;
 
@@ -482,6 +488,15 @@ async function salvarComentarioChamado() {
   await _carregarHistoricoChamado(id);
 }
 
+// ── HELPER: CHAMADO ATRASADO ─────────────────────────────────
+const _STATUS_ATIVOS = ['aberto','em_analise','andamento','pausado','reaberto'];
+function _isAtrasado(c) {
+  if (!c.prazo_raw) return false;
+  if (!_STATUS_ATIVOS.includes(c.status)) return false;
+  return new Date(c.prazo_raw) < new Date();
+}
+const _BADGE_ATRASADO = `<span style="font-size:10px;background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:10px;font-weight:700;">⚠ Atrasado</span>`;
+
 // ── RENDER CHAMADOS ───────────────────────────────────────────
 function renderChamados() {
   const showHotel = currentUser.perfil === 'admin_global';
@@ -528,6 +543,7 @@ function renderChamados() {
             ${c.desc ? `<div style="font-size:12px;color:var(--text3);margin-top:4px;">${c.desc.substring(0,80)}${c.desc.length>80?'…':''}</div>` : ''}
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">
+            ${_isAtrasado(c) ? _BADGE_ATRASADO : ''}
             <span class="badge ${pr.badge}">${pr.label}</span>
             <span class="badge ${st.badge}">${st.label}</span>
             <span style="font-size:10px;color:var(--text3);">${c.criado}</span>
@@ -571,8 +587,9 @@ function renderKanban() {
           <div style="font-weight:600;font-size:13px;">${deptIcon} ${c.tipo}</div>
           <div style="font-size:11px;color:var(--text2);margin-top:2px;">Apto ${c.apto}</div>
           ${c.camareira ? `<div style="font-size:11px;color:var(--text3);">🧹 ${c.camareira}</div>` : ''}
-          <div style="margin-top:8px;">
+          <div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap;">
             <span class="badge ${pr.badge}">${pr.label}</span>
+            ${_isAtrasado(c) ? _BADGE_ATRASADO : ''}
           </div>
         </div>`;
       }).join('') || `<div style="font-size:12px;color:var(--text3);padding:12px;text-align:center;">Vazio</div>`}

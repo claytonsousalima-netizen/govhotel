@@ -608,6 +608,7 @@ tr:last-child td { border-bottom: none; }
         </div>
         <div id="dash-hotel-selector" style="display:none;"></div>
         <div class="stats-grid" id="stats-grid"></div>
+        <div id="dash-gov-indicadores" style="margin-bottom:20px;"></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
           <div class="card">
             <div class="card-title">Status dos apartamentos</div>
@@ -850,6 +851,20 @@ tr:last-child td { border-bottom: none; }
             <div class="card-title" style="margin-bottom:6px;">🔧 Tipos de Chamado — Manutenção</div>
             <div style="font-size:11px;color:var(--text3);margin-bottom:12px;">Reparo, troca de lâmpada, encanamento, elétrica etc. · 🌐 padrão · 🏨 deste hotel</div>
             <div id="config-tipos-manutencao"></div>
+          </div>
+
+          <!-- Tipos de apartamento -->
+          <div class="card">
+            <div class="card-title" style="margin-bottom:6px;">🛏 Tipos de Apartamento</div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:12px;">Opções disponíveis no cadastro de apartamentos (ex: Standard, Suíte…)</div>
+            <div id="config-apto-tipos"></div>
+          </div>
+
+          <!-- Categorias de apartamento -->
+          <div class="card">
+            <div class="card-title" style="margin-bottom:6px;">🏷 Categorias de Apartamento</div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:12px;">Opções de categoria (ex: Regular, VIP, Família…)</div>
+            <div id="config-apto-cats"></div>
           </div>
 
           <!-- Checklist de limpeza -->
@@ -1649,8 +1664,8 @@ tr:last-child td { border-bottom: none; }
 <!-- TOAST -->
 <div class="toast" id="toast-msg"></div>
 
-<script src="js/supabase-client.js?v=20260613m"></script>
-<script src="js/auth.js?v=20260613m"></script>
+<script src="js/supabase-client.js?v=20260613p"></script>
+<script src="js/auth.js?v=20260613p"></script>
 <script>
 // ============ STATE ============
 let currentPage = 'dashboard';
@@ -2053,18 +2068,12 @@ function openAptoDetail(id) {
   openModal('modal-apto-detail');
 }
 
-function mudarStatusApto(id, novoStatus) {
-  const apto = aptos.find(a => a.id === id);
-  if (apto) { apto.status = novoStatus; toast(`Apto ${apto.numero} → ${novoStatus}`, 'success'); }
-  closeModal('modal-apto-detail');
-  if (currentPage === 'mapa') renderMapa();
-  if (currentPage === 'kanban') renderKanban();
-  if (currentPage === 'dashboard') renderDashboard();
-  if (currentPage === 'app-camareira') renderAppCamareira();
+// Stubs substituídos por apartments.js — não remover, necessários para carregamento inicial
+function mudarStatusApto(id, novoStatus, obs) {
+  console.warn('mudarStatusApto stub chamado — apartments.js ainda não carregou');
 }
-
-function iniciarLimpeza() { mudarStatusApto(selectedAptoId, 'limpando'); }
-function concluirLimpeza() { mudarStatusApto(selectedAptoId, 'conferencia'); }
+function iniciarLimpeza()  { console.warn('iniciarLimpeza stub'); }
+function concluirLimpeza() { console.warn('concluirLimpeza stub'); }
 
 function salvarTrocarStatus() {
   const aptoNum = document.getElementById('ts-apto').value;
@@ -2508,15 +2517,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('loading-overlay').style.display = 'none';
 });
 </script>
-<script src="js/hotels.js?v=20260613m"></script>
-<script src="js/apartments.js?v=20260613m"></script>
-<script src="js/maids.js?v=20260613m"></script>
-<script src="js/users.js?v=20260613m"></script>
-<script src="js/permissions.js?v=20260613m"></script>
-<script src="js/chamados.js?v=20260613m"></script>
-<script src="js/config.js?v=20260613m"></script>
-<script src="js/dashboard.js?v=20260613m"></script>
-<script src="js/relatorios.js?v=20260613m"></script>
-<script src="js/minha-fila.js?v=20260613m"></script>
+<script src="js/hotels.js?v=20260613p"></script>
+<script src="js/apartments.js?v=20260613s"></script>
+<script src="js/maids.js?v=20260613p"></script>
+<script src="js/users.js?v=20260613s"></script>
+<script src="js/permissions.js?v=20260613p"></script>
+<script src="js/chamados.js?v=20260613r"></script>
+<script src="js/config.js?v=20260613p"></script>
+<script src="js/dashboard.js?v=20260613q"></script>
+<script src="js/relatorios.js?v=20260613p"></script>
+<script src="js/minha-fila.js?v=20260613p"></script>
 </body>
 </html>

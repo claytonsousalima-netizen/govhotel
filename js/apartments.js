@@ -28,6 +28,15 @@ async function syncApartamentos() {
     return;
   }
 
+  // Resolve nomes de camareira: tenta maids, depois user_profiles
+  const maidIdsRaw = [...new Set((aptosData || []).filter(a => a.maid_id).map(a => a.maid_id))];
+  let _camNamesExtra = {};
+  if (maidIdsRaw.length) {
+    const { data: profs } = await supabaseClient
+      .from('user_profiles').select('user_id, nome').in('user_id', maidIdsRaw);
+    (profs || []).forEach(p => { _camNamesExtra[p.user_id] = p.nome; });
+  }
+
   // Mapeia para o formato local (compatível com mapa/kanban/dashboard)
   aptos = (aptosData || []).map((a, i) => ({
     id:           a.id,
@@ -42,12 +51,27 @@ async function syncApartamentos() {
     prioridade:   a.prioridade  || false,
     hotel_id:     a.hotel_id,
     ativo:        a.ativo !== false,
-    _maid_nome:   a.maids?.nome || null,
+    _maid_nome:   _camNamesExtra[a.maid_id] || a.maids?.nome || null,
     avId:         (i % 6) + 1,
   }));
 
   // Sincroniza equipe (maids) do mesmo hotel
   await _syncEquipe(hotelId);
+}
+
+// ── POPULAR SELECT DE CAMAREIRA (de user_profiles) ───────────
+async function _popularCamareiraSelect(selectedId, hotelId) {
+  const sel = document.getElementById('ca-camareira');
+  if (!sel) return;
+  const hId = hotelId || currentUser.hotelId;
+  let q = supabaseClient.from('user_profiles')
+    .select('user_id, nome').eq('perfil', 'camareira').eq('ativo', true).order('nome');
+  if (hId) q = q.eq('hotel_id', hId);
+  const { data } = await q;
+  sel.innerHTML = '<option value="">Não atribuída</option>' +
+    (data || []).map(u =>
+      `<option value="${u.user_id}" ${u.user_id === selectedId ? 'selected' : ''}>${u.nome}</option>`
+    ).join('');
 }
 
 async function _syncEquipe(hotelId) {
@@ -229,38 +253,43 @@ async function openAptoForm(id = null) {
     const el = document.getElementById(fId);
     if (el) el.value = '';
   });
-  document.getElementById('ca-andar').value     = '1';
-  document.getElementById('ca-leitos').value    = '2';
-  document.getElementById('ca-tipo').value      = 'Standard';
-  document.getElementById('ca-categoria').value = 'Regular';
-  document.getElementById('ca-status').value    = 'livre';
-  document.getElementById('ca-camareira').value = '';
+  document.getElementById('ca-andar').value  = '1';
+  document.getElementById('ca-leitos').value = '2';
+  document.getElementById('ca-status').value = 'livre';
+  _populateAptoTipoSelect();
+  _populateAptoCatSelect();
 
   // Seletor de hotel — visível apenas para admin_global
   const hotelWrap = document.getElementById('ca-hotel-wrap');
+  let _formHotelId = currentUser.hotelId;
   if (hotelWrap) {
     if (currentUser.perfil === 'admin_global') {
       hotelWrap.style.display = '';
       await _populateCaHotelSelect();
+      _formHotelId = _aptoViewHotelId;
     } else {
       hotelWrap.style.display = 'none';
     }
   }
 
   // Preencher campos se editando
+  let _selectedCamId = null;
   if (isEdit) {
     const a = aptos.find(x => x.id === id);
     if (a) {
-      document.getElementById('ca-numero').value    = a.numero;
-      document.getElementById('ca-andar').value     = a.andar;
-      document.getElementById('ca-leitos').value    = a.leitos;
-      document.getElementById('ca-tipo').value      = a.tipo;
-      document.getElementById('ca-categoria').value = a.categoria;
-      document.getElementById('ca-status').value    = a.status;
-      document.getElementById('ca-camareira').value = a.camareira_id || '';
-      document.getElementById('ca-obs').value       = a.obs || '';
+      document.getElementById('ca-numero').value = a.numero;
+      document.getElementById('ca-andar').value  = a.andar;
+      document.getElementById('ca-leitos').value = a.leitos;
+      _populateAptoTipoSelect(a.tipo);
+      _populateAptoCatSelect(a.categoria);
+      document.getElementById('ca-status').value = a.status;
+      document.getElementById('ca-obs').value    = a.obs || '';
+      _selectedCamId = a.camareira_id || null;
+      if (_formHotelId === null) _formHotelId = a.hotel_id;
     }
   }
+
+  await _popularCamareiraSelect(_selectedCamId, _formHotelId);
 
   openModal('modal-cadastro-apto');
   document.getElementById('ca-numero').focus();
@@ -638,16 +667,9 @@ function abrirChecklistApp(id) {
 }
 
 async function concluirChecklist() {
-  const done = checklistState.filter(i => i.done).length;
-  if (done < checklistState.length * 0.8) {
-    toast('Complete pelo menos 80% dos itens', 'error'); return;
-  }
-  const apto = aptos.find(a => a.id === selectedAptoId);
-  if (!apto) return;
-  await mudarStatusApto(selectedAptoId, 'conferencia');
+  // Redireciona para o checklist completo (valida obrigatórios, salva no banco)
   closeModal('modal-checklist');
-  toast(`Apto ${apto.numero} enviado para conferência! ✅`, 'success');
-  renderAppCamareira();
+  abrirChecklistLimpeza();
 }
 
 // ── MAPA COM SELETOR DE HOTEL (admin_global) ──────────────────
@@ -1073,6 +1095,101 @@ async function initMapaAdmin() {
     _renderFiltrosBar('mapa-filtros-avancados');
   }
 }
+
+// ── CONFIGURAÇÃO: TIPOS E CATEGORIAS DE APARTAMENTO ──────────
+
+const _TIPOS_KEY = 'gov_apto_tipos';
+const _CATS_KEY  = 'gov_apto_cats';
+const _TIPOS_DEFAULT = ['Standard','Superior','Deluxe','Suíte','Master'];
+const _CATS_DEFAULT  = ['Regular','VIP','Acessível','Família'];
+
+function _cfgGet(key, defaults) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : [...defaults]; } catch { return [...defaults]; }
+}
+function _cfgSet(key, arr) { localStorage.setItem(key, JSON.stringify(arr)); }
+
+function _populateAptoTipoSelect(selected) {
+  const sel = document.getElementById('ca-tipo');
+  if (!sel) return;
+  const vals = _cfgGet(_TIPOS_KEY, _TIPOS_DEFAULT);
+  sel.innerHTML = vals.map(v => `<option value="${v}" ${v === selected ? 'selected' : ''}>${v}</option>`).join('');
+}
+function _populateAptoCatSelect(selected) {
+  const sel = document.getElementById('ca-categoria');
+  if (!sel) return;
+  const vals = _cfgGet(_CATS_KEY, _CATS_DEFAULT);
+  sel.innerHTML = vals.map(v => `<option value="${v}" ${v === selected ? 'selected' : ''}>${v}</option>`).join('');
+}
+
+function renderConfigAptoTiposCats() {
+  const elT = document.getElementById('config-apto-tipos');
+  const elC = document.getElementById('config-apto-cats');
+  if (elT) elT.innerHTML = _renderCfgItems(_TIPOS_KEY, _TIPOS_DEFAULT, 'tipo');
+  if (elC) elC.innerHTML = _renderCfgItems(_CATS_KEY,  _CATS_DEFAULT,  'categoria');
+}
+
+function _renderCfgItems(key, defaults, label) {
+  const items = _cfgGet(key, defaults);
+  const rows = items.map((item, i) => `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+      <span style="flex:1;font-size:13px;padding:6px 10px;background:var(--surface2);border-radius:var(--radius-sm);">${item}</span>
+      <button class="btn btn-ghost btn-xs" onclick="_cfgEdit('${key}',${i})" title="Editar">✏️</button>
+      ${items.length > 1 ? `<button class="btn btn-ghost btn-xs" style="color:var(--danger);" onclick="_cfgRemove('${key}',${i})" title="Excluir">✕</button>` : ''}
+    </div>`).join('');
+  return `${rows}
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <input id="cfg-new-${key}" type="text" placeholder="Novo ${label}..."
+        style="flex:1;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;"
+        onkeydown="if(event.key==='Enter')_cfgAdd('${key}',this)">
+      <button class="btn btn-primary btn-sm" onclick="_cfgAdd('${key}',document.getElementById('cfg-new-${key}'))">+ Adicionar</button>
+    </div>`;
+}
+
+function _cfgAdd(key, inputEl) {
+  const val = (inputEl.value || '').trim();
+  if (!val) { toast('Digite um nome', 'error'); return; }
+  const defaults = key === _TIPOS_KEY ? _TIPOS_DEFAULT : _CATS_DEFAULT;
+  const arr = _cfgGet(key, defaults);
+  if (arr.map(v => v.toLowerCase()).includes(val.toLowerCase())) { toast('Já existe', 'error'); return; }
+  arr.push(val);
+  _cfgSet(key, arr);
+  inputEl.value = '';
+  renderConfigAptoTiposCats();
+  toast('Adicionado!', 'success');
+}
+
+function _cfgRemove(key, idx) {
+  const defaults = key === _TIPOS_KEY ? _TIPOS_DEFAULT : _CATS_DEFAULT;
+  const arr = _cfgGet(key, defaults);
+  if (arr.length <= 1) return;
+  if (!confirm(`Excluir "${arr[idx]}"?`)) return;
+  arr.splice(idx, 1);
+  _cfgSet(key, arr);
+  renderConfigAptoTiposCats();
+  toast('Removido!', 'success');
+}
+
+function _cfgEdit(key, idx) {
+  const defaults = key === _TIPOS_KEY ? _TIPOS_DEFAULT : _CATS_DEFAULT;
+  const arr = _cfgGet(key, defaults);
+  const novo = prompt('Novo nome:', arr[idx]);
+  if (!novo || !novo.trim() || novo.trim() === arr[idx]) return;
+  arr[idx] = novo.trim();
+  _cfgSet(key, arr);
+  renderConfigAptoTiposCats();
+  toast('Atualizado!', 'success');
+}
+
+// Patch openPage para renderizar config
+(function patchOpenPageConfig() {
+  if (window._configPatch) return;
+  window._configPatch = true;
+  const _prev = openPage;
+  openPage = function(id) {
+    _prev(id);
+    if (id === 'config') renderConfigAptoTiposCats();
+  };
+})();
 
 // ── PATCH: selecionarHotelMapa — recarrega chamados e filtros
 const _origSelecionarHotelMapa = selecionarHotelMapa;
