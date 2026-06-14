@@ -168,7 +168,8 @@ async function openUserForm(profileId = null) {
 
   await _popularHotelSelectUsuario();
   _popularPerfilSelectUsuario();
-  _atualizarPermissoesPerfil('camareira');
+  const _perfilIni = document.getElementById('us-perfil')?.value || '';
+  _atualizarPermissoesPerfil(_perfilIni);
   await _popularTurnoSelect(null);
 
   if (isEdit) {
