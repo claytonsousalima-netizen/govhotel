@@ -244,9 +244,6 @@ async function _popularAptosModalChamado(hotelId) {
   if (!sel) return;
   sel.innerHTML = '<option value="">Carregando...</option>';
   const hId = hotelId || currentUser?.hotelId;
-  // DEBUG TEMPORÁRIO — remover após diagnóstico
-  console.log('[DEBUG aptos] hotelId param:', hotelId, '| currentUser.hotelId:', currentUser?.hotelId, '| hId usado:', hId, '| hotelNome:', currentUser?.hotelNome);
-  if (typeof toast === 'function') toast(`[DEBUG] Hotel: ${currentUser?.hotelNome||'?'} | ID: ${hId||'NULL'}`, 'info');
   if (!hId) {
     sel.innerHTML = '<option value="">— Selecione o hotel primeiro —</option>';
     return;
