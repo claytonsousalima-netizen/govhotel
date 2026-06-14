@@ -2324,16 +2324,16 @@ function mudarStatusApto(id, novoStatus, obs) {
 function iniciarLimpeza()  { console.warn('iniciarLimpeza stub'); }
 function concluirLimpeza() { console.warn('concluirLimpeza stub'); }
 
-function salvarTrocarStatus() {
-  const aptoNum = document.getElementById('ts-apto').value;
+async function salvarTrocarStatus() {
+  const aptoNum  = document.getElementById('ts-apto').value;
   const novoStatus = document.getElementById('ts-status').value;
-  if (!aptoNum) { toast('Selecione um apartamento', 'error'); return; }
+  const obs      = document.getElementById('ts-obs')?.value?.trim() || null;
+  if (!aptoNum)    { toast('Selecione um apartamento', 'error'); return; }
+  if (!novoStatus) { toast('Selecione o novo status', 'error'); return; }
   const apto = aptos.find(a => a.numero === aptoNum);
-  if (apto) apto.status = novoStatus;
+  if (!apto) { toast('Apartamento não encontrado', 'error'); return; }
   closeModal('modal-trocar-status');
-  toast(`Apto ${aptoNum} → ${novoStatus}`, 'success');
-  if (currentPage === 'mapa') renderMapa();
-  if (currentPage === 'kanban') renderKanban();
+  await mudarStatusApto(apto.id, novoStatus, obs);
 }
 
 // ============ KANBAN ============
