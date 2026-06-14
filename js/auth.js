@@ -36,6 +36,7 @@ async function doLogin() {
 
 // ---------- LOGOUT ----------
 async function doLogout() {
+  if (typeof stopRealtimeChamados === 'function') stopRealtimeChamados();
   await supabaseClient.auth.signOut();
   currentUser = null;
   document.getElementById('app').style.display = 'none';

@@ -374,18 +374,24 @@ tr:last-child td { border-bottom: none; }
 .toast.show { transform: translateY(0); opacity: 1; }
 .toast.success { background: var(--accent); }
 .toast.error { background: var(--danger); }
+.toast.info { background: var(--primary-light); }
 
 /* PROGRESS */
 .progress-bar { background: var(--border); border-radius: 4px; height: 6px; overflow: hidden; margin-top: 4px; }
 .progress-fill { height: 100%; border-radius: 4px; background: var(--accent); transition: width 0.3s; }
 
 /* MOBILE */
+/* Itens de conta (Alterar Senha / Sair) dentro do nav — visíveis só no mobile */
+.sidebar-mobile-footer { display: none; }
+.sidebar-mobile-footer .nav-item { border-top: 1px solid rgba(255,255,255,0.08); }
+
 @media (max-width: 768px) {
   .sidebar { transform: translateX(-240px); overflow-y: hidden; }
   .sidebar.open { transform: translateX(0); }
-  /* Sidebar: nav rola, footer fica fixo no rodapé */
+  /* Nav rola; footer nativo oculto no mobile (itens migram para o nav) */
   .sidebar-nav { overflow-y: auto; -webkit-overflow-scrolling: touch; min-height: 0; flex: 1; }
-  .sidebar-footer { flex-shrink: 0; background: var(--primary-dark); }
+  .sidebar-footer { display: none; }
+  .sidebar-mobile-footer { display: block; padding-bottom: 16px; }
   .main { margin-left: 0; }
   .topbar { padding: 0 16px; }
   .content { padding: 16px; }
@@ -1906,7 +1912,7 @@ tr:last-child td { border-bottom: none; }
 <div class="toast" id="toast-msg"></div>
 
 <script src="js/supabase-client.js?v=20260613p"></script>
-<script src="js/auth.js?v=20260613p"></script>
+<script src="js/auth.js?v=20260614a"></script>
 <script>
 // ============ STATE ============
 let currentPage = 'dashboard';
@@ -2126,6 +2132,16 @@ function buildSidebar() {
       </div>`;
     }
   });
+  // Itens de conta injetados no nav — visíveis apenas no mobile via CSS
+  html += `<div class="sidebar-mobile-footer">
+    <div class="nav-section">Conta</div>
+    <div class="nav-item" onclick="openModal('modal-senha');closeSidebar()">
+      <span class="nav-icon">🔑</span><span>Alterar senha</span>
+    </div>
+    <div class="nav-item" onclick="doLogout()">
+      <span class="nav-icon">↪</span><span>Sair do sistema</span>
+    </div>
+  </div>`;
   document.getElementById('sidebar-nav').innerHTML = html;
 }
 
@@ -2745,7 +2761,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 <script src="js/maids.js?v=20260614d"></script>
 <script src="js/users.js?v=20260614b"></script>
 <script src="js/permissions.js?v=20260614b"></script>
-<script src="js/chamados.js?v=20260614c"></script>
+<script src="js/chamados.js?v=20260614d"></script>
 <script src="js/config.js?v=20260613v"></script>
 <script src="js/dashboard.js?v=20260614a"></script>
 <script src="js/relatorios.js?v=20260613p"></script>

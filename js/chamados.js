@@ -697,11 +697,56 @@ function renderKanban() {
   if (typeof applyProfileRestrictions === 'function') applyProfileRestrictions();
 }
 
+// ── REALTIME — NOTIFICAÇÕES DE NOVOS CHAMADOS ────────────────
+let _realtimeChannel = null;
+
+function _initRealtimeChamados() {
+  if (_realtimeChannel) return; // já inscrito
+
+  const isAdminGlobal = currentUser.perfil === 'admin_global';
+  const hotelId       = currentUser.hotelId;
+
+  const pgConfig = { event: '*', schema: 'public', table: 'work_orders' };
+  if (!isAdminGlobal && hotelId) pgConfig.filter = `hotel_id=eq.${hotelId}`;
+
+  _realtimeChannel = supabaseClient
+    .channel('govhotel_work_orders')
+    .on('postgres_changes', pgConfig, async (payload) => {
+      const rec = payload.new || {};
+
+      // Camareira: só governança | Manutenção: só manutenção
+      if (currentUser.perfil === 'camareira'  && rec.departamento !== 'governanca')  return;
+      if (currentUser.perfil === 'manutencao' && rec.departamento !== 'manutencao') return;
+
+      if (payload.eventType === 'INSERT') {
+        // Não notifica quem abriu o chamado
+        if (rec.criado_por === currentUser.id) return;
+        const dept = rec.departamento === 'manutencao' ? '🔧 Manutenção' : '🧹 Governança';
+        const cat  = rec.categoria || rec.tipo || '';
+        toast(`${dept}: novo chamado${cat ? ' — ' + cat : ''}`, 'info');
+      }
+
+      // Atualiza cache e UI sem travar
+      await _fetchChamados();
+      if (currentPage === 'chamados') { renderChamados(); }
+      if (currentPage === 'kanban')   { renderKanban();   }
+    })
+    .subscribe();
+}
+
+function stopRealtimeChamados() {
+  if (_realtimeChannel) {
+    supabaseClient.removeChannel(_realtimeChannel);
+    _realtimeChannel = null;
+  }
+}
+
 // ── INICIALIZAR CHAMADOS ─────────────────────────────────────
 async function _initChamados() {
   await _loadTiposChamado();
   await _popularFiltroHotelChamados();
   await _fetchChamados();
+  _initRealtimeChamados();
 }
 
 (function patchOpenPageChamados() {
