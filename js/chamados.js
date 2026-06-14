@@ -433,13 +433,30 @@ function _renderDetalheConteudo(c) {
     `<span class="badge ${st.badge}">${st.label}</span>` +
     `<span class="badge ${pr.badge}">${pr.label}</span>` +
     (c.categoria ? `<span style="font-size:11px;background:var(--surface2);color:var(--text2);padding:3px 8px;border-radius:10px;">📁 ${c.categoria}</span>` : '') +
-    dB;
+    dB +
+    (!c.responsavel_user_id ? `<span style="font-size:11px;background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:10px;font-weight:600;">📋 Disponível</span>` : '');
+
+  // Bloco "Assumir chamado"
+  const elAssumirWrap = document.getElementById('cd-assumir-wrap');
+  if (elAssumirWrap) {
+    if (_podeAssumirChamado(c)) {
+      elAssumirWrap.style.display = 'flex';
+      elAssumirWrap.innerHTML = `
+        <div style="flex:1;font-size:13px;color:#78350f;">
+          <strong>Chamado sem responsável.</strong> Clique para assumir o atendimento.
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="assumirChamado('${c.id}')">✋ Assumir chamado</button>`;
+    } else {
+      elAssumirWrap.style.display = 'none';
+      elAssumirWrap.innerHTML = '';
+    }
+  }
 
   const elInfo = document.getElementById('cd-info');
   if (elInfo) elInfo.innerHTML = `
     <div><span style="font-size:11px;color:var(--text3);">Apartamento</span><div style="font-weight:600;">${c.apto}</div></div>
     <div><span style="font-size:11px;color:var(--text3);">Solicitante</span><div>${c.solicitante || '—'}</div></div>
-    ${c.camareira ? `<div><span style="font-size:11px;color:var(--text3);">Responsável</span><div>🧹 ${c.camareira}</div></div>` : ''}
+    <div><span style="font-size:11px;color:var(--text3);">Responsável</span><div>${c.camareira ? '🧹 ' + c.camareira : '<em style="color:var(--text3);">Sem responsável</em>'}</div></div>
     ${c.hospede ? `<div><span style="font-size:11px;color:var(--text3);">Hóspede</span><div>${c.hospede}</div></div>` : ''}
     <div><span style="font-size:11px;color:var(--text3);">Criado em</span><div>${c.criadoFull}</div></div>
     ${c.prazo ? `<div><span style="font-size:11px;color:var(--text3);">Prazo</span><div style="${_isAtrasado(c) ? 'color:#dc2626;font-weight:700;' : ''}">${c.prazo}${_isAtrasado(c) ? ' ⚠' : ''}</div></div>` : ''}
@@ -526,17 +543,59 @@ function _isAtrasado(c) {
 }
 const _BADGE_ATRASADO = `<span style="font-size:10px;background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:10px;font-weight:700;">⚠ Atrasado</span>`;
 
+// ── ASSUMIR CHAMADO ───────────────────────────────────────────
+function _podeAssumirChamado(c) {
+  if (c.responsavel_user_id) return false; // já tem responsável
+  if (currentUser.perfil === 'camareira')  return c.departamento === 'governanca';
+  if (currentUser.perfil === 'manutencao') return c.departamento === 'manutencao';
+  return ['gestor','admin_hotel','admin_global'].includes(currentUser.perfil);
+}
+
+async function assumirChamado(id) {
+  const c = _chamadosCache.find(x => x.id === id);
+  if (!c) return;
+
+  const payload = { responsavel_user_id: currentUser.id };
+  // Avança para andamento se ainda estiver aberto
+  if (c.status === 'aberto') payload.status = 'andamento';
+
+  const { error } = await supabaseClient
+    .from('work_orders').update(payload).eq('id', id);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+
+  await _gravarHistorico(id, c.hotel_id, 'responsavel',
+    `Chamado assumido por ${currentUser.nome}.`);
+
+  c.responsavel_user_id = currentUser.id;
+  c.camareira = currentUser.nome;
+  if (payload.status) c.status = payload.status;
+  chamados = _chamadosCache;
+
+  toast('Chamado assumido com sucesso.', 'success');
+  _renderDetalheConteudo(c);
+  await _carregarHistoricoChamado(id);
+  renderChamados();
+  renderKanban();
+}
+
 // ── RENDER CHAMADOS ───────────────────────────────────────────
 function renderChamados() {
   const showHotel = currentUser.perfil === 'admin_global';
   const deptFn    = _chamadoDept ? (c => c.departamento === _chamadoDept) : () => true;
   const tabFilter = {
-    todos:      c => deptFn(c),
-    abertos:    c => deptFn(c) && ['aberto','em_analise','reaberto'].includes(c.status),
-    andamento:  c => deptFn(c) && ['andamento','pausado'].includes(c.status),
-    concluidos: c => deptFn(c) && ['resolvido','concluido','cancelado'].includes(c.status),
+    todos:        c => deptFn(c),
+    disponiveis:  c => deptFn(c) && !c.responsavel_user_id && ['aberto','em_analise','reaberto'].includes(c.status),
+    meus:         c => deptFn(c) && c.responsavel_user_id === currentUser.id,
+    abertos:      c => deptFn(c) && ['aberto','em_analise','reaberto'].includes(c.status),
+    andamento:    c => deptFn(c) && ['andamento','pausado'].includes(c.status),
+    concluidos:   c => deptFn(c) && ['resolvido','concluido','cancelado'].includes(c.status),
   };
   const prioColors = { urgente:'var(--danger)', alta:'#e67e22', normal:'var(--warning)', baixa:'var(--success)' };
+
+  // Atualiza badge numérico da aba Disponíveis
+  const dispCount = _chamadosCache.filter(tabFilter.disponiveis).length;
+  const btnDisp = document.getElementById('tab-btn-disponiveis');
+  if (btnDisp) btnDisp.textContent = dispCount > 0 ? `Disponíveis (${dispCount})` : 'Disponíveis';
 
   Object.entries(tabFilter).forEach(([tab, fn]) => {
     const lista = _chamadosCache.filter(fn);
@@ -544,7 +603,12 @@ function renderChamados() {
     if (!el) return;
 
     if (!lista.length) {
-      el.innerHTML = `<div style="text-align:center;padding:32px;color:var(--text3);">Nenhum chamado encontrado.</div>`;
+      const msg = tab === 'disponiveis'
+        ? 'Nenhum chamado disponível no momento.'
+        : tab === 'meus'
+        ? 'Você não possui chamados atribuídos.'
+        : 'Nenhum chamado encontrado.';
+      el.innerHTML = `<div style="text-align:center;padding:32px;color:var(--text3);">${msg}</div>`;
       return;
     }
 
@@ -554,6 +618,9 @@ function renderChamados() {
       const dB  = c.departamento === 'manutencao'
         ? `<span style="font-size:10px;background:#fef9e7;color:#d4ac0d;padding:2px 6px;border-radius:10px;font-weight:600;">🔧 Manutenção</span>`
         : `<span style="font-size:10px;background:#e8f6f3;color:#148f77;padding:2px 6px;border-radius:10px;font-weight:600;">🧹 Governança</span>`;
+      const dispBadge = !c.responsavel_user_id
+        ? `<span style="font-size:10px;background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:10px;font-weight:600;">📋 Disponível</span>`
+        : '';
 
       return `
       <div class="card" style="margin-bottom:10px;border-left:4px solid ${prioColors[c.prioridade]||'var(--border)'};cursor:pointer;"
@@ -565,9 +632,10 @@ function renderChamados() {
               ${c.numero ? `<span style="font-size:11px;font-weight:700;color:var(--primary);background:var(--surface2);padding:2px 7px;border-radius:4px;">${c.numero}</span>` : ''}
               <div style="font-weight:700;font-size:14px;">${c.tipo}</div>
               ${dB}
+              ${dispBadge}
             </div>
             <div style="font-size:12px;color:var(--text2);">
-              Apto ${c.apto}${c.hospede ? ` · ${c.hospede}` : ''}${c.camareira ? ` · 🧹 ${c.camareira}` : ''}
+              Apto ${c.apto}${c.hospede ? ` · ${c.hospede}` : ''}${c.camareira ? ` · 🧹 ${c.camareira}` : ' · Sem responsável'}
             </div>
             ${c.categoria ? `<div style="font-size:11px;color:var(--text3);margin-top:2px;">📁 ${c.categoria}</div>` : ''}
             ${c.desc ? `<div style="font-size:12px;color:var(--text3);margin-top:4px;">${c.desc.substring(0,80)}${c.desc.length>80?'…':''}</div>` : ''}

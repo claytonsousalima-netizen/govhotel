@@ -747,11 +747,15 @@ tr:last-child td { border-bottom: none; }
         </div>
         <div class="tabs">
           <button class="tab-btn active" onclick="switchTab('tab-todos','tab-chamados')">Todos</button>
-          <button class="tab-btn" onclick="switchTab('tab-abertos','tab-chamados')">Pendentes</button>
+          <button class="tab-btn" id="tab-btn-disponiveis" onclick="switchTab('tab-disponiveis','tab-chamados')">Disponíveis</button>
+          <button class="tab-btn" id="tab-btn-meus" onclick="switchTab('tab-meus','tab-chamados')">Meus</button>
+          <button class="tab-btn" onclick="switchTab('tab-abertos','tab-chamados')">Em aberto</button>
           <button class="tab-btn" onclick="switchTab('tab-andamento','tab-chamados')">Em andamento</button>
           <button class="tab-btn" onclick="switchTab('tab-concluidos','tab-chamados')">Concluídos</button>
         </div>
         <div class="tab-content active" id="tab-todos"><div id="chamados-list-todos"></div></div>
+        <div class="tab-content" id="tab-disponiveis"><div id="chamados-list-disponiveis"></div></div>
+        <div class="tab-content" id="tab-meus"><div id="chamados-list-meus"></div></div>
         <div class="tab-content" id="tab-abertos"><div id="chamados-list-abertos"></div></div>
         <div class="tab-content" id="tab-andamento"><div id="chamados-list-andamento"></div></div>
         <div class="tab-content" id="tab-concluidos"><div id="chamados-list-concluidos"></div></div>
@@ -1352,6 +1356,8 @@ tr:last-child td { border-bottom: none; }
     <div class="modal-body" style="padding-top:0;">
       <!-- Badges de status/prioridade/categoria -->
       <div id="cd-badges" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;padding-top:14px;"></div>
+      <!-- Assumir chamado (sem responsável) -->
+      <div id="cd-assumir-wrap" style="display:none;margin-bottom:14px;padding:12px 14px;background:#fefce8;border:1.5px solid #fbbf24;border-radius:var(--radius-sm);display:flex;align-items:center;gap:12px;flex-wrap:wrap;"></div>
       <!-- Grid de informações -->
       <div id="cd-info" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;padding:14px;background:var(--surface2);border-radius:var(--radius-sm);margin-bottom:14px;"></div>
       <!-- Ações de status -->
@@ -2739,7 +2745,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 <script src="js/maids.js?v=20260614d"></script>
 <script src="js/users.js?v=20260614b"></script>
 <script src="js/permissions.js?v=20260614b"></script>
-<script src="js/chamados.js?v=20260614b"></script>
+<script src="js/chamados.js?v=20260614c"></script>
 <script src="js/config.js?v=20260613v"></script>
 <script src="js/dashboard.js?v=20260614a"></script>
 <script src="js/relatorios.js?v=20260613p"></script>
