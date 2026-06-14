@@ -170,10 +170,11 @@ const PERFIL_LABELS = {
 
 // ---------- PERMISSÕES POR PERFIL ----------
 const PERFIL_PAGES = {
-  admin_global: ['hoteis','usuarios','dashboard','mapa','kanban','chamados','equipe','cadastro-apto','relatorios','config'],
-  admin_hotel:  ['usuarios','dashboard','mapa','kanban','chamados','equipe','cadastro-apto','relatorios','config'],
-  gestor:       ['dashboard','mapa','kanban','chamados','equipe','relatorios'],
-  camareira:    ['app-camareira','mapa','chamados'],
+  admin_global: ['hoteis','usuarios','dashboard','mapa','kanban','chamados','equipe','cadastro-apto','relatorios','config','minha-fila'],
+  admin_hotel:  ['usuarios','dashboard','mapa','kanban','chamados','equipe','cadastro-apto','relatorios','config','minha-fila'],
+  gestor:       ['dashboard','mapa','kanban','chamados','equipe','relatorios','minha-fila'],
+  supervisora:  ['mapa','kanban','chamados','equipe','minha-fila'],
+  camareira:    ['app-camareira','mapa','chamados','minha-fila'],
   manutencao:   ['app-manutencao','mapa','chamados'],
 };
 

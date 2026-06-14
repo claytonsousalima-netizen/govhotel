@@ -864,6 +864,18 @@ tr:last-child td { border-bottom: none; }
         </div>
       </div>
 
+      <!-- ====== MINHA FILA ====== -->
+      <div class="page" id="page-minha-fila">
+        <div class="page-header">
+          <div>
+            <div class="page-title" id="mf-page-title">Minha Fila</div>
+            <div class="page-subtitle" id="mf-page-subtitle">Sua fila de trabalho do turno</div>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="renderMinhaFila()">↺ Atualizar</button>
+        </div>
+        <div id="mf-content"></div>
+      </div>
+
       <!-- ====== VIEW CAMAREIRA ====== -->
       <div class="page" id="page-app-camareira">
         <div style="max-width:480px;margin:0 auto;">
@@ -1637,8 +1649,8 @@ tr:last-child td { border-bottom: none; }
 <!-- TOAST -->
 <div class="toast" id="toast-msg"></div>
 
-<script src="js/supabase-client.js?v=20260613l"></script>
-<script src="js/auth.js?v=20260613l"></script>
+<script src="js/supabase-client.js?v=20260613m"></script>
+<script src="js/auth.js?v=20260613m"></script>
 <script>
 // ============ STATE ============
 let currentPage = 'dashboard';
@@ -1697,8 +1709,9 @@ function startApp() {
   setTopbarDate();
   applyProfileRestrictions();
 
-  const startPage = currentUser.perfil === 'camareira' ? 'app-camareira'
-    : currentUser.perfil === 'manutencao' ? 'app-manutencao'
+  const startPage = currentUser.perfil === 'camareira'   ? 'minha-fila'
+    : currentUser.perfil === 'supervisora' ? 'minha-fila'
+    : currentUser.perfil === 'manutencao'  ? 'app-manutencao'
     : 'dashboard';
   openPage(startPage);
 
@@ -1756,6 +1769,8 @@ function setTopbarDate() {
 // ============ SIDEBAR NAV ============
 const NAV_ITEMS = {
   admin_global: [
+    { section:'Minha Operação' },
+    { id:'minha-fila', icon:'📝', label:'Minha Fila', badge:'conf' },
     { section:'Admin Global' },
     { id:'hoteis',   icon:'🏨', label:'Hotéis' },
     { id:'usuarios', icon:'👤', label:'Usuários' },
@@ -1774,15 +1789,17 @@ const NAV_ITEMS = {
     { id:'config', icon:'⚙️', label:'Configurações' },
   ],
   admin_hotel: [
+    { section:'Minha Operação' },
+    { id:'minha-fila', icon:'📝', label:'Minha Fila', badge:'conf' },
     { section:'Administração' },
     { id:'usuarios', icon:'👤', label:'Usuários' },
     { section:'Principal' },
-    { id:'dashboard', icon:'📊', label:'Dashboard' },
-    { id:'mapa', icon:'🗺️', label:'Mapa de Aptos' },
-    { id:'kanban', icon:'📋', label:'Kanban' },
+    { id:'dashboard',  icon:'📊', label:'Dashboard' },
+    { id:'mapa',       icon:'🗺️', label:'Mapa de Aptos' },
+    { id:'kanban',     icon:'📋', label:'Kanban' },
     { section:'Operação' },
-    { id:'chamados', icon:'🔔', label:'Chamados', badge:true },
-    { id:'equipe', icon:'👥', label:'Equipe' },
+    { id:'chamados',     icon:'🔔', label:'Chamados', badge:true },
+    { id:'equipe',       icon:'👥', label:'Equipe' },
     { section:'Cadastros' },
     { id:'cadastro-apto', icon:'🏠', label:'Apartamentos' },
     { section:'Análise' },
@@ -1791,20 +1808,33 @@ const NAV_ITEMS = {
     { id:'config', icon:'⚙️', label:'Configurações' },
   ],
   gestor: [
+    { section:'Minha Operação' },
+    { id:'minha-fila', icon:'📝', label:'Minha Fila', badge:'conf' },
     { section:'Principal' },
     { id:'dashboard', icon:'📊', label:'Dashboard' },
-    { id:'mapa', icon:'🗺️', label:'Mapa de Aptos' },
-    { id:'kanban', icon:'📋', label:'Kanban' },
+    { id:'mapa',      icon:'🗺️', label:'Mapa de Aptos' },
+    { id:'kanban',    icon:'📋', label:'Kanban' },
     { section:'Operação' },
     { id:'chamados', icon:'🔔', label:'Chamados', badge:true },
-    { id:'equipe', icon:'👥', label:'Equipe' },
+    { id:'equipe',   icon:'👥', label:'Equipe' },
     { section:'Análise' },
     { id:'relatorios', icon:'📈', label:'Relatórios' },
   ],
+  supervisora: [
+    { section:'Minha Operação' },
+    { id:'minha-fila', icon:'📝', label:'Minha Fila', badge:'conf' },
+    { section:'Visão Geral' },
+    { id:'mapa',   icon:'🗺️', label:'Mapa de Aptos' },
+    { id:'kanban', icon:'📋', label:'Kanban' },
+    { section:'Operação' },
+    { id:'chamados', icon:'🔔', label:'Chamados', badge:true },
+    { id:'equipe',   icon:'👥', label:'Equipe' },
+  ],
   camareira: [
     { section:'Meu Turno' },
-    { id:'app-camareira', icon:'🧹', label:'Meus Aptos' },
-    { id:'mapa', icon:'🗺️', label:'Mapa Geral' },
+    { id:'minha-fila',    icon:'📝', label:'Minha Fila'  },
+    { id:'app-camareira', icon:'🧹', label:'Meus Aptos'  },
+    { id:'mapa',          icon:'🗺️', label:'Mapa Geral'  },
     { section:'Operação' },
     { id:'chamados', icon:'🔔', label:'Chamados', badge:true },
   ],
@@ -1818,17 +1848,22 @@ const NAV_ITEMS = {
 };
 
 function buildSidebar() {
-  const items = NAV_ITEMS[currentUser.perfil] || NAV_ITEMS.gestor;
+  const items     = NAV_ITEMS[currentUser.perfil] || NAV_ITEMS.gestor;
   const openCount = chamados.filter(c => c.status === 'aberto').length;
+  const confCount = (typeof aptos !== 'undefined')
+    ? aptos.filter(a => a.status === 'conferencia').length : 0;
   let html = '';
   items.forEach(item => {
     if (item.section) {
       html += `<div class="nav-section">${item.section}</div>`;
     } else {
+      const badgeNum = item.badge === 'conf'  ? confCount
+                     : item.badge === true    ? openCount
+                     : 0;
       html += `<div class="nav-item" id="nav-${item.id}" onclick="openPage('${item.id}')">
         <span class="nav-icon">${item.icon}</span>
         <span>${item.label}</span>
-        ${item.badge && openCount > 0 ? `<span class="nav-badge">${openCount}</span>` : ''}
+        ${badgeNum > 0 ? `<span class="nav-badge">${badgeNum}</span>` : ''}
       </div>`;
     }
   });
@@ -1852,6 +1887,7 @@ const PAGE_TITLES = {
   equipe:'Equipe de Governança', relatorios:'Relatórios & Analytics',
   config:'Configurações', 'app-camareira':'Meus Apartamentos',
   'app-manutencao':'Meus Chamados — Manutenção',
+  'minha-fila':'Minha Fila',
 };
 
 function openPage(id) {
@@ -2472,14 +2508,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('loading-overlay').style.display = 'none';
 });
 </script>
-<script src="js/hotels.js?v=20260613l"></script>
-<script src="js/apartments.js?v=20260613l"></script>
-<script src="js/maids.js?v=20260613l"></script>
-<script src="js/users.js?v=20260613l"></script>
-<script src="js/permissions.js?v=20260613l"></script>
-<script src="js/chamados.js?v=20260613l"></script>
-<script src="js/config.js?v=20260613l"></script>
-<script src="js/dashboard.js?v=20260613l"></script>
-<script src="js/relatorios.js?v=20260613l"></script>
+<script src="js/hotels.js?v=20260613m"></script>
+<script src="js/apartments.js?v=20260613m"></script>
+<script src="js/maids.js?v=20260613m"></script>
+<script src="js/users.js?v=20260613m"></script>
+<script src="js/permissions.js?v=20260613m"></script>
+<script src="js/chamados.js?v=20260613m"></script>
+<script src="js/config.js?v=20260613m"></script>
+<script src="js/dashboard.js?v=20260613m"></script>
+<script src="js/relatorios.js?v=20260613m"></script>
+<script src="js/minha-fila.js?v=20260613m"></script>
 </body>
 </html>
