@@ -2337,211 +2337,28 @@ async function salvarTrocarStatus() {
 }
 
 // ============ KANBAN ============
-function renderKanban() {
-  const cols = [
-    { key:'sujo',        label:'Sujo',          color:'#e67e22' },
-    { key:'limpando',    label:'Em limpeza',     color:'#2e86c1' },
-    { key:'pausado',     label:'Pausado',        color:'#f39c12' },
-    { key:'conferencia', label:'Aguard. conf.',  color:'#8e44ad' },
-    { key:'limpo',       label:'Limpo',          color:'#1abc9c' },
-    { key:'reprovado',   label:'Reprovado',      color:'#e74c3c' },
-    { key:'manutencao',  label:'Manutenção',     color:'#f1c40f' },
-  ];
-  let html = '';
-  cols.forEach(col => {
-    const items = aptos.filter(a => a.status === col.key);
-    html += `<div class="kanban-col">
-      <div class="kanban-col-title" style="color:${col.color};">${col.label} <span class="kanban-count">${items.length}</span></div>`;
-    items.forEach(a => {
-      const camNome = a._maid_nome || null;
-      html += `<div class="kanban-item" onclick="openAptoDetail('${a.id}')">
-        <div class="kanban-apto">${a.numero}</div>
-        <div class="kanban-detail">${a.tipo} · ${a.andar}º andar</div>
-        ${camNome ? `<div style="font-size:11px;color:var(--text3);margin-top:4px;">👤 ${camNome.split(' ')[0]}</div>` : ''}
-        ${a.prioridade ? '<div style="font-size:10px;font-weight:700;color:var(--danger);margin-top:2px;">⚠️ PRIORIDADE</div>' : ''}
-      </div>`;
-    });
-    html += '</div>';
-  });
-  document.getElementById('kanban-board').innerHTML = html;
-}
+// renderKanban() gerenciada por chamados.js
 
 // ============ CHAMADOS ============
-function renderChamados() {
-  ['todos','abertos','andamento','concluidos'].forEach(tab => {
-    let filtered = chamados;
-    if (tab === 'abertos')    filtered = chamados.filter(c => ['aberto','em_analise','reaberto'].includes(c.status));
-    if (tab === 'andamento')  filtered = chamados.filter(c => c.status === 'andamento');
-    if (tab === 'concluidos') filtered = chamados.filter(c => c.status === 'concluido');
-    const el = document.getElementById('chamados-list-' + tab);
-    if (!el) return;
-    if (!filtered.length) { el.innerHTML = '<p style="color:var(--text3);text-align:center;padding:24px;">Nenhum chamado nesta categoria.</p>'; return; }
-    el.innerHTML = filtered.map(c => {
-      const cam = equipe.find(e => e.id === c.camareira_id);
-      const isCamareira = currentUser.perfil === 'camareira';
-      return `<div class="chamado-card ${c.prioridade}">
-        <div class="chamado-header">
-          <div class="chamado-title">Apto ${c.apto} — ${c.tipo}</div>
-          <div style="display:flex;gap:6px;">
-            <span class="badge badge-${c.prioridade}">${c.prioridade}</span>
-            <span class="badge badge-${c.status}">${c.status}</span>
-          </div>
-        </div>
-        <div style="font-size:13px;color:var(--text);">${c.desc}</div>
-        <div class="chamado-meta">
-          <span>🕐 ${c.criado}</span>
-          <span>📌 ${c.solicitante}</span>
-          ${c.hospede ? `<span>👤 ${c.hospede}</span>` : ''}
-          ${cam ? `<span>🧹 ${cam.nome.split(' ')[0]}</span>` : '<span style="color:var(--danger);">⚠️ Sem camareira</span>'}
-        </div>
-        ${!isCamareira ? `<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
-          ${c.status === 'aberto' ? `<button class="btn btn-primary btn-xs" onclick="mudarChamado(${c.id},'andamento')">▶ Iniciar</button>` : ''}
-          ${c.status === 'andamento' ? `<button class="btn btn-success btn-xs" onclick="mudarChamado(${c.id},'concluido')">✓ Concluir</button>` : ''}
-          ${c.status !== 'concluido' && c.status !== 'cancelado' ? `<button class="btn btn-danger btn-xs" onclick="mudarChamado(${c.id},'cancelado')">✕ Cancelar</button>` : ''}
-        </div>` : ''}
-      </div>`;
-    }).join('');
-  });
-}
-
-function mudarChamado(id, novoStatus) {
-  const c = chamados.find(x => x.id === id);
-  if (c) c.status = novoStatus;
-  renderChamados();
-  buildSidebar();
-  toast(`Chamado #${id} → ${novoStatus}`, 'success');
-}
-
-function salvarNovoChamado() {
-  const apto = document.getElementById('nc-apto').value;
-  const tipo = document.getElementById('nc-tipo').value;
-  const prioridade = document.getElementById('nc-prioridade').value;
-  const solicitante = document.getElementById('nc-solicitante').value;
-  const desc = document.getElementById('nc-desc').value;
-  const hospede = document.getElementById('nc-hospede').value;
-  const camId = document.getElementById('nc-camareira').value;
-  const prazo = document.getElementById('nc-prazo').value;
-  if (!apto) { toast('Selecione o apartamento', 'error'); return; }
-  const now = new Date();
-  chamados.unshift({
-    id:chamados.length+1, apto, tipo:tipo.replace(/_/g,' '), prioridade, status:'aberto',
-    solicitante, hospede, desc, camareira_id:camId ? parseInt(camId) : null, prazo,
-    criado:now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}), criado_por:currentUser.nome
-  });
-  closeModal('modal-novo-chamado');
-  toast('Chamado aberto com sucesso!', 'success');
-  renderChamados();
-  buildSidebar();
-}
+// renderChamados() e salvarNovoChamado() gerenciadas por chamados.js
 
 // ============ CADASTRO APTOS ============
-function renderCadastroTable(filter='') {
-  let list = aptos;
-  if (filter) list = list.filter(a => a.numero.includes(filter) || String(a.andar).includes(filter));
-  const tbody = document.getElementById('cadastro-table-body');
-  if (!tbody) return;
-  tbody.innerHTML = list.map(a => {
-    const cam = equipe.find(e => e.id === a.camareira_id);
-    return `<tr>
-      <td><strong>${a.numero}</strong></td>
-      <td>${a.andar}º Andar</td>
-      <td>${a.tipo}</td>
-      <td><span class="badge" style="background:#eef;color:#556;">${a.categoria}</span></td>
-      <td>${a.leitos} leitos</td>
-      <td><span class="badge badge-${a.status}">${a.status}</span></td>
-      <td>${cam ? cam.nome.split(' ')[0]+' '+cam.nome.split(' ')[1] : '<span style="color:var(--text3);">—</span>'}</td>
-      <td>
-        <button class="btn btn-ghost btn-xs" onclick="editarApto(${a.id})">✏️</button>
-        <button class="btn btn-ghost btn-xs" onclick="openAptoDetail(${a.id})">👁</button>
-      </td>
-    </tr>`;
-  }).join('');
-}
-
-function searchAptos(q) { renderCadastroTable(q); }
-
-function editarApto(id) {
-  const a = aptos.find(x => x.id === id);
-  if (!a) return;
-  document.getElementById('ca-edit-id').value = id;
-  document.getElementById('ca-numero').value = a.numero;
-  document.getElementById('ca-andar').value = a.andar;
-  document.getElementById('ca-leitos').value = a.leitos;
-  document.getElementById('ca-tipo').value = a.tipo;
-  document.getElementById('ca-categoria').value = a.categoria;
-  document.getElementById('ca-status').value = a.status;
-  document.getElementById('ca-camareira').value = a.camareira_id || '';
-  document.getElementById('ca-obs').value = a.obs || '';
-  document.getElementById('modal-cadastro-apto-title').textContent = 'Editar Apartamento ' + a.numero;
-  openModal('modal-cadastro-apto');
-}
-
-function salvarCadastroApto() {
-  const editId   = document.getElementById('ca-edit-id').value;
-  const numero   = document.getElementById('ca-numero').value.trim();
-  const andar    = parseInt(document.getElementById('ca-andar').value);
-  const leitos   = parseInt(document.getElementById('ca-leitos').value);
-  const tipo     = document.getElementById('ca-tipo').value;
-  const categoria= document.getElementById('ca-categoria').value;
-  const status   = document.getElementById('ca-status').value;
-  const camId    = document.getElementById('ca-camareira').value;
-  const obs      = document.getElementById('ca-obs').value;
-  if (!numero) { toast('Informe o número do apto', 'error'); return; }
-  if (editId) {
-    const a = aptos.find(x => x.id === parseInt(editId));
-    if (a) Object.assign(a, { numero, andar, leitos, tipo, categoria, status, camareira_id:camId ? parseInt(camId) : null, obs });
-    toast('Apartamento atualizado!', 'success');
-  } else {
-    aptos.push({ id:aptos.length+1, numero, andar, tipo, categoria, status, leitos, camareira_id:camId ? parseInt(camId) : null, obs, prioridade:false });
-    toast('Apartamento cadastrado!', 'success');
-  }
-  document.getElementById('ca-edit-id').value = '';
-  document.getElementById('modal-cadastro-apto-title').textContent = 'Cadastrar Apartamento';
-  closeModal('modal-cadastro-apto');
-  renderCadastroTable();
-}
+// renderCadastroTableDb(), searchAptos(), editarApto(), salvarCadastroApto() gerenciadas por apartments.js
 
 // ============ EQUIPE ============
 // renderEquipe() e salvarNovoMembro() gerenciadas por maids.js
 
 // ============ RELATÓRIOS ============
 // renderRelatorios() gerenciada por relatorios.js
-function renderRelatorios() {}
 
 // ============ CONFIG ============
 function renderConfig() {
-  // Chama funções de config.js e apartments.js diretamente, sem depender de patch chain
-  if (typeof renderConfigPage === 'function')         renderConfigPage();
+  if (typeof renderConfigPage === 'function')          renderConfigPage();
   if (typeof renderConfigAptoTiposCats === 'function') renderConfigAptoTiposCats();
 }
 
 // ============ APP CAMAREIRA ============
-function renderAppCamareira() {
-  document.getElementById('app-camareira-nome').textContent = currentUser.nome;
-  const meus = aptos.filter(a => a.camareira_id === 1); // Em Etapa 4, filtrar por ID real
-  const aLimpar   = meus.filter(a => a.status === 'sujo').length;
-  const limpando  = meus.filter(a => a.status === 'limpando').length;
-  const concluidos= meus.filter(a => ['livre','conferencia'].includes(a.status)).length;
-  document.getElementById('app-a-limpar').textContent  = aLimpar;
-  document.getElementById('app-limpando').textContent  = limpando;
-  document.getElementById('app-concluidos').textContent= concluidos;
-  document.getElementById('app-aptos-count').textContent= `${meus.length} aptos atribuídos`;
-
-  const icons = {livre:'✅',sujo:'🧺',limpando:'🧹',conferencia:'🔍',bloqueado:'🔒',ocupado:'🏠',manutencao:'🔧'};
-  document.getElementById('app-apto-list').innerHTML = meus.map(a => `
-    <div class="apto-card-app ${a.status}" onclick="abrirChecklistApp(${a.id})">
-      <div>
-        <div class="app-apto-num">${a.numero}</div>
-        <div class="app-apto-info">${a.tipo} · ${a.andar}º andar</div>
-        <div style="margin-top:4px;"><span class="badge badge-${a.status}">${a.status}</span></div>
-      </div>
-      <div style="text-align:right;">
-        <div style="font-size:28px;">${icons[a.status]||'❓'}</div>
-        ${a.status==='sujo'?'<div style="font-size:11px;color:var(--warning);font-weight:700;margin-top:4px;">TAP PARA INICIAR</div>':''}
-        ${a.status==='limpando'?'<div style="font-size:11px;color:var(--info);font-weight:700;margin-top:4px;">EM ANDAMENTO</div>':''}
-      </div>
-    </div>`).join('');
-}
+// renderAppCamareira() gerenciada por apartments.js
 
 // ============ APP MANUTENÇÃO ============
 async function renderAppManutencao() {
