@@ -182,6 +182,8 @@ function _mfRenderGestor(el) {
   const sujos       = aptos.filter(a => a.status === 'sujo');
   const limpos      = aptos.filter(a => a.status === 'limpo');
   const livres      = aptos.filter(a => a.status === 'livre');
+  const bloqueados  = aptos.filter(a => a.status === 'bloqueado');
+  const manutencao  = aptos.filter(a => a.status === 'manutencao');
 
   // ── Painel de contadores ──
   let html = `
@@ -201,7 +203,7 @@ function _mfRenderGestor(el) {
         <div style="font-size:10px;color:var(--text2);font-weight:700;margin-top:4px;text-transform:uppercase;">Em limpeza</div>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px;">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:${bloqueados.length || manutencao.length ? '14px' : '24px'};">
       <div class="card" style="text-align:center;padding:10px;border-top:2px solid #e67e22;">
         <div style="font-size:18px;font-weight:700;color:#e67e22;">${sujos.length}</div>
         <div style="font-size:10px;color:var(--text3);margin-top:2px;">Sujos</div>
@@ -214,7 +216,18 @@ function _mfRenderGestor(el) {
         <div style="font-size:18px;font-weight:700;color:var(--success);">${livres.length}</div>
         <div style="font-size:10px;color:var(--text3);margin-top:2px;">Livres</div>
       </div>
-    </div>`;
+    </div>
+    ${bloqueados.length || manutencao.length ? `
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:24px;">
+      ${bloqueados.length ? `<div class="card" style="text-align:center;padding:10px;border-top:2px solid #7f8c8d;cursor:pointer;" onclick="_mfScrollTo('mf-sec-bloqueados')">
+        <div style="font-size:18px;font-weight:700;color:#7f8c8d;">${bloqueados.length}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px;">Bloqueados</div>
+      </div>` : ''}
+      ${manutencao.length ? `<div class="card" style="text-align:center;padding:10px;border-top:2px solid #e67e22;cursor:pointer;" onclick="_mfScrollTo('mf-sec-manutencao')">
+        <div style="font-size:18px;font-weight:700;color:#e67e22;">${manutencao.length}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px;">Em Manutenção</div>
+      </div>` : ''}
+    </div>` : ''}`;
 
   // ── Aguardando conferência ──
   html += `<div id="mf-sec-conferencia" style="margin-bottom:24px;">
@@ -316,6 +329,68 @@ function _mfRenderGestor(el) {
         }).join('')}
       </div>
     </div>`;
+  }
+
+  // ── Bloqueados ──
+  if (bloqueados.length) {
+    html += `<div id="mf-sec-bloqueados" style="margin-bottom:24px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;
+                  padding-bottom:8px;border-bottom:2px solid #7f8c8d;">
+        <span style="font-size:16px;">🔒</span>
+        <span style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;">
+          Bloqueados
+        </span>
+        <span style="background:#7f8c8d;color:#fff;font-size:10px;font-weight:700;
+                     padding:2px 8px;border-radius:10px;margin-left:auto;">${bloqueados.length}</span>
+      </div>`;
+    bloqueados.forEach(a => {
+      html += `
+      <div class="card" style="margin-bottom:10px;border-left:4px solid #7f8c8d;padding:14px 16px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+          <div>
+            <div style="font-size:22px;font-weight:800;line-height:1;">${a.numero}</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} · ${a.andar}º andar</div>
+            ${a.obs ? `<div style="font-size:11px;color:var(--text3);margin-top:3px;font-style:italic;">${a.obs}</div>` : ''}
+          </div>
+          <span class="badge badge-bloqueado" style="flex-shrink:0;">Bloqueado</span>
+        </div>
+        <div style="margin-top:10px;">
+          <button class="btn btn-ghost btn-sm" onclick="openAptoDetail('${a.id}')">👁 Ver detalhes</button>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // ── Em Manutenção ──
+  if (manutencao.length) {
+    html += `<div id="mf-sec-manutencao" style="margin-bottom:24px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;
+                  padding-bottom:8px;border-bottom:2px solid #e67e22;">
+        <span style="font-size:16px;">🔧</span>
+        <span style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;">
+          Em Manutenção
+        </span>
+        <span style="background:#e67e22;color:#fff;font-size:10px;font-weight:700;
+                     padding:2px 8px;border-radius:10px;margin-left:auto;">${manutencao.length}</span>
+      </div>`;
+    manutencao.forEach(a => {
+      html += `
+      <div class="card" style="margin-bottom:10px;border-left:4px solid #e67e22;padding:14px 16px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+          <div>
+            <div style="font-size:22px;font-weight:800;line-height:1;">${a.numero}</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} · ${a.andar}º andar</div>
+            ${a.obs ? `<div style="font-size:11px;color:var(--text3);margin-top:3px;font-style:italic;">${a.obs}</div>` : ''}
+          </div>
+          <span class="badge" style="background:#fdebd0;color:#b9770e;flex-shrink:0;">🔧 Manutenção</span>
+        </div>
+        <div style="margin-top:10px;">
+          <button class="btn btn-ghost btn-sm" onclick="openAptoDetail('${a.id}')">👁 Ver detalhes</button>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
   }
 
   // ── Atalhos ──
