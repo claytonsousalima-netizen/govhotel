@@ -2289,15 +2289,17 @@ function openAptoDetail(id) {
     ocupado:     `<button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','sujo')">⬇ Checkout/Sujo</button>`,
     manutencao:  `<button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','sujo')">↩ Liberar limpeza</button>`,
   };
-  const flowBtns = _flowMap[apto.status] || '';
+  // Manutenção não usa o fluxo de limpeza — não exibe botões de limpeza na seção "Próxima ação"
+  const flowBtns = isManutencao ? '' : (_flowMap[apto.status] || '');
 
-  // Botões de força (todos os status) — apenas para gestores e admins
+  // Botões de força — gestores/admins veem todos os status; manutenção vê subset relevante
   const allStatuses = ['sujo','limpando','pausado','conferencia','limpo','reprovado','bloqueado','livre','ocupado','manutencao'];
-  const forceBtns = (!isCamareira && !isManutencao) ? `
+  const manStatuses = ['manutencao','sujo','bloqueado','livre','ocupado']; // status relevantes para manutenção
+  const forceBtns = !isCamareira ? `
     <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);">
-      <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.3px;">Forçar status</div>
+      <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.3px;">Alterar status</div>
       <div style="display:flex;gap:5px;flex-wrap:wrap;">
-        ${allStatuses.map(s =>
+        ${(isManutencao ? manStatuses : allStatuses).map(s =>
           `<button class="btn btn-xs ${apto.status===s?'btn-primary':'btn-ghost'}" onclick="mudarStatusApto('${id}','${s}')">${_STATUS_LABELS[s]||s}</button>`
         ).join('')}
       </div>
@@ -2329,11 +2331,17 @@ function openAptoDetail(id) {
     </div>`;
 
   const _s = apto.status;
-  document.getElementById('detail-btn-iniciar').style.display  = ['sujo','reprovado','pausado'].includes(_s) ? '' : 'none';
-  document.getElementById('detail-btn-pausar').style.display   = _s === 'limpando' ? '' : 'none';
-  document.getElementById('detail-btn-concluir').style.display = ['limpando','pausado'].includes(_s) ? '' : 'none';
-  document.getElementById('detail-btn-aprovar').style.display  = _s === 'conferencia' ? '' : 'none';
-  document.getElementById('detail-btn-reprovar').style.display = _s === 'conferencia' ? '' : 'none';
+  // Manutenção não usa o fluxo de limpeza — oculta todos os botões de limpeza do rodapé
+  if (isManutencao) {
+    ['detail-btn-iniciar','detail-btn-pausar','detail-btn-concluir','detail-btn-aprovar','detail-btn-reprovar']
+      .forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+  } else {
+    document.getElementById('detail-btn-iniciar').style.display  = ['sujo','reprovado','pausado'].includes(_s) ? '' : 'none';
+    document.getElementById('detail-btn-pausar').style.display   = _s === 'limpando' ? '' : 'none';
+    document.getElementById('detail-btn-concluir').style.display = ['limpando','pausado'].includes(_s) ? '' : 'none';
+    document.getElementById('detail-btn-aprovar').style.display  = _s === 'conferencia' ? '' : 'none';
+    document.getElementById('detail-btn-reprovar').style.display = _s === 'conferencia' ? '' : 'none';
+  }
   openModal('modal-apto-detail');
 }
 
@@ -2753,7 +2761,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 <script src="js/maids.js?v=20260614d"></script>
 <script src="js/users.js?v=20260614b"></script>
 <script src="js/permissions.js?v=20260614b"></script>
-<script src="js/chamados.js?v=20260614d"></script>
+<script src="js/chamados.js?v=20260614e"></script>
 <script src="js/config.js?v=20260613v"></script>
 <script src="js/dashboard.js?v=20260614a"></script>
 <script src="js/relatorios.js?v=20260613p"></script>

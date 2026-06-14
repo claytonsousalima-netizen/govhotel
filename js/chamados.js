@@ -242,6 +242,8 @@ async function _popularAtribuidosModal(departamento, hotelId) {
 async function _popularAptosModalChamado(hotelId) {
   const sel = document.getElementById('nc-apto');
   if (!sel) return;
+  // Limpa imediatamente para evitar que dados velhos (fake ou de outro hotel) fiquem visíveis
+  sel.innerHTML = '<option value="">Carregando...</option>';
   const hId = hotelId || currentUser.hotelId;
   let q = supabaseClient.from('apartments').select('id, numero, tipo').eq('ativo', true).order('numero');
   if (hId) q = q.eq('hotel_id', hId);
@@ -252,10 +254,12 @@ async function _popularAptosModalChamado(hotelId) {
 
 // ── ABRIR MODAL CHAMADO ───────────────────────────────────────
 async function openModalNovoChamado() {
+  // Perfil manutenção abre no departamento correto por padrão
+  const defaultDept = currentUser.perfil === 'manutencao' ? 'manutencao' : 'governanca';
   const deptSel = document.getElementById('nc-departamento');
-  if (deptSel) deptSel.value = 'governanca';
-  _atualizarLabelAtribuir('governanca');
-  _toggleCamposDepartamento('governanca');
+  if (deptSel) deptSel.value = defaultDept;
+  _atualizarLabelAtribuir(defaultDept);
+  _toggleCamposDepartamento(defaultDept);
 
   const hotelWrap = document.getElementById('nc-hotel-wrap');
   if (hotelWrap) {
@@ -269,24 +273,24 @@ async function openModalNovoChamado() {
         sel.innerHTML = '<option value="">Selecione o hotel *</option>' +
           (hotels||[]).map(h=>`<option value="${h.id}">${h.nome}</option>`).join('');
         sel.onchange = async () => {
-          const dept = document.getElementById('nc-departamento')?.value || 'governanca';
+          const dept = document.getElementById('nc-departamento')?.value || defaultDept;
           await _popularAptosModalChamado(sel.value);
           await _popularAtribuidosModal(dept, sel.value);
         };
       }
       await _popularAptosModalChamado(null);
-      await _popularAtribuidosModal('governanca', null);
+      await _popularAtribuidosModal(defaultDept, null);
     } else {
       hotelWrap.style.display = 'none';
       document.getElementById('nc-hotel-label-wrap').style.display = '';
       document.getElementById('nc-hotel-label').textContent = currentUser.hotelNome || '';
       await _popularAptosModalChamado(currentUser.hotelId);
-      await _popularAtribuidosModal('governanca', currentUser.hotelId);
+      await _popularAtribuidosModal(defaultDept, currentUser.hotelId);
     }
   }
 
   await _loadTiposChamado();
-  await _popularCategoriasSelect('governanca');
+  await _popularCategoriasSelect(defaultDept);
   openModal('modal-novo-chamado');
 }
 
