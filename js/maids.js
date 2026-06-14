@@ -197,16 +197,69 @@ function _renderEquipeTabela(filter = '') {
 
 function searchEquipe(q) { _renderEquipeTabela(q); }
 
-function _atualizarStatsEquipe() {
+async function _atualizarStatsEquipe() {
   const total  = equipe.length;
   const ativos = equipe.filter(e => e.status === 'ativo').length;
   document.getElementById('eq-total').textContent = total;
   document.getElementById('eq-turno').textContent = ativos;
+
+  // Produtividade e aptos/camareira calculados via apartment_status_history do dia
+  const elProd  = document.getElementById('eq-produtividade');
+  const elAptos = document.getElementById('eq-aptos-camareira');
+  if (!elProd || !elAptos) return;
+
+  const hojeInicio = new Date();
+  hojeInicio.setHours(0, 0, 0, 0);
+  const hotelId = _maidViewHotelId || currentUser.hotelId;
+
+  // Busca histórico de hoje: saídas de 'sujo' (início de limpeza) e chegadas em 'limpo' (conclusão)
+  let q = supabaseClient
+    .from('apartment_status_history')
+    .select('apartment_id, status_anterior, status_novo')
+    .gte('created_at', hojeInicio.toISOString());
+
+  if (hotelId) {
+    // filtra pelos aptos do hotel via subquery local (apartment_status_history não tem hotel_id)
+    const idsDoHotel = (typeof aptos !== 'undefined' ? aptos : [])
+      .filter(a => a.hotel_id === hotelId)
+      .map(a => a.id);
+    if (idsDoHotel.length) q = q.in('apartment_id', idsDoHotel);
+  }
+
+  const { data: hist } = await q;
+  const registros = hist || [];
+
+  // Aptos que iniciaram limpeza hoje (saíram de 'sujo')
+  const iniciados = new Set(
+    registros.filter(r => r.status_anterior === 'sujo').map(r => r.apartment_id)
+  );
+  // Aptos concluídos hoje (chegaram em 'limpo')
+  const concluidos = new Set(
+    registros.filter(r => r.status_novo === 'limpo').map(r => r.apartment_id)
+  );
+
+  // Produtividade = concluídos / iniciados × 100
+  const produtividade = iniciados.size > 0
+    ? Math.round((concluidos.size / iniciados.size) * 100)
+    : null;
+
+  // Aptos/camareira = concluídos / camareiras ativas
+  const camareirasAtivas = equipe.filter(e => e.status === 'ativo' && e.cargo === 'Camareira').length;
+  const aptosPorCamareira = camareirasAtivas > 0
+    ? (concluidos.size / camareirasAtivas).toFixed(1)
+    : null;
+
+  elProd.textContent  = produtividade !== null ? produtividade + '%' : '—';
+  elAptos.textContent = aptosPorCamareira !== null ? aptosPorCamareira : '—';
 }
 
 function _zerarStatsEquipe() {
   document.getElementById('eq-total').textContent = '0';
   document.getElementById('eq-turno').textContent = '0';
+  const elProd  = document.getElementById('eq-produtividade');
+  const elAptos = document.getElementById('eq-aptos-camareira');
+  if (elProd)  elProd.textContent  = '—';
+  if (elAptos) elAptos.textContent = '—';
 }
 
 // ── FORMULÁRIO ────────────────────────────────────────────────
