@@ -89,7 +89,7 @@ a { text-decoration: none; }
 
 /* SIDEBAR */
 .sidebar {
-  position: fixed; top: 0; left: 0; width: 240px; height: 100vh;
+  position: fixed; top: 0; left: 0; width: 240px; height: 100vh; height: 100dvh;
   background: var(--primary-dark); color: white; z-index: 100;
   display: flex; flex-direction: column; overflow-y: auto;
   transition: transform 0.3s;
@@ -386,12 +386,12 @@ tr:last-child td { border-bottom: none; }
 .sidebar-mobile-footer .nav-item { border-top: 1px solid rgba(255,255,255,0.08); }
 
 @media (max-width: 768px) {
-  .sidebar { transform: translateX(-240px); overflow-y: hidden; }
+  .sidebar { transform: translateX(-240px); overflow: hidden; }
   .sidebar.open { transform: translateX(0); }
   /* Nav rola; footer nativo oculto no mobile (itens migram para o nav) */
-  .sidebar-nav { overflow-y: auto; -webkit-overflow-scrolling: touch; min-height: 0; flex: 1; }
+  .sidebar-nav { overflow-y: auto; -webkit-overflow-scrolling: touch; min-height: 0; flex: 1; overscroll-behavior: contain; }
   .sidebar-footer { display: none; }
-  .sidebar-mobile-footer { display: block; padding-bottom: 16px; }
+  .sidebar-mobile-footer { display: block; padding-bottom: max(24px, env(safe-area-inset-bottom, 24px)); margin-top: 8px; }
   .main { margin-left: 0; }
   .topbar { padding: 0 16px; }
   .content { padding: 16px; }
@@ -2004,7 +2004,7 @@ function setTopbarDate() {
 const NAV_ITEMS = {
   admin_global: [
     { section:'Minha Operação' },
-    { id:'minha-fila', icon:'📝', label:'Minha Fila', badge:'conf' },
+    { id:'minha-fila', icon:'📝', label:'Minha Fila' },
     { section:'Admin Global' },
     { id:'hoteis',   icon:'🏨', label:'Hotéis' },
     { id:'usuarios', icon:'👤', label:'Usuários' },
@@ -2024,7 +2024,7 @@ const NAV_ITEMS = {
   ],
   admin_hotel: [
     { section:'Minha Operação' },
-    { id:'minha-fila', icon:'📝', label:'Minha Fila', badge:'conf' },
+    { id:'minha-fila', icon:'📝', label:'Minha Fila' },
     { section:'Administração' },
     { id:'usuarios', icon:'👤', label:'Usuários' },
     { section:'Principal' },
@@ -2043,7 +2043,7 @@ const NAV_ITEMS = {
   ],
   gestor: [
     { section:'Minha Operação' },
-    { id:'minha-fila', icon:'📝', label:'Minha Fila', badge:'conf' },
+    { id:'minha-fila', icon:'📝', label:'Minha Fila' },
     { section:'Principal' },
     { id:'dashboard', icon:'📊', label:'Dashboard' },
     { id:'mapa',      icon:'🗺️', label:'Mapa de Aptos' },
@@ -2056,7 +2056,7 @@ const NAV_ITEMS = {
   ],
   supervisora: [
     { section:'Minha Operação' },
-    { id:'minha-fila', icon:'📝', label:'Minha Fila', badge:'conf' },
+    { id:'minha-fila', icon:'📝', label:'Minha Fila' },
     { section:'Visão Geral' },
     { id:'mapa',   icon:'🗺️', label:'Mapa de Aptos' },
     { id:'kanban', icon:'📋', label:'Kanban' },
