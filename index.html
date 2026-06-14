@@ -389,12 +389,15 @@ tr:last-child td { border-bottom: none; }
 .sidebar-mobile-footer .nav-item { border-top: 1px solid rgba(255,255,255,0.08); }
 
 @media (max-width: 768px) {
-  .sidebar { transform: translateX(-240px); overflow: hidden; }
+  .sidebar { transform: translateX(-240px); overflow: hidden; display: flex; flex-direction: column; }
   .sidebar.open { transform: translateX(0); }
-  /* Nav rola; footer nativo oculto no mobile (itens migram para o nav) */
-  .sidebar-nav { overflow-y: auto; -webkit-overflow-scrolling: touch; min-height: 0; flex: 1; overscroll-behavior: contain; }
+  /* Logo e usuário não encolhem — nav ocupa o restante e rola */
+  .sidebar-logo, .sidebar-user { flex-shrink: 0; }
+  /* flex: 1 1 0 força iOS Safari a calcular a altura restante corretamente */
+  .sidebar-nav { flex: 1 1 0; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
   .sidebar-footer { display: none; }
-  .sidebar-mobile-footer { display: block; padding-bottom: max(24px, env(safe-area-inset-bottom, 24px)); margin-top: 8px; }
+  /* Alterar Senha / Sair ficam no final do scroll do nav */
+  .sidebar-mobile-footer { display: block; padding-bottom: max(env(safe-area-inset-bottom, 16px), 16px); margin-top: 8px; }
   .main { margin-left: 0; }
   .topbar { padding: 0 16px; }
   .content { padding: 16px; }
