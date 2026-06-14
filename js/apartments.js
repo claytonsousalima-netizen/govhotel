@@ -583,6 +583,16 @@ async function previewGerarLote() {
   }
 }
 
+function _glVoltarConfig() {
+  _lotePreviewOk  = false;
+  _loteNovos      = [];
+  _loteDuplicados = [];
+  document.getElementById('gl-stage-config').style.display  = '';
+  document.getElementById('gl-stage-preview').style.display = 'none';
+  const btn = document.getElementById('btn-criar-lote');
+  if (btn) { btn.disabled = true; btn.textContent = '✅ Criar apartamentos'; }
+}
+
 async function confirmarGerarLote() {
   if (!_lotePreviewOk)       { toast('Gere a prévia antes de salvar', 'error'); return; }
   if (!_loteNovos.length)    { toast('Nenhum apartamento novo para inserir', 'error'); return; }
