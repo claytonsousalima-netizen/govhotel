@@ -1912,7 +1912,7 @@ tr:last-child td { border-bottom: none; }
 <div class="toast" id="toast-msg"></div>
 
 <script src="js/supabase-client.js?v=20260613p"></script>
-<script src="js/auth.js?v=20260614a"></script>
+<script src="js/auth.js?v=20260614b"></script>
 <script>
 // ============ STATE ============
 let currentPage = 'dashboard';
@@ -1973,7 +1973,7 @@ function startApp() {
 
   const startPage = currentUser.perfil === 'camareira'   ? 'minha-fila'
     : currentUser.perfil === 'supervisora' ? 'minha-fila'
-    : currentUser.perfil === 'manutencao'  ? 'app-manutencao'
+    : currentUser.perfil === 'manutencao'  ? 'chamados'
     : 'dashboard';
   openPage(startPage);
 
@@ -2102,10 +2102,8 @@ const NAV_ITEMS = {
   ],
   manutencao: [
     { section:'Manutenção' },
-    { id:'app-manutencao', icon:'🔧', label:'Meus Chamados' },
+    { id:'chamados', icon:'🔧', label:'Chamados', badge:true },
     { id:'mapa', icon:'🗺️', label:'Mapa de Aptos' },
-    { section:'Operação' },
-    { id:'chamados', icon:'🔔', label:'Chamados', badge:true },
   ],
 };
 
@@ -2688,14 +2686,8 @@ function concluirChecklist() {
 
 // ============ SELECTS ============
 function populateSelects() {
-  // Popula selects de apartamento (ts-apto para troca de status, nc-apto para chamados)
-  ['ts-apto','nc-apto'].forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.innerHTML = '<option value="">Selecionar...</option>' + aptos.map(a => `<option value="${a.numero}">${a.numero} — ${a.tipo}</option>`).join('');
-  });
-  // nc-camareira e ca-camareira são populados dinamicamente do Supabase
-  // (via _popularAtribuidosModal e _popularCamareiraSelect) — não usar mock equipe aqui
+  // ts-apto (troca de status do mapa) usa o array global aptos — populado via populateTsApto()
+  // nc-apto (modal novo chamado) é populado dinamicamente via _popularAptosModalChamado ao abrir o modal
   const prazoEl = document.getElementById('nc-prazo');
   if (prazoEl) { const d = new Date(); d.setHours(d.getHours()+2); prazoEl.value = d.toISOString().slice(0,16); }
 }
@@ -2743,10 +2735,10 @@ function toast(msg, type='') {
 
 // ============ NOVA AÇÃO RÁPIDA ============
 function novaAcaoRapida() {
-  if (currentPage === 'chamados')      openModal('modal-novo-chamado');
+  if (currentPage === 'chamados')      openModalNovoChamado();
   else if (currentPage === 'cadastro-apto') openModal('modal-cadastro-apto');
   else if (currentPage === 'equipe')   openModal('modal-novo-membro');
-  else openModal('modal-novo-chamado');
+  else openModalNovoChamado();
 }
 
 // ============ INICIALIZAÇÃO ============

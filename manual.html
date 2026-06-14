@@ -31,10 +31,8 @@
     line-height: 1.6;
   }
 
-  /* ── LAYOUT ── */
   .layout { display: flex; min-height: 100vh; }
 
-  /* ── SIDEBAR ── */
   .sidebar {
     width: 260px;
     background: var(--text);
@@ -46,142 +44,42 @@
     padding: 0 0 24px;
     z-index: 100;
   }
-  .sidebar-logo {
-    padding: 20px 20px 16px;
-    border-bottom: 1px solid #334155;
-    margin-bottom: 8px;
-  }
+  .sidebar-logo { padding: 20px 20px 16px; border-bottom: 1px solid #334155; margin-bottom: 8px; }
   .sidebar-logo h1 { font-size: 18px; font-weight: 700; color: #fff; }
   .sidebar-logo p  { font-size: 11px; color: #94a3b8; margin-top: 2px; }
-  .sidebar-section {
-    padding: 10px 20px 4px;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: .08em;
-    color: #64748b;
-    text-transform: uppercase;
-  }
-  .sidebar a {
-    display: block;
-    padding: 8px 20px;
-    color: #cbd5e1;
-    text-decoration: none;
-    font-size: 13px;
-    border-radius: 0;
-    transition: background .15s;
-  }
-  .sidebar a:hover,
-  .sidebar a.active { background: #1e40af; color: #fff; }
-  .sidebar a .dot {
-    display: inline-block;
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    margin-right: 8px;
-    vertical-align: middle;
-  }
+  .sidebar-section { padding: 10px 20px 4px; font-size: 10px; font-weight: 700; letter-spacing: .08em; color: #64748b; text-transform: uppercase; }
+  .sidebar a { display: block; padding: 8px 20px; color: #cbd5e1; text-decoration: none; font-size: 13px; transition: background .15s; }
+  .sidebar a:hover, .sidebar a.active { background: #1e40af; color: #fff; }
+  .sidebar a .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
 
-  /* ── MAIN ── */
-  .main {
-    margin-left: 260px;
-    padding: 32px 40px;
-    max-width: 960px;
-  }
+  .main { margin-left: 260px; padding: 32px 40px; max-width: 960px; }
 
-  /* ── PERFIL HEADER ── */
-  .perfil-header {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 20px 24px;
-    border-radius: 12px;
-    margin-bottom: 28px;
-    color: #fff;
-  }
-  .perfil-avatar {
-    width: 52px; height: 52px;
-    border-radius: 50%;
-    background: rgba(255,255,255,.25);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 22px;
-    flex-shrink: 0;
-  }
+  .perfil-header { display: flex; align-items: center; gap: 16px; padding: 20px 24px; border-radius: 12px; margin-bottom: 28px; color: #fff; }
+  .perfil-avatar { width: 52px; height: 52px; border-radius: 50%; background: rgba(255,255,255,.25); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
   .perfil-header h2  { font-size: 20px; font-weight: 700; }
   .perfil-header p   { font-size: 13px; opacity: .85; margin-top: 2px; }
 
-  /* ── ACESSO BADGE ── */
-  .acesso-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 28px;
-  }
-  .acesso-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 5px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-    background: var(--border);
-    color: var(--text2);
-  }
+  .acesso-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px; }
+  .acesso-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; background: var(--border); color: var(--text2); }
 
-  /* ── SECTIONS ── */
   .section { margin-bottom: 36px; }
-  .section-title {
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--text);
-    border-bottom: 2px solid var(--border);
-    padding-bottom: 8px;
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+  .section-title { font-size: 16px; font-weight: 700; color: var(--text); border-bottom: 2px solid var(--border); padding-bottom: 8px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
 
-  /* ── STEPS ── */
   .steps { list-style: none; }
-  .steps li {
-    display: flex;
-    gap: 14px;
-    margin-bottom: 12px;
-    align-items: flex-start;
-  }
-  .step-num {
-    flex-shrink: 0;
-    width: 26px; height: 26px;
-    border-radius: 50%;
-    background: var(--blue);
-    color: #fff;
-    font-size: 12px;
-    font-weight: 700;
-    display: flex; align-items: center; justify-content: center;
-  }
+  .steps li { display: flex; gap: 14px; margin-bottom: 12px; align-items: flex-start; }
+  .step-num { flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; background: var(--blue); color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
   .step-body { flex: 1; padding-top: 3px; }
   .step-body strong { color: var(--text); }
 
-  /* ── INFO BOX ── */
-  .info-box {
-    border-radius: 8px;
-    padding: 12px 16px;
-    margin-bottom: 14px;
-    font-size: 13px;
-  }
+  .info-box { border-radius: 8px; padding: 12px 16px; margin-bottom: 14px; font-size: 13px; }
   .info-box.blue  { background: #eff6ff; border-left: 4px solid var(--blue);   color: #1e40af; }
   .info-box.green { background: #f0fdf4; border-left: 4px solid var(--green);  color: #14532d; }
   .info-box.amber { background: #fffbeb; border-left: 4px solid var(--yellow); color: #78350f; }
   .info-box.red   { background: #fef2f2; border-left: 4px solid var(--red);    color: #7f1d1d; }
+  .info-box.purple{ background: #f5f3ff; border-left: 4px solid var(--purple); color: #4c1d95; }
 
-  /* ── STATUS BADGES ── */
   .badge-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 14px; }
-  .badge {
-    padding: 3px 10px;
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: 600;
-  }
+  .badge { padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
   .b-sujo        { background: #fed7aa; color: #7c2d12; }
   .b-limpando    { background: #bfdbfe; color: #1e3a8a; }
   .b-pausado     { background: #fef9c3; color: #713f12; }
@@ -192,66 +90,32 @@
   .b-bloqueado   { background: #e2e8f0; color: #334155; }
   .b-ocupado     { background: #e0f2fe; color: #0c4a6e; }
   .b-manutencao  { background: #fef3c7; color: #92400e; }
+  .b-disponivel  { background: #fef3c7; color: #92400e; }
   .b-urgente     { background: #fee2e2; color: #991b1b; }
   .b-alta        { background: #ffedd5; color: #7c2d12; }
   .b-normal      { background: #dbeafe; color: #1e3a8a; }
   .b-baixa       { background: #dcfce7; color: #166534; }
 
-  /* ── TABLE ── */
   table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 13px; }
-  th {
-    background: #f1f5f9;
-    padding: 8px 12px;
-    text-align: left;
-    font-weight: 600;
-    color: var(--text2);
-    border: 1px solid var(--border);
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: .04em;
-  }
-  td {
-    padding: 8px 12px;
-    border: 1px solid var(--border);
-    vertical-align: top;
-  }
+  th { background: #f1f5f9; padding: 8px 12px; text-align: left; font-weight: 600; color: var(--text2); border: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+  td { padding: 8px 12px; border: 1px solid var(--border); vertical-align: top; }
   tr:nth-child(even) td { background: #f8fafc; }
 
-  /* ── CARD ── */
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 18px 20px;
-    margin-bottom: 16px;
-  }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; margin-bottom: 16px; }
   .card h4 { font-size: 14px; font-weight: 700; margin-bottom: 10px; }
 
-  /* ── PAGE TITLE ── */
-  .page-title {
-    font-size: 28px;
-    font-weight: 800;
-    color: var(--text);
-    margin-bottom: 6px;
-  }
-  .page-subtitle {
-    font-size: 14px;
-    color: var(--text2);
-    margin-bottom: 32px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid var(--border);
-  }
+  .page-title { font-size: 28px; font-weight: 800; color: var(--text); margin-bottom: 6px; }
+  .page-subtitle { font-size: 14px; color: var(--text2); margin-bottom: 32px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
 
-  /* ── DIVIDER ── */
+  .novidade-badge { display: inline-block; background: #dcfce7; color: #15803d; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; margin-left: 6px; vertical-align: middle; text-transform: uppercase; letter-spacing: .04em; }
+
   hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
 
-  /* ── PRINT ── */
   @media print {
     .sidebar { display: none; }
     .main { margin-left: 0; padding: 24px; }
     .perfil-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
-
   @media (max-width: 768px) {
     .sidebar { transform: translateX(-100%); }
     .main { margin-left: 0; padding: 20px; }
@@ -260,9 +124,6 @@
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════════════════════════
-     SIDEBAR
-════════════════════════════════════════════════════════════ -->
 <nav class="sidebar">
   <div class="sidebar-logo">
     <h1>🏨 GovHotel</h1>
@@ -273,6 +134,7 @@
   <a href="#visao-geral">Visão Geral do Sistema</a>
   <a href="#status-aptos">Status dos Apartamentos</a>
   <a href="#status-chamados">Status dos Chamados</a>
+  <a href="#notificacoes">Notificações em Tempo Real</a>
 
   <div class="sidebar-section">Perfis de Acesso</div>
   <a href="#admin-global"><span class="dot" style="background:#7c3aed;"></span>Admin Global</a>
@@ -286,19 +148,19 @@
   <a href="#mod-dashboard">Dashboard</a>
   <a href="#mod-mapa">Mapa de Apartamentos</a>
   <a href="#mod-kanban">Kanban de Limpeza</a>
-  <a href="#mod-chamados">Chamados da Governança</a>
+  <a href="#mod-chamados">Chamados</a>
   <a href="#mod-minha-fila">Minha Fila</a>
   <a href="#mod-equipe">Equipe</a>
   <a href="#mod-relatorios">Relatórios</a>
   <a href="#mod-config">Configurações</a>
+
+  <div class="sidebar-section">Ajuda</div>
+  <a href="#mobile">Uso em Celular</a>
+  <a href="#faq">Dúvidas Frequentes</a>
 </nav>
 
-<!-- ═══════════════════════════════════════════════════════════
-     MAIN
-════════════════════════════════════════════════════════════ -->
 <main class="main">
 
-  <!-- ══ CAPA ══════════════════════════════════════════════ -->
   <div class="page-title">Manual de Uso — GovHotel</div>
   <div class="page-subtitle">
     Sistema de Governança Hoteleira · Todos os perfis de acesso · Versão 2026.06
@@ -308,59 +170,35 @@
   <section id="visao-geral" class="section">
     <div class="section-title">📋 Visão Geral do Sistema</div>
     <p style="margin-bottom:14px;">
-      O <strong>GovHotel</strong> é um sistema web de governança hoteleira que centraliza o controle de limpeza de apartamentos, chamados internos da equipe e indicadores operacionais em tempo real.
+      O <strong>GovHotel</strong> é um sistema web de governança hoteleira que centraliza o controle de limpeza de apartamentos, chamados internos de governança e manutenção, indicadores operacionais em tempo real e gestão da equipe — tudo integrado ao banco de dados Supabase.
     </p>
     <div class="info-box blue">
-      <strong>Acesso:</strong> Abra o sistema no navegador e faça login com seu usuário e senha fornecidos pelo administrador. O sistema abre automaticamente na tela correta para o seu perfil.
+      <strong>Acesso:</strong> Abra o sistema no navegador e faça login com seu usuário e senha fornecidos pelo administrador. O sistema abre automaticamente na tela correta para o seu perfil. Em celular, o menu lateral é acessado pelo botão <strong>☰</strong> no canto superior esquerdo.
     </div>
 
     <table>
       <thead>
-        <tr>
-          <th>Perfil</th>
-          <th>Função</th>
-          <th>Telas disponíveis</th>
-        </tr>
+        <tr><th>Perfil</th><th>Função</th><th>Telas disponíveis</th></tr>
       </thead>
       <tbody>
-        <tr>
-          <td><strong>Admin Global</strong></td>
-          <td>Controla todos os hotéis da rede</td>
-          <td>Todas as telas + Hotéis</td>
-        </tr>
-        <tr>
-          <td><strong>Admin Hotel</strong></td>
-          <td>Controla um hotel específico</td>
-          <td>Todas exceto Hotéis</td>
-        </tr>
-        <tr>
-          <td><strong>Gestor</strong></td>
-          <td>Gestão operacional do hotel</td>
-          <td>Dashboard, Mapa, Kanban, Chamados, Equipe, Relatórios, Minha Fila</td>
-        </tr>
-        <tr>
-          <td><strong>Supervisora</strong></td>
-          <td>Supervisão e conferência de limpeza</td>
-          <td>Mapa, Kanban, Chamados, Equipe, Minha Fila</td>
-        </tr>
-        <tr>
-          <td><strong>Camareira</strong></td>
-          <td>Execução da limpeza</td>
-          <td>App Camareira, Mapa, Chamados, Minha Fila</td>
-        </tr>
-        <tr>
-          <td><strong>Manutenção</strong></td>
-          <td>Manutenção de apartamentos</td>
-          <td>App Manutenção, Mapa, Chamados</td>
-        </tr>
+        <tr><td><strong>Admin Global</strong></td><td>Controla todos os hotéis da rede</td><td>Todas as telas + Hotéis</td></tr>
+        <tr><td><strong>Admin Hotel</strong></td><td>Controla um hotel específico</td><td>Todas exceto Hotéis</td></tr>
+        <tr><td><strong>Gestor</strong></td><td>Gestão operacional do hotel</td><td>Dashboard, Mapa, Kanban, Chamados, Equipe, Relatórios, Minha Fila</td></tr>
+        <tr><td><strong>Supervisora</strong></td><td>Supervisão e conferência de limpeza</td><td>Mapa, Kanban, Chamados, Equipe, Minha Fila</td></tr>
+        <tr><td><strong>Camareira</strong></td><td>Execução da limpeza</td><td>App Camareira, Mapa, Chamados, Minha Fila</td></tr>
+        <tr><td><strong>Manutenção</strong></td><td>Manutenção de apartamentos</td><td>App Manutenção, Mapa, Chamados</td></tr>
       </tbody>
     </table>
+
+    <div class="info-box green">
+      <strong>Dados sempre do banco:</strong> Todos os dados (apartamentos, equipe, chamados, categorias) são carregados diretamente do Supabase. Não há dados fictícios ou de exemplo no sistema.
+    </div>
   </section>
 
   <!-- ══ STATUS APARTAMENTOS ═══════════════════════════════ -->
   <section id="status-aptos" class="section">
     <div class="section-title">🚦 Status dos Apartamentos</div>
-    <p style="margin-bottom:12px;">Cada apartamento tem um status que indica sua situação atual:</p>
+    <p style="margin-bottom:12px;">Cada apartamento tem um status que indica sua situação atual. Todos os perfis podem alterar o status pelo Mapa de Apartamentos usando o botão <strong>Alterar Status</strong>.</p>
     <table>
       <thead><tr><th>Status</th><th>Significado</th><th>Próxima ação esperada</th></tr></thead>
       <tbody>
@@ -372,10 +210,13 @@
         <tr><td><span class="badge b-reprovado">Reprovado</span></td><td>Não passou na conferência</td><td>Camareira refaz a limpeza</td></tr>
         <tr><td><span class="badge b-livre">Livre</span></td><td>Disponível para hospedagem</td><td>—</td></tr>
         <tr><td><span class="badge b-ocupado">Ocupado</span></td><td>Hóspede no apartamento</td><td>—</td></tr>
-        <tr><td><span class="badge b-bloqueado">Bloqueado</span></td><td>Fora de uso (manutenção, interdição)</td><td>—</td></tr>
+        <tr><td><span class="badge b-bloqueado">Bloqueado</span></td><td>Fora de uso (interdição)</td><td>—</td></tr>
         <tr><td><span class="badge b-manutencao">Manutenção</span></td><td>Com equipe de manutenção</td><td>Manutenção libera</td></tr>
       </tbody>
     </table>
+    <div class="info-box amber">
+      <strong>Cadastro vs. Status:</strong> Informações cadastrais (número, andar, tipo) só podem ser editadas por Admin. A alteração de <em>status</em> operacional está disponível para todos os perfis pelo Mapa ou pela Minha Fila.
+    </div>
   </section>
 
   <!-- ══ STATUS CHAMADOS ════════════════════════════════════ -->
@@ -402,18 +243,35 @@
       <span class="badge b-urgente">Urgente</span>
     </div>
 
-    <p style="margin-bottom:8px;font-weight:600;">Categorias disponíveis:</p>
-    <p style="color:var(--text2);font-size:13px;">
-      Enxoval · Amenities · Limpeza complementar · Achados e perdidos ·
-      Reclamação de hóspede · Frigobar · Odor · Sujeira · Apoio operacional · Outro
+    <p style="margin-bottom:8px;font-weight:600;">Chamados sem responsável — <span class="badge b-disponivel">📋 Disponível</span></p>
+    <p style="color:var(--text2);font-size:13px;margin-bottom:8px;">
+      Um chamado aberto sem responsável atribuído fica visível para <em>toda</em> a equipe do departamento correspondente no hotel. Ele é marcado com o badge <strong>Disponível</strong> na listagem e no detalhe. Qualquer membro autorizado pode clicar em <strong>✋ Assumir chamado</strong> para se tornar o responsável.
     </p>
+
+    <p style="margin-bottom:8px;font-weight:600;">Categorias:</p>
+    <p style="color:var(--text2);font-size:13px;">
+      As categorias são carregadas do banco de dados por departamento (Governança ou Manutenção) e podem ser configuradas pelo Admin em <strong>Config → Tipos de chamado</strong>.
+    </p>
+  </section>
+
+  <!-- ══ NOTIFICAÇÕES ═══════════════════════════════════════ -->
+  <section id="notificacoes" class="section">
+    <div class="section-title">🔔 Notificações em Tempo Real <span class="novidade-badge">Novo</span></div>
+    <div class="info-box purple">
+      <strong>Supabase Realtime:</strong> O sistema usa WebSocket para notificar a equipe automaticamente quando um novo chamado é aberto — sem precisar recarregar a página.
+    </div>
+    <ul class="steps">
+      <li><div class="step-num">1</div><div class="step-body">Quando qualquer usuário abre um chamado, todos os usuários do mesmo hotel que estiverem com o sistema aberto recebem um <strong>aviso azul</strong> na tela: <em>"🧹 Governança: novo chamado — [categoria]"</em> ou <em>"🔧 Manutenção: novo chamado — [categoria]"</em>.</div></li>
+      <li><div class="step-num">2</div><div class="step-body">A <strong>lista de chamados</strong> e o <strong>badge numérico do menu</strong> atualizam automaticamente, sem ação do usuário.</div></li>
+      <li><div class="step-num">3</div><div class="step-body"><strong>Camareira</strong> só recebe notificação de chamados de Governança. <strong>Manutenção</strong> só recebe notificação de chamados de Manutenção.</div></li>
+      <li><div class="step-num">4</div><div class="step-body">Quem <em>abriu</em> o chamado não recebe notificação de si mesmo.</div></li>
+      <li><div class="step-num">5</div><div class="step-body">A conexão é encerrada automaticamente ao fazer logout.</div></li>
+    </ul>
   </section>
 
   <hr>
 
-  <!-- ══════════════════════════════════════════════════════
-       PERFIL: ADMIN GLOBAL
-  ═══════════════════════════════════════════════════════ -->
+  <!-- ══ ADMIN GLOBAL ═══════════════════════════════════════ -->
   <section id="admin-global" class="section">
     <div class="perfil-header" style="background: linear-gradient(135deg,#6d28d9,#4c1d95);">
       <div class="perfil-avatar">👑</div>
@@ -441,9 +299,9 @@
       <div class="section-title">🏨 Gerenciar Hotéis</div>
       <ul class="steps">
         <li><div class="step-num">1</div><div class="step-body">No menu lateral, clique em <strong>Hotéis</strong>.</div></li>
-        <li><div class="step-num">2</div><div class="step-body">Para <strong>adicionar</strong> um hotel: clique em <strong>+ Novo Hotel</strong>, preencha nome, cidade, CNPJ e clique em <strong>Salvar</strong>.</div></li>
+        <li><div class="step-num">2</div><div class="step-body">Para <strong>adicionar</strong>: clique em <strong>+ Novo Hotel</strong>, preencha nome, cidade, CNPJ e clique <strong>Salvar</strong>.</div></li>
         <li><div class="step-num">3</div><div class="step-body">Para <strong>editar</strong>: clique no nome do hotel na lista e altere os dados.</div></li>
-        <li><div class="step-num">4</div><div class="step-body">Para <strong>desativar</strong>: toglle a chave "Ativo" no cadastro do hotel. O hotel desaparece dos filtros, mas os dados são preservados.</div></li>
+        <li><div class="step-num">4</div><div class="step-body">Para <strong>desativar</strong>: toggle "Ativo" no cadastro. O hotel desaparece dos filtros, mas os dados são preservados.</div></li>
       </ul>
     </div>
 
@@ -451,33 +309,38 @@
       <div class="section-title">👤 Gerenciar Usuários</div>
       <ul class="steps">
         <li><div class="step-num">1</div><div class="step-body">No menu lateral, clique em <strong>Usuários</strong>.</div></li>
-        <li><div class="step-num">2</div><div class="step-body">Para <strong>criar</strong> um usuário: clique em <strong>+ Novo Usuário</strong>, preencha nome, e-mail (ou username), perfil, hotel vinculado e senha temporária.</div></li>
-        <li><div class="step-num">3</div><div class="step-body">Marque <strong>"Forçar troca de senha no primeiro acesso"</strong> para segurança — o usuário deverá definir nova senha ao entrar.</div></li>
-        <li><div class="step-num">4</div><div class="step-body">Para <strong>desativar</strong>: clique no usuário → toggle "Ativo" → Salvar. O usuário perde acesso imediatamente.</div></li>
+        <li><div class="step-num">2</div><div class="step-body">Para <strong>criar</strong>: clique em <strong>+ Novo Usuário</strong>, preencha nome, login (username ou e-mail), perfil, hotel vinculado e senha temporária.</div></li>
+        <li><div class="step-num">3</div><div class="step-body">Marque <strong>"Forçar troca de senha no primeiro acesso"</strong> — o usuário definirá nova senha ao entrar.</div></li>
+        <li><div class="step-num">4</div><div class="step-body">Para <strong>desativar</strong>: clique no usuário → toggle "Ativo" → Salvar. Acesso é revogado imediatamente.</div></li>
         <li><div class="step-num">5</div><div class="step-body">Para <strong>redefinir senha</strong>: clique no usuário → <strong>Redefinir senha</strong> → informe a nova senha temporária.</div></li>
+        <li><div class="step-num">6</div><div class="step-body">Somente o Admin Global pode criar, ver e editar outros usuários com perfil <strong>Admin Global</strong>.</div></li>
       </ul>
       <div class="info-box amber">
-        <strong>Atenção:</strong> Cada usuário só enxerga dados do hotel ao qual está vinculado. O Admin Global enxerga todos os hotéis.
+        <strong>Isolamento por hotel:</strong> Cada usuário só enxerga dados do hotel ao qual está vinculado. O Admin Global enxerga todos os hotéis e pode selecionar o hotel desejado em cada módulo.
       </div>
     </div>
 
     <div class="section">
       <div class="section-title">📊 Dashboard — Selecionar Hotel</div>
       <ul class="steps">
-        <li><div class="step-num">1</div><div class="step-body">No Dashboard, o Admin Global vê um seletor de hotel no topo. Selecione o hotel desejado no campo <strong>Hotel</strong>.</div></li>
+        <li><div class="step-num">1</div><div class="step-body">No Dashboard, use o seletor <strong>🏨 Hotel</strong> no topo para escolher o hotel.</div></li>
         <li><div class="step-num">2</div><div class="step-body">Os indicadores carregam automaticamente: totais de apartamentos, status, chamados abertos, equipe ativa.</div></li>
-        <li><div class="step-num">3</div><div class="step-body">A seção <strong>"Governança — Indicadores do Dia"</strong> mostra os 10 indicadores operacionais em tempo real.</div></li>
+        <li><div class="step-num">3</div><div class="step-body">O mesmo seletor existe em <strong>Mapa, Kanban, Chamados, Equipe e Minha Fila</strong>.</div></li>
         <li><div class="step-num">4</div><div class="step-body">Clique em <strong>↺ Atualizar</strong> a qualquer momento para recarregar os dados.</div></li>
       </ul>
     </div>
 
     <div class="section">
       <div class="section-title">🛏 Cadastro de Apartamentos</div>
+      <div class="info-box blue">
+        <strong>Exclusivo para Admin:</strong> Apenas Admin Global e Admin Hotel podem cadastrar, editar e excluir apartamentos. Os demais perfis conseguem alterar somente o <em>status operacional</em>.
+      </div>
       <ul class="steps">
         <li><div class="step-num">1</div><div class="step-body">Clique em <strong>Cadastro Apto</strong> no menu lateral.</div></li>
-        <li><div class="step-num">2</div><div class="step-body">Para <strong>adicionar</strong>: clique em <strong>+ Novo Apartamento</strong>, preencha número, andar, tipo (Standard / Luxo / Suíte…) e clique <strong>Salvar</strong>.</div></li>
-        <li><div class="step-num">3</div><div class="step-body">Para <strong>editar</strong>: clique no apartamento na tabela e altere os dados.</div></li>
-        <li><div class="step-num">4</div><div class="step-body">Use o campo de <strong>busca</strong> para filtrar por número de apartamento.</div></li>
+        <li><div class="step-num">2</div><div class="step-body">Para <strong>adicionar</strong>: clique em <strong>+ Novo Apartamento</strong>, preencha número, andar, tipo e clique <strong>Salvar</strong>.</div></li>
+        <li><div class="step-num">3</div><div class="step-body">Para <strong>gerar em lote</strong>: clique em <strong>⚡ Gerar em lote</strong> e configure o padrão de numeração.</div></li>
+        <li><div class="step-num">4</div><div class="step-body">Para <strong>editar</strong>: clique no apartamento na tabela e altere os dados cadastrais.</div></li>
+        <li><div class="step-num">5</div><div class="step-body">Para <strong>excluir</strong>: clique no ícone de exclusão no card do apartamento e confirme.</div></li>
       </ul>
     </div>
 
@@ -485,17 +348,16 @@
       <div class="section-title">⚙ Configurações do Sistema</div>
       <ul class="steps">
         <li><div class="step-num">1</div><div class="step-body">Clique em <strong>Config</strong> no menu lateral.</div></li>
-        <li><div class="step-num">2</div><div class="step-body">Configure tipos de chamados, tipos de limpeza, checklists padrão e outras opções do sistema.</div></li>
-        <li><div class="step-num">3</div><div class="step-body">Alterações de configuração afetam todos os usuários do hotel imediatamente.</div></li>
+        <li><div class="step-num">2</div><div class="step-body">Configure <strong>tipos de chamados</strong> por departamento (Governança / Manutenção). Esses tipos aparecem no formulário de novo chamado.</div></li>
+        <li><div class="step-num">3</div><div class="step-body">Configure <strong>checklists de limpeza</strong> padrão que a camareira confere ao concluir.</div></li>
+        <li><div class="step-num">4</div><div class="step-body">Configure <strong>tipos de apartamento</strong> (Standard, Luxo, Suíte, etc.).</div></li>
       </ul>
     </div>
   </section>
 
   <hr>
 
-  <!-- ══════════════════════════════════════════════════════
-       PERFIL: ADMIN HOTEL
-  ═══════════════════════════════════════════════════════ -->
+  <!-- ══ ADMIN HOTEL ════════════════════════════════════════ -->
   <section id="admin-hotel" class="section">
     <div class="perfil-header" style="background: linear-gradient(135deg,#1d4ed8,#1e3a8a);">
       <div class="perfil-avatar">🏨</div>
@@ -519,21 +381,24 @@
     </div>
 
     <div class="info-box blue">
-      O Admin do Hotel tem exatamente as mesmas funções do Admin Global, porém limitadas ao seu hotel. Consulte as seções de cada módulo abaixo para instruções detalhadas. A única diferença é que <strong>não aparece o menu "Hotéis"</strong> (gerenciamento da rede).
+      O Admin Hotel tem as mesmas funções do Admin Global, porém limitadas ao seu hotel. Consulte as seções de cada módulo para instruções detalhadas. Diferenças:
+      <ul style="margin-top:8px;padding-left:18px;">
+        <li>Não aparece o menu <strong>Hotéis</strong> (gerenciamento da rede)</li>
+        <li>Não consegue visualizar ou criar usuários com perfil <strong>Admin Global</strong></li>
+        <li>Vê automaticamente os dados do seu hotel (sem seletor)</li>
+      </ul>
     </div>
   </section>
 
   <hr>
 
-  <!-- ══════════════════════════════════════════════════════
-       PERFIL: GESTOR
-  ═══════════════════════════════════════════════════════ -->
+  <!-- ══ GESTOR ═════════════════════════════════════════════ -->
   <section id="gestor" class="section">
     <div class="perfil-header" style="background: linear-gradient(135deg,#15803d,#14532d);">
       <div class="perfil-avatar">📊</div>
       <div>
         <h2>Gestor</h2>
-        <p>Gestão operacional completa do hotel. Acessa dashboard, mapa, kanban, chamados, equipe e relatórios.</p>
+        <p>Gestão operacional completa do hotel. Dashboard, mapa, kanban, chamados, equipe, relatórios e minha fila.</p>
       </div>
     </div>
 
@@ -542,56 +407,62 @@
       <span class="acesso-badge">🗺 Mapa</span>
       <span class="acesso-badge">📋 Kanban</span>
       <span class="acesso-badge">🎫 Chamados</span>
-      <span class="acesso-badge">👥 Equipe</span>
+      <span class="acesso-badge">👥 Equipe (somente leitura)</span>
       <span class="acesso-badge">📈 Relatórios</span>
       <span class="acesso-badge">📌 Minha Fila</span>
     </div>
 
+    <div class="info-box amber">
+      <strong>Restrições do Gestor:</strong> Pode alterar o status operacional dos apartamentos, mas não pode editar dados cadastrais. Na Equipe, tem apenas visualização (sem editar ou ativar/desativar membros). Não pode ver usuários com perfil Admin Global.
+    </div>
+
     <div class="section">
-      <div class="section-title">📊 Usar o Dashboard</div>
+      <div class="section-title">📊 Dashboard</div>
       <ul class="steps">
-        <li><div class="step-num">1</div><div class="step-body">Ao entrar no sistema, o <strong>Dashboard</strong> abre automaticamente.</div></li>
-        <li><div class="step-num">2</div><div class="step-body">No topo, veja os 6 cards de resumo: total de aptos, livres, a limpar, em limpeza, chamados abertos e equipe ativa.</div></li>
-        <li><div class="step-num">3</div><div class="step-body">Abaixo, a seção <strong>"Governança — Indicadores do Dia"</strong> exibe 10 métricas operacionais detalhadas:<br>
-          sujos · em limpeza · pausados · ag. conferência · limpos · reprovados · chamados abertos da gov. · urgentes · resolvidos hoje · retrabalhos hoje.</div></li>
-        <li><div class="step-num">4</div><div class="step-body">À direita, veja o <strong>gráfico de barras</strong> com distribuição dos status e a lista dos <strong>chamados mais recentes</strong>.</div></li>
-        <li><div class="step-num">5</div><div class="step-body">Clique em <strong>↺ Atualizar</strong> para recarregar todos os dados.</div></li>
+        <li><div class="step-num">1</div><div class="step-body">Ao entrar, o Dashboard abre automaticamente com os indicadores do hotel.</div></li>
+        <li><div class="step-num">2</div><div class="step-body">6 cards de resumo no topo: total de aptos, livres, a limpar, em limpeza, chamados abertos e equipe ativa.</div></li>
+        <li><div class="step-num">3</div><div class="step-body">10 indicadores operacionais do dia: sujos, em limpeza, pausados, ag. conferência, limpos, reprovados, chamados abertos, urgentes, resolvidos hoje, retrabalhos hoje.</div></li>
+        <li><div class="step-num">4</div><div class="step-body">Gráfico de barras com distribuição dos status e lista dos chamados mais recentes.</div></li>
+        <li><div class="step-num">5</div><div class="step-body">Clique em <strong>↺ Atualizar</strong> para recarregar.</div></li>
       </ul>
     </div>
 
     <div class="section">
-      <div class="section-title">📌 Usar a Minha Fila (visão gestor)</div>
+      <div class="section-title">🗺 Alterar Status de Apartamentos</div>
       <ul class="steps">
-        <li><div class="step-num">1</div><div class="step-body">No menu lateral, clique em <strong>Minha Fila</strong>.</div></li>
-        <li><div class="step-num">2</div><div class="step-body">No topo, veja os <strong>6 cards de contagem</strong>: sujos, em limpeza, pausados, ag. conferência, reprovados, limpos.</div></li>
-        <li><div class="step-num">3</div><div class="step-body">Na seção <strong>"Aguardando Conferência"</strong>: veja todos os aptos prontos para vistoria. Clique em <strong>Aprovar</strong> ou <strong>Reprovar</strong> para cada um.</div></li>
-        <li><div class="step-num">4</div><div class="step-body">Na seção <strong>"Reprovados"</strong>: acompanhe aptos que precisam de retrabalho.</div></li>
-        <li><div class="step-num">5</div><div class="step-body">Na seção <strong>"Em limpeza agora"</strong>: grade compacta com todos em andamento.</div></li>
-        <li><div class="step-num">6</div><div class="step-body">Clique em <strong>↺ Atualizar</strong> ou aguarde a atualização automática.</div></li>
+        <li><div class="step-num">1</div><div class="step-body">Clique em <strong>Mapa</strong> no menu lateral.</div></li>
+        <li><div class="step-num">2</div><div class="step-body">Clique no card do apartamento para abrir o painel de opções.</div></li>
+        <li><div class="step-num">3</div><div class="step-body">Na seção <strong>"Forçar Status"</strong>, clique no novo status desejado e confirme.</div></li>
+        <li><div class="step-num">4</div><div class="step-body">Alternativamente, use o botão <strong>Alterar Status</strong> no cabeçalho do mapa para alterar qualquer apartamento por número.</div></li>
       </ul>
     </div>
 
     <div class="section">
       <div class="section-title">🎫 Gerenciar Chamados</div>
       <ul class="steps">
-        <li><div class="step-num">1</div><div class="step-body">Clique em <strong>Chamados</strong> no menu lateral.</div></li>
-        <li><div class="step-num">2</div><div class="step-body">Use as abas para filtrar: <strong>Pendentes</strong> (abertos + em análise + reabertos) · <strong>Em Andamento</strong> · <strong>Concluídos</strong>.</div></li>
-        <li><div class="step-num">3</div><div class="step-body">Clique em qualquer card de chamado para abrir o <strong>detalhe completo</strong> com histórico de alterações.</div></li>
-        <li><div class="step-num">4</div><div class="step-body">No detalhe, use os <strong>botões de ação</strong> para avançar o status (ex.: Aberto → Em análise → Em andamento → Resolvido).</div></li>
-        <li><div class="step-num">5</div><div class="step-body">Para <strong>comentar</strong> internamente: role até "Adicionar comentário", escreva e clique em <strong>Enviar</strong>. O comentário fica no histórico.</div></li>
-        <li><div class="step-num">6</div><div class="step-body">Para <strong>criar</strong> um chamado: clique em <strong>+ Novo Chamado</strong>, preencha departamento, categoria, apartamento (opcional), prioridade, descrição e responsável. Clique <strong>Salvar</strong>. O número GOV-XXXXXX é gerado automaticamente.</div></li>
+        <li><div class="step-num">1</div><div class="step-body">Clique em <strong>Chamados</strong>. O gestor vê <em>todos</em> os chamados do hotel (governança + manutenção, atribuídos ou sem responsável).</div></li>
+        <li><div class="step-num">2</div><div class="step-body">Use as abas: <strong>Todos · Disponíveis · Meus · Em aberto · Em andamento · Concluídos</strong>.</div></li>
+        <li><div class="step-num">3</div><div class="step-body">Use os filtros de departamento: <strong>Todos · 🧹 Governança · 🔧 Manutenção</strong>.</div></li>
+        <li><div class="step-num">4</div><div class="step-body">Clique em qualquer card para abrir o detalhe com histórico completo de alterações.</div></li>
+        <li><div class="step-num">5</div><div class="step-body">Para chamados <span class="badge b-disponivel">📋 Disponível</span>: clique em <strong>✋ Assumir chamado</strong> para se tornar o responsável.</div></li>
+        <li><div class="step-num">6</div><div class="step-body">Para <strong>criar</strong> um chamado: <strong>+ Novo Chamado</strong> → selecione departamento, categoria, apartamento (opcional), prioridade, responsável e descrição. O modal não fecha ao clicar fora — clique em <strong>Cancelar</strong> ou <strong>Abrir chamado</strong>.</div></li>
       </ul>
-      <div class="info-box green">
-        <strong>Dica:</strong> O campo <strong>Número</strong> (GOV-000001) é único por chamado de governança. Use-o para comunicação com a equipe: "Chamado GOV-000042 — aguardando peça."
-      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">📌 Minha Fila (visão gestor)</div>
+      <ul class="steps">
+        <li><div class="step-num">1</div><div class="step-body">Clique em <strong>Minha Fila</strong>. Veja os 6 cards de contagem: sujos, em limpeza, pausados, ag. conferência, reprovados, limpos.</div></li>
+        <li><div class="step-num">2</div><div class="step-body"><strong>"Aguardando Conferência"</strong>: aptos prontos para vistoria. Clique em <strong>Aprovar</strong> ou <strong>Reprovar</strong>.</div></li>
+        <li><div class="step-num">3</div><div class="step-body"><strong>"Reprovados"</strong>: acompanhe aptos que precisam de retrabalho.</div></li>
+        <li><div class="step-num">4</div><div class="step-body"><strong>"Em limpeza agora"</strong>: grade compacta com todos em andamento.</div></li>
+      </ul>
     </div>
   </section>
 
   <hr>
 
-  <!-- ══════════════════════════════════════════════════════
-       PERFIL: SUPERVISORA
-  ═══════════════════════════════════════════════════════ -->
+  <!-- ══ SUPERVISORA ════════════════════════════════════════ -->
   <section id="supervisora" class="section">
     <div class="perfil-header" style="background: linear-gradient(135deg,#c2410c,#7c2d12);">
       <div class="perfil-avatar">🔍</div>
@@ -611,44 +482,28 @@
 
     <div class="section">
       <div class="section-title">📌 Conferência pela Minha Fila (fluxo principal)</div>
-      <div class="info-box blue">
-        A <strong>Minha Fila</strong> é a tela principal da supervisora. O sistema abre nela automaticamente ao fazer login.
-      </div>
+      <div class="info-box blue">A <strong>Minha Fila</strong> é a tela principal da supervisora. O sistema abre nela automaticamente ao fazer login.</div>
       <ul class="steps">
-        <li><div class="step-num">1</div><div class="step-body">Ao entrar, você já está na <strong>Minha Fila</strong>. Veja os cards de resumo no topo.</div></li>
-        <li><div class="step-num">2</div><div class="step-body">Na seção <strong>"Aguardando Conferência"</strong>, aparecem todos os aptos que a camareira enviou para vistoria.</div></li>
-        <li><div class="step-num">3</div><div class="step-body">Para <strong>aprovar</strong>: vá até o apartamento físico, faça a vistoria e clique <strong>Aprovar ✓</strong>. O apto muda para <span class="badge b-limpo">Limpo</span>.</div></li>
-        <li><div class="step-num">4</div><div class="step-body">Para <strong>reprovar</strong>: clique <strong>Reprovar ✗</strong>, informe o motivo no campo de observação e confirme. O apto volta para <span class="badge b-reprovado">Reprovado</span> e a camareira é notificada.</div></li>
-        <li><div class="step-num">5</div><div class="step-body">Clique em <strong>↺ Atualizar</strong> para ver novos aptos prontos para conferência.</div></li>
+        <li><div class="step-num">1</div><div class="step-body">Na seção <strong>"Aguardando Conferência"</strong>, veja todos os aptos prontos para vistoria.</div></li>
+        <li><div class="step-num">2</div><div class="step-body">Para <strong>aprovar</strong>: clique <strong>Aprovar ✓</strong>. O apto muda para <span class="badge b-limpo">Limpo</span>.</div></li>
+        <li><div class="step-num">3</div><div class="step-body">Para <strong>reprovar</strong>: clique <strong>Reprovar ✗</strong>, informe o motivo e confirme. O apto volta para <span class="badge b-reprovado">Reprovado</span>.</div></li>
+        <li><div class="step-num">4</div><div class="step-body">Clique em <strong>↺ Atualizar</strong> para ver novos aptos prontos.</div></li>
       </ul>
     </div>
 
     <div class="section">
-      <div class="section-title">🗺 Conferência pelo Mapa</div>
+      <div class="section-title">🎫 Chamados de Governança</div>
       <ul class="steps">
-        <li><div class="step-num">1</div><div class="step-body">Clique em <strong>Mapa</strong> no menu lateral.</div></li>
-        <li><div class="step-num">2</div><div class="step-body">Clique no filtro rápido <strong>"Ag. conferência"</strong> para ver somente os aptos que precisam de vistoria.</div></li>
-        <li><div class="step-num">3</div><div class="step-body">Clique no card do apartamento para abrir as opções de <strong>Aprovar</strong> ou <strong>Reprovar</strong>.</div></li>
-        <li><div class="step-num">4</div><div class="step-body">Use o filtro de <strong>Andar</strong> para organizar sua rota de conferência por pavimento.</div></li>
-      </ul>
-    </div>
-
-    <div class="section">
-      <div class="section-title">🎫 Abrir Chamado durante a Conferência</div>
-      <ul class="steps">
-        <li><div class="step-num">1</div><div class="step-body">Ao identificar um problema durante a vistoria, clique em <strong>Chamados</strong> no menu.</div></li>
-        <li><div class="step-num">2</div><div class="step-body">Clique em <strong>+ Novo Chamado</strong>.</div></li>
-        <li><div class="step-num">3</div><div class="step-body">Selecione departamento <strong>Governança</strong>, informe o apartamento, escolha a <strong>categoria</strong> (ex.: Sujeira, Enxoval), defina a prioridade e descreva o problema.</div></li>
-        <li><div class="step-num">4</div><div class="step-body">Clique <strong>Salvar</strong>. O chamado recebe número GOV-XXXXXX e fica visível para o gestor.</div></li>
+        <li><div class="step-num">1</div><div class="step-body">Acessa todos os chamados de Governança do hotel (atribuídos e disponíveis).</div></li>
+        <li><div class="step-num">2</div><div class="step-body">Pode abrir novos chamados e assumir chamados sem responsável.</div></li>
+        <li><div class="step-num">3</div><div class="step-body">Recebe notificação em tempo real quando um novo chamado de governança é aberto no hotel.</div></li>
       </ul>
     </div>
   </section>
 
   <hr>
 
-  <!-- ══════════════════════════════════════════════════════
-       PERFIL: CAMAREIRA
-  ═══════════════════════════════════════════════════════ -->
+  <!-- ══ CAMAREIRA ══════════════════════════════════════════ -->
   <section id="camareira" class="section">
     <div class="perfil-header" style="background: linear-gradient(135deg,#b45309,#78350f);">
       <div class="perfil-avatar">🧹</div>
@@ -661,151 +516,103 @@
     <div class="acesso-grid">
       <span class="acesso-badge">📱 App Camareira</span>
       <span class="acesso-badge">🗺 Mapa</span>
-      <span class="acesso-badge">🎫 Chamados</span>
+      <span class="acesso-badge">🎫 Chamados (Governança)</span>
       <span class="acesso-badge">📌 Minha Fila</span>
     </div>
 
     <div class="section">
-      <div class="section-title">📱 Usar o App Camareira (tela principal)</div>
-      <div class="info-box blue">
-        Ao fazer login, a camareira é direcionada automaticamente para a <strong>Minha Fila</strong>, que exibe sua fila de trabalho organizada por prioridade.
-      </div>
+      <div class="section-title">📌 Minha Fila (tela principal)</div>
+      <div class="info-box blue">Ao fazer login, a camareira é direcionada automaticamente para <strong>Minha Fila</strong>.</div>
       <ul class="steps">
-        <li><div class="step-num">1</div><div class="step-body">Ao entrar no sistema, você vê sua fila organizada: <span class="badge b-reprovado">Reprovados</span> no topo (prioridade máxima), depois <span class="badge b-pausado">Pausados</span>, depois <span class="badge b-limpando">Em limpeza</span>, depois <span class="badge b-sujo">Sujos</span>.</div></li>
-        <li><div class="step-num">2</div><div class="step-body">Cada card mostra: número do apto, andar, tipo e status atual.</div></li>
-        <li><div class="step-num">3</div><div class="step-body">Clique em <strong>↺ Atualizar</strong> para ver se novos aptos foram adicionados à sua fila.</div></li>
+        <li><div class="step-num">1</div><div class="step-body">A fila é ordenada por urgência: <span class="badge b-reprovado">Reprovados</span> → <span class="badge b-pausado">Pausados</span> → <span class="badge b-limpando">Em limpeza</span> → <span class="badge b-sujo">Sujos</span>.</div></li>
+        <li><div class="step-num">2</div><div class="step-body">Para <strong>iniciar</strong>: clique em <strong>▶ Iniciar limpeza</strong>. Status → <span class="badge b-limpando">Limpando</span>.</div></li>
+        <li><div class="step-num">3</div><div class="step-body">Para <strong>pausar</strong>: clique em <strong>⏸ Pausar</strong>, informe o motivo (opcional). Status → <span class="badge b-pausado">Pausado</span>. Para retomar: <strong>▶ Retomar</strong>.</div></li>
+        <li><div class="step-num">4</div><div class="step-body">Para <strong>concluir</strong>: clique em <strong>Enviar para conferência</strong>. Status → <span class="badge b-conferencia">Conferência</span>. Aguarde a supervisora.</div></li>
+        <li><div class="step-num">5</div><div class="step-body">Se <span class="badge b-reprovado">Reprovado</span>: leia o motivo da reprovação no card e inicie o retrabalho com <strong>▶ Iniciar limpeza</strong>.</div></li>
       </ul>
     </div>
 
     <div class="section">
-      <div class="section-title">▶ Iniciar uma Limpeza</div>
+      <div class="section-title">🎫 Chamados de Governança</div>
       <ul class="steps">
-        <li><div class="step-num">1</div><div class="step-body">Encontre o apartamento com status <span class="badge b-sujo">Sujo</span> ou <span class="badge b-reprovado">Reprovado</span> na sua fila.</div></li>
-        <li><div class="step-num">2</div><div class="step-body">Clique no botão <strong>▶ Iniciar limpeza</strong>.</div></li>
-        <li><div class="step-num">3</div><div class="step-body">O status muda para <span class="badge b-limpando">Limpando</span>. O sistema registra o horário de início.</div></li>
-        <li><div class="step-num">4</div><div class="step-body">Realize a limpeza do apartamento conforme os procedimentos do hotel.</div></li>
-      </ul>
-    </div>
-
-    <div class="section">
-      <div class="section-title">⏸ Pausar uma Limpeza</div>
-      <ul class="steps">
-        <li><div class="step-num">1</div><div class="step-body">Se precisar interromper (almoço, outra urgência), clique em <strong>⏸ Pausar</strong> no card do apartamento que está limpando.</div></li>
-        <li><div class="step-num">2</div><div class="step-body">Informe o motivo da pausa (opcional) e confirme.</div></li>
-        <li><div class="step-num">3</div><div class="step-body">O status muda para <span class="badge b-pausado">Pausado</span>. A supervisora pode ver que há uma limpeza interrompida.</div></li>
-        <li><div class="step-num">4</div><div class="step-body">Para retomar: clique em <strong>▶ Retomar</strong> no mesmo card.</div></li>
-      </ul>
-    </div>
-
-    <div class="section">
-      <div class="section-title">✅ Concluir e Enviar para Conferência</div>
-      <ul class="steps">
-        <li><div class="step-num">1</div><div class="step-body">Ao terminar a limpeza, clique em <strong>Enviar para conferência</strong> no card do apartamento.</div></li>
-        <li><div class="step-num">2</div><div class="step-body">O sistema registra o horário de conclusão e muda o status para <span class="badge b-conferencia">Conferência</span>.</div></li>
-        <li><div class="step-num">3</div><div class="step-body">Aguarde a supervisora fazer a vistoria. Você verá o resultado na sua fila: <span class="badge b-limpo">Limpo</span> (aprovado) ou <span class="badge b-reprovado">Reprovado</span> (necessário refazer).</div></li>
+        <li><div class="step-num">1</div><div class="step-body">Clique em <strong>Chamados</strong>. A camareira vê <em>somente</em> chamados de <strong>Governança</strong> do hotel: os atribuídos a ela e os que estão <span class="badge b-disponivel">📋 Disponível</span> (sem responsável).</div></li>
+        <li><div class="step-num">2</div><div class="step-body">Na aba <strong>Disponíveis</strong>, veja chamados de governança sem responsável. Clique em <strong>✋ Assumir chamado</strong> para se tornar responsável.</div></li>
+        <li><div class="step-num">3</div><div class="step-body">Na aba <strong>Meus</strong>, veja apenas chamados atribuídos a você.</div></li>
+        <li><div class="step-num">4</div><div class="step-body">Recebe <strong>notificação em tempo real</strong> (aviso azul na tela) quando um novo chamado de governança é aberto no hotel.</div></li>
+        <li><div class="step-num">5</div><div class="step-body">O badge numérico no menu Chamados mostra a soma de: chamados atribuídos a você + chamados de governança disponíveis no hotel.</div></li>
+        <li><div class="step-num">6</div><div class="step-body">Para abrir um chamado: <strong>+ Novo Chamado</strong> → preencha categoria, apartamento, prioridade e descrição. O modal não fecha ao clicar fora.</div></li>
       </ul>
       <div class="info-box amber">
-        <strong>Aprovação com checklist:</strong> Em alguns hotéis, ao concluir, um checklist de limpeza é exibido. Marque todos os itens realizados antes de enviar para conferência.
+        <strong>Isolamento de departamento:</strong> A camareira não vê chamados de Manutenção.
       </div>
-    </div>
-
-    <div class="section">
-      <div class="section-title">❌ Apto Reprovado — O que fazer</div>
-      <ul class="steps">
-        <li><div class="step-num">1</div><div class="step-body">Quando um apto é reprovado, ele aparece no <strong>topo da sua fila</strong> com status <span class="badge b-reprovado">Reprovado</span>.</div></li>
-        <li><div class="step-num">2</div><div class="step-body">Leia a <strong>observação da supervisora</strong> que aparece no card (motivo da reprovação).</div></li>
-        <li><div class="step-num">3</div><div class="step-body">Clique em <strong>▶ Iniciar limpeza</strong> para começar o retrabalho. O sistema registra esse retrabalho automaticamente.</div></li>
-        <li><div class="step-num">4</div><div class="step-body">Após refazer, clique em <strong>Enviar para conferência</strong> novamente.</div></li>
-      </ul>
-    </div>
-
-    <div class="section">
-      <div class="section-title">🎫 Abrir um Chamado</div>
-      <ul class="steps">
-        <li><div class="step-num">1</div><div class="step-body">Clique em <strong>Chamados</strong> no menu lateral.</div></li>
-        <li><div class="step-num">2</div><div class="step-body">Clique em <strong>+ Novo Chamado</strong>.</div></li>
-        <li><div class="step-num">3</div><div class="step-body">Selecione <strong>Governança</strong> como departamento, escolha a <strong>categoria</strong> e o apartamento relacionado.</div></li>
-        <li><div class="step-num">4</div><div class="step-body">Escreva a descrição detalhada do problema e defina a prioridade. Clique <strong>Salvar</strong>.</div></li>
-        <li><div class="step-num">5</div><div class="step-body">O chamado recebe número GOV-XXXXXX e fica visível para a supervisora e gestor.</div></li>
-      </ul>
     </div>
   </section>
 
   <hr>
 
-  <!-- ══════════════════════════════════════════════════════
-       PERFIL: MANUTENÇÃO
-  ═══════════════════════════════════════════════════════ -->
+  <!-- ══ MANUTENÇÃO ════════════════════════════════════════ -->
   <section id="manutencao" class="section">
     <div class="perfil-header" style="background: linear-gradient(135deg,#475569,#1e293b);">
       <div class="perfil-avatar">🔧</div>
       <div>
         <h2>Manutenção</h2>
-        <p>Execução de manutenção em apartamentos. Acessa o App de Manutenção, Mapa e Chamados.</p>
+        <p>Execução de manutenção. Acessa o Mapa e Chamados de Manutenção do hotel.</p>
       </div>
     </div>
 
     <div class="acesso-grid">
       <span class="acesso-badge">🔧 App Manutenção</span>
       <span class="acesso-badge">🗺 Mapa</span>
-      <span class="acesso-badge">🎫 Chamados</span>
+      <span class="acesso-badge">🎫 Chamados (Manutenção)</span>
     </div>
 
     <div class="section">
-      <div class="section-title">🔧 Ver Chamados de Manutenção</div>
+      <div class="section-title">🎫 Chamados de Manutenção</div>
       <ul class="steps">
-        <li><div class="step-num">1</div><div class="step-body">Ao entrar, clique em <strong>Chamados</strong> no menu lateral.</div></li>
-        <li><div class="step-num">2</div><div class="step-body">Os chamados de manutenção aparecem na aba <strong>Pendentes</strong>.</div></li>
-        <li><div class="step-num">3</div><div class="step-body">Clique no card do chamado para ver os detalhes: local, descrição do problema, prioridade.</div></li>
-        <li><div class="step-num">4</div><div class="step-body">Use os botões de ação para atualizar o status: <strong>Em andamento → Resolvido</strong>.</div></li>
+        <li><div class="step-num">1</div><div class="step-body">Clique em <strong>Chamados</strong>. O técnico de manutenção vê <em>somente</em> chamados de <strong>Manutenção</strong>: os atribuídos a ele e os <span class="badge b-disponivel">📋 Disponível</span> (sem responsável).</div></li>
+        <li><div class="step-num">2</div><div class="step-body">Na aba <strong>Disponíveis</strong>: chamados de manutenção sem responsável. Clique em <strong>✋ Assumir chamado</strong> para se tornar o responsável e iniciar o atendimento.</div></li>
+        <li><div class="step-num">3</div><div class="step-body">Na aba <strong>Meus</strong>: chamados já atribuídos a você.</div></li>
+        <li><div class="step-num">4</div><div class="step-body">Clique no card do chamado → use os botões de ação: <strong>Em andamento → Resolvido</strong>.</div></li>
+        <li><div class="step-num">5</div><div class="step-body">Ao concluir, adicione um <strong>comentário</strong> descrevendo o que foi feito (ex.: "Torneira trocada, testado sem vazamento").</div></li>
+        <li><div class="step-num">6</div><div class="step-body">Recebe <strong>notificação em tempo real</strong> quando um novo chamado de manutenção é aberto no hotel.</div></li>
+        <li><div class="step-num">7</div><div class="step-body">O badge no menu Chamados mostra: chamados atribuídos a você + chamados de manutenção disponíveis no hotel.</div></li>
       </ul>
+      <div class="info-box amber">
+        <strong>Isolamento de departamento:</strong> O técnico de manutenção não vê chamados de Governança.
+      </div>
     </div>
 
     <div class="section">
-      <div class="section-title">🗺 Ver Mapa de Apartamentos</div>
+      <div class="section-title">🗺 Mapa de Apartamentos</div>
       <ul class="steps">
-        <li><div class="step-num">1</div><div class="step-body">Clique em <strong>Mapa</strong> no menu lateral para visualizar todos os apartamentos e seus status.</div></li>
-        <li><div class="step-num">2</div><div class="step-body">Aptos com status <span class="badge b-manutencao">Manutenção</span> ou <span class="badge b-bloqueado">Bloqueado</span> são sua área de trabalho.</div></li>
-        <li><div class="step-num">3</div><div class="step-body">Clique no apartamento para ver detalhes e opções de mudança de status.</div></li>
-      </ul>
-    </div>
-
-    <div class="section">
-      <div class="section-title">🎫 Registrar Conclusão de Serviço</div>
-      <ul class="steps">
-        <li><div class="step-num">1</div><div class="step-body">Ao concluir um serviço, abra o chamado correspondente em <strong>Chamados</strong>.</div></li>
-        <li><div class="step-num">2</div><div class="step-body">Clique em <strong>Resolvido</strong> nos botões de ação.</div></li>
-        <li><div class="step-num">3</div><div class="step-body">Se desejar, adicione um <strong>comentário</strong> descrevendo o que foi feito (ex.: "Torneira trocada, testado sem vazamento").</div></li>
-        <li><div class="step-num">4</div><div class="step-body">O gestor será notificado que o chamado foi resolvido.</div></li>
+        <li><div class="step-num">1</div><div class="step-body">Clique em <strong>Mapa</strong>. Veja todos os apartamentos e seus status.</div></li>
+        <li><div class="step-num">2</div><div class="step-body">Aptos <span class="badge b-manutencao">Manutenção</span> ou <span class="badge b-bloqueado">Bloqueado</span> são sua área de trabalho.</div></li>
+        <li><div class="step-num">3</div><div class="step-body">Clique em um apartamento → use <strong>Forçar Status</strong> ou o botão <strong>Alterar Status</strong> no cabeçalho para atualizar o status.</div></li>
       </ul>
     </div>
   </section>
 
   <hr>
 
-  <!-- ══════════════════════════════════════════════════════
-       MÓDULOS DETALHADOS
-  ═══════════════════════════════════════════════════════ -->
+  <!-- ══ MÓDULOS ════════════════════════════════════════════ -->
 
   <section id="mod-dashboard" class="section">
     <div class="section-title">📊 Módulo: Dashboard</div>
     <p style="color:var(--text2);margin-bottom:16px;"><em>Disponível para: Admin Global, Admin Hotel, Gestor</em></p>
-
     <div class="card">
       <h4>Indicadores do Topo (6 cards)</h4>
       <table>
         <thead><tr><th>Card</th><th>O que mostra</th></tr></thead>
         <tbody>
-          <tr><td>Total aptos</td><td>Número total de apartamentos cadastrados e ativos</td></tr>
+          <tr><td>Total aptos</td><td>Apartamentos cadastrados e ativos no hotel</td></tr>
           <tr><td>Livres</td><td>Aptos disponíveis para recepção</td></tr>
           <tr><td>A limpar</td><td>Aptos com status Sujo</td></tr>
           <tr><td>Em limpeza</td><td>Aptos sendo limpos agora</td></tr>
-          <tr><td>Chamados abertos</td><td>Total de chamados com status Aberto (todos departamentos)</td></tr>
-          <tr><td>Equipe ativa</td><td>Camareiras + manutenção com cadastro ativo</td></tr>
+          <tr><td>Chamados abertos</td><td>Total de chamados pendentes (todos os departamentos)</td></tr>
+          <tr><td>Equipe ativa</td><td>Camareiras e manutenção com cadastro ativo</td></tr>
         </tbody>
       </table>
     </div>
-
     <div class="card">
       <h4>Governança — Indicadores do Dia (10 cards)</h4>
       <table>
@@ -814,12 +621,12 @@
           <tr><td>Sujos</td><td>Aptos aguardando limpeza</td></tr>
           <tr><td>Em limpeza</td><td>Aptos com limpeza em andamento</td></tr>
           <tr><td>Pausados</td><td>Aptos com limpeza interrompida</td></tr>
-          <tr><td>Ag. conferência</td><td>Aptos aguardando vistoria da supervisora</td></tr>
+          <tr><td>Ag. conferência</td><td>Aptos aguardando vistoria</td></tr>
           <tr><td>Limpos</td><td>Aptos aprovados e prontos</td></tr>
           <tr><td>Reprovados</td><td>Aptos que precisam de retrabalho</td></tr>
           <tr><td>Chamados abertos</td><td>Chamados da governança pendentes (aberto + em análise + reaberto)</td></tr>
           <tr><td>Urgentes</td><td>Chamados com prioridade urgente ainda não resolvidos</td></tr>
-          <tr><td>Resolvidos hoje</td><td>Chamados da gov. concluídos no dia de hoje</td></tr>
+          <tr><td>Resolvidos hoje</td><td>Chamados concluídos no dia de hoje</td></tr>
           <tr><td>Retrabalhos hoje</td><td>Limpezas refeitas por reprovação hoje</td></tr>
         </tbody>
       </table>
@@ -828,81 +635,101 @@
 
   <section id="mod-mapa" class="section">
     <div class="section-title">🗺 Módulo: Mapa de Apartamentos</div>
-    <p style="color:var(--text2);margin-bottom:16px;"><em>Disponível para: Admin Global, Admin Hotel, Gestor, Supervisora, Camareira, Manutenção</em></p>
+    <p style="color:var(--text2);margin-bottom:16px;"><em>Disponível para: todos os perfis</em></p>
 
     <div class="section">
       <div class="section-title" style="font-size:14px;">Navegar no Mapa</div>
       <ul class="steps">
-        <li><div class="step-num">1</div><div class="step-body">Clique em <strong>Mapa</strong> no menu lateral. Os apartamentos são exibidos agrupados por <strong>andar</strong>.</div></li>
-        <li><div class="step-num">2</div><div class="step-body">Cada card exibe: número do apto, tipo, ícone de status e badges adicionais (ex.: 📋 se tiver chamado aberto).</div></li>
-        <li><div class="step-num">3</div><div class="step-body">Use a <strong>barra de busca</strong> para localizar um apartamento pelo número.</div></li>
-        <li><div class="step-num">4</div><div class="step-body">Clique nos <strong>botões de filtro</strong> no topo (Todos / Sujo / Limpando / Conferência / Reprovado…) para ver somente aptos de determinado status.</div></li>
-      </ul>
-    </div>
-
-    <div class="section">
-      <div class="section-title" style="font-size:14px;">Filtros Avançados</div>
-      <ul class="steps">
-        <li><div class="step-num">1</div><div class="step-body">Abaixo da busca, aparecem os <strong>filtros avançados</strong>: Andar, Camareira responsável, Tipo de limpeza e toggle "Com chamado aberto".</div></li>
-        <li><div class="step-num">2</div><div class="step-body">Selecione o <strong>Andar</strong> desejado para ver apenas aquele pavimento.</div></li>
-        <li><div class="step-num">3</div><div class="step-body">Selecione a <strong>Camareira</strong> para ver somente os aptos atribuídos a ela.</div></li>
-        <li><div class="step-num">4</div><div class="step-body">Ative o filtro <strong>"Com chamado aberto"</strong> para ver somente aptos que têm chamado pendente.</div></li>
-        <li><div class="step-num">5</div><div class="step-body">Os filtros se combinam. Para limpar: selecione "Todos" nos dropdowns e desative o toggle.</div></li>
+        <li><div class="step-num">1</div><div class="step-body">Os apartamentos são exibidos agrupados por <strong>andar</strong>. Cada card exibe número, tipo, ícone de status e badges adicionais.</div></li>
+        <li><div class="step-num">2</div><div class="step-body">Use a <strong>barra de busca</strong> para localizar um apartamento pelo número.</div></li>
+        <li><div class="step-num">3</div><div class="step-body">Use os <strong>botões de filtro rápido</strong> (Todos / Sujo / Limpando / Conferência / Reprovado…) para filtrar por status.</div></li>
+        <li><div class="step-num">4</div><div class="step-body">Use os <strong>filtros avançados</strong> de Andar, Camareira responsável e toggle "Com chamado aberto".</div></li>
       </ul>
     </div>
 
     <div class="section">
       <div class="section-title" style="font-size:14px;">Alterar Status de um Apartamento</div>
-      <ul class="steps">
-        <li><div class="step-num">1</div><div class="step-body">Clique no card do apartamento para abrir o <strong>painel de opções</strong>.</div></li>
-        <li><div class="step-num">2</div><div class="step-body">Clique no novo status desejado (ex.: Sujo → Limpando).</div></li>
-        <li><div class="step-num">3</div><div class="step-body">Se necessário, um campo de <strong>observação</strong> será exibido (ex.: motivo de bloqueio). Preencha e confirme.</div></li>
-        <li><div class="step-num">4</div><div class="step-body">O mapa atualiza imediatamente.</div></li>
-      </ul>
-      <div class="info-box amber">
-        <strong>Restrição por perfil:</strong> A camareira só pode alterar aptos de Sujo → Limpando, Limpando → Conferência e Limpando → Pausado. Outros status são modificados pela supervisora ou gestor.
+      <div class="info-box green">
+        <strong>Disponível para todos os perfis.</strong> Qualquer usuário pode alterar o status operacional de um apartamento — a diferença é que apenas Admin pode editar dados cadastrais (número, andar, tipo).
       </div>
+      <ul class="steps">
+        <li><div class="step-num">1</div><div class="step-body"><strong>Pelo card</strong>: clique no apartamento → na seção <strong>"Forçar Status"</strong>, clique no novo status e confirme.</div></li>
+        <li><div class="step-num">2</div><div class="step-body"><strong>Pelo cabeçalho</strong>: clique em <strong>Alterar Status</strong> → selecione o apartamento pelo número, escolha o novo status e confirme.</div></li>
+        <li><div class="step-num">3</div><div class="step-body">O mapa atualiza imediatamente e o histórico de status é registrado automaticamente.</div></li>
+      </ul>
+    </div>
+
+    <div class="info-box amber">
+      <strong>Admin:</strong> Vê também os botões <strong>⊕ Cadastrar Apto</strong> e <strong>⚡ Gerar em lote</strong> no cabeçalho. Esses botões não aparecem para outros perfis.
     </div>
   </section>
 
   <section id="mod-kanban" class="section">
     <div class="section-title">📋 Módulo: Kanban de Limpeza</div>
     <p style="color:var(--text2);margin-bottom:16px;"><em>Disponível para: Admin Global, Admin Hotel, Gestor, Supervisora</em></p>
-
     <ul class="steps">
-      <li><div class="step-num">1</div><div class="step-body">Clique em <strong>Kanban</strong> no menu lateral. Os apartamentos são exibidos em colunas por status de limpeza.</div></li>
-      <li><div class="step-num">2</div><div class="step-body">Use os <strong>filtros de status</strong> no topo para mostrar ou ocultar colunas específicas.</div></li>
-      <li><div class="step-num">3</div><div class="step-body">Use os filtros de <strong>Andar</strong> e <strong>Camareira</strong> para refinar a visualização.</div></li>
-      <li><div class="step-num">4</div><div class="step-body">Clique em qualquer card para ver detalhes e alterar o status diretamente.</div></li>
-      <li><div class="step-num">5</div><div class="step-body">O botão de filtro rápido <strong>"Reprovados"</strong> destaca imediatamente todos os aptos que precisam de retrabalho.</div></li>
+      <li><div class="step-num">1</div><div class="step-body">Os apartamentos são exibidos em colunas por status de limpeza: Aberto · Em análise · Em andamento · Pausado · Resolvido · Reaberto · Cancelado.</div></li>
+      <li><div class="step-num">2</div><div class="step-body">Use os filtros de <strong>Andar</strong> e <strong>Camareira</strong> para refinar a visualização.</div></li>
+      <li><div class="step-num">3</div><div class="step-body">Clique em qualquer card para ver detalhes e alterar o status diretamente.</div></li>
     </ul>
-
     <div class="info-box blue">
-      <strong>Diferença entre Mapa e Kanban:</strong> O Mapa organiza por andar (visão espacial). O Kanban organiza por status de limpeza (visão de fluxo). Use o Kanban para acompanhar o andamento operacional e o Mapa para localizar aptos específicos.
+      <strong>Mapa vs. Kanban:</strong> O Mapa organiza por andar (visão espacial). O Kanban organiza por status de limpeza (visão de fluxo). Use o Kanban para acompanhar o andamento operacional.
     </div>
   </section>
 
   <section id="mod-chamados" class="section">
-    <div class="section-title">🎫 Módulo: Chamados da Governança</div>
-    <p style="color:var(--text2);margin-bottom:16px;"><em>Disponível para: todos os perfis</em></p>
+    <div class="section-title">🎫 Módulo: Chamados</div>
+    <p style="color:var(--text2);margin-bottom:16px;"><em>Disponível para: todos os perfis (com restrições por departamento)</em></p>
+
+    <div class="section">
+      <div class="section-title" style="font-size:14px;">Abas de Filtro <span class="novidade-badge">Atualizado</span></div>
+      <table>
+        <thead><tr><th>Aba</th><th>Mostra</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Todos</strong></td><td>Todos os chamados visíveis para o perfil</td></tr>
+          <tr><td><strong>Disponíveis</strong></td><td>Chamados sem responsável (aberto + em análise + reaberto) — inclui contador: <em>Disponíveis (3)</em></td></tr>
+          <tr><td><strong>Meus</strong></td><td>Chamados onde você é o responsável</td></tr>
+          <tr><td><strong>Em aberto</strong></td><td>Status: Aberto + Em análise + Reaberto</td></tr>
+          <tr><td><strong>Em andamento</strong></td><td>Status: Em andamento + Pausado</td></tr>
+          <tr><td><strong>Concluídos</strong></td><td>Status: Resolvido + Concluído + Cancelado</td></tr>
+        </tbody>
+      </table>
+
+      <p style="margin-bottom:8px;font-weight:600;">Filtros de departamento:</p>
+      <div class="badge-row">
+        <span class="badge" style="background:#e2e8f0;color:#334155;">Todos</span>
+        <span class="badge" style="background:#e8f6f3;color:#148f77;">🧹 Limpeza / Governança</span>
+        <span class="badge" style="background:#fef9e7;color:#d4ac0d;">🔧 Manutenção</span>
+      </div>
+    </div>
 
     <div class="section">
       <div class="section-title" style="font-size:14px;">Criar um Chamado</div>
       <ul class="steps">
-        <li><div class="step-num">1</div><div class="step-body">Clique em <strong>Chamados</strong> no menu → <strong>+ Novo Chamado</strong>.</div></li>
-        <li><div class="step-num">2</div><div class="step-body">Selecione o <strong>Departamento</strong>: Governança ou Manutenção.<br>
-          — Governança: exibe campo <strong>Categoria</strong> (obrigatório).<br>
-          — Manutenção: exibe campo <strong>Tipo</strong> (obrigatório).</div></li>
-        <li><div class="step-num">3</div><div class="step-body">Preencha: Apartamento (opcional), Título, Prioridade (Baixa / Normal / Alta / Urgente), Descrição e Responsável.</div></li>
-        <li><div class="step-num">4</div><div class="step-body">Clique <strong>Salvar</strong>. O chamado recebe número <strong>GOV-XXXXXX</strong> automaticamente.</div></li>
+        <li><div class="step-num">1</div><div class="step-body">Clique em <strong>+ Novo Chamado</strong>. O modal abre e <strong>não fecha ao clicar fora</strong> — use os botões <strong>Cancelar</strong> ou <strong>Abrir chamado</strong>.</div></li>
+        <li><div class="step-num">2</div><div class="step-body">Selecione o <strong>Departamento</strong>: Governança ou Manutenção. As categorias disponíveis mudam conforme o departamento.</div></li>
+        <li><div class="step-num">3</div><div class="step-body">Preencha: Apartamento (opcional), Categoria (obrigatório), Prioridade, Solicitante, Responsável (opcional — deixe em branco para chamado disponível à equipe), Prazo, Descrição e Hóspede.</div></li>
+        <li><div class="step-num">4</div><div class="step-body">Clique <strong>Abrir chamado</strong>. O número <strong>GOV-XXXXXX</strong> é gerado automaticamente. A equipe do hotel recebe notificação em tempo real.</div></li>
+      </ul>
+      <div class="info-box green">
+        <strong>Chamado sem responsável:</strong> Se o campo "Atribuir para" for deixado em branco, o chamado fica <span class="badge b-disponivel">📋 Disponível</span> para toda a equipe do departamento no hotel.
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title" style="font-size:14px;">Assumir um Chamado Disponível <span class="novidade-badge">Novo</span></div>
+      <ul class="steps">
+        <li><div class="step-num">1</div><div class="step-body">Na aba <strong>Disponíveis</strong>, clique no card do chamado.</div></li>
+        <li><div class="step-num">2</div><div class="step-body">No topo do detalhe, aparece o bloco amarelo: <em>"Chamado sem responsável. Clique para assumir o atendimento."</em></div></li>
+        <li><div class="step-num">3</div><div class="step-body">Clique em <strong>✋ Assumir chamado</strong>. Você se torna o responsável e o status avança de Aberto → Em andamento.</div></li>
+        <li><div class="step-num">4</div><div class="step-body">A ação é registrada no histórico: <em>"Chamado assumido por [seu nome]."</em></div></li>
+        <li><div class="step-num">5</div><div class="step-body">O chamado sai da aba Disponíveis e passa para a aba Meus.</div></li>
       </ul>
     </div>
 
     <div class="section">
-      <div class="section-title" style="font-size:14px;">Fluxo de Status</div>
-      <div class="info-box green">
-        <strong>Fluxo padrão:</strong> Aberto → Em análise → Em andamento → Resolvido
-      </div>
+      <div class="section-title" style="font-size:14px;">Fluxo de Status dos Chamados</div>
+      <div class="info-box green"><strong>Fluxo padrão:</strong> Aberto → Em análise → Em andamento → Resolvido</div>
       <table>
         <thead><tr><th>De</th><th>Pode ir para</th></tr></thead>
         <tbody>
@@ -918,24 +745,16 @@
     </div>
 
     <div class="section">
-      <div class="section-title" style="font-size:14px;">Ver Detalhe e Histórico</div>
-      <ul class="steps">
-        <li><div class="step-num">1</div><div class="step-body">Clique em qualquer card de chamado para abrir o <strong>painel de detalhe</strong>.</div></li>
-        <li><div class="step-num">2</div><div class="step-body">No detalhe, veja: número GOV, título, status atual, prioridade, categoria, apartamento, responsável e descrição.</div></li>
-        <li><div class="step-num">3</div><div class="step-body">Os botões de ação mostram apenas os <strong>próximos status permitidos</strong> (baseado no fluxo acima).</div></li>
-        <li><div class="step-num">4</div><div class="step-body">Role para baixo para ver a <strong>linha do tempo do histórico</strong>: cada alteração de status e comentário, com data, hora e quem fez.</div></li>
-        <li><div class="step-num">5</div><div class="step-body">Para adicionar um <strong>comentário interno</strong>: escreva no campo "Adicionar comentário" e clique <strong>Enviar</strong>.</div></li>
-      </ul>
-    </div>
-
-    <div class="section">
-      <div class="section-title" style="font-size:14px;">Filtrar Chamados por Aba</div>
+      <div class="section-title" style="font-size:14px;">Regras de Visibilidade por Perfil</div>
       <table>
-        <thead><tr><th>Aba</th><th>Mostra</th></tr></thead>
+        <thead><tr><th>Perfil</th><th>Vê</th></tr></thead>
         <tbody>
-          <tr><td><strong>Pendentes</strong></td><td>Aberto + Em análise + Reaberto</td></tr>
-          <tr><td><strong>Em Andamento</strong></td><td>Em andamento + Pausado</td></tr>
-          <tr><td><strong>Concluídos</strong></td><td>Resolvido + Concluído + Cancelado</td></tr>
+          <tr><td><strong>Admin Global</strong></td><td>Todos os chamados de todos os hotéis (atribuídos + disponíveis)</td></tr>
+          <tr><td><strong>Admin Hotel</strong></td><td>Todos os chamados do hotel (atribuídos + disponíveis)</td></tr>
+          <tr><td><strong>Gestor</strong></td><td>Todos os chamados do hotel (atribuídos + disponíveis, governança + manutenção)</td></tr>
+          <tr><td><strong>Supervisora</strong></td><td>Chamados de governança do hotel (atribuídos + disponíveis)</td></tr>
+          <tr><td><strong>Camareira</strong></td><td>Chamados de <strong>governança</strong> do hotel: atribuídos a ela + disponíveis. Não vê manutenção.</td></tr>
+          <tr><td><strong>Manutenção</strong></td><td>Chamados de <strong>manutenção</strong> do hotel: atribuídos a ele + disponíveis. Não vê governança.</td></tr>
         </tbody>
       </table>
     </div>
@@ -952,60 +771,57 @@
         <tbody>
           <tr>
             <td><strong>Camareira</strong></td>
-            <td>
-              Sua fila pessoal, ordenada por urgência:<br>
-              1. Reprovados (prioridade máxima)<br>
-              2. Pausados<br>
-              3. Em limpeza<br>
-              4. Sujos<br>
-              Com botões: Iniciar · Pausar · Retomar · Enviar para conferência
-            </td>
+            <td>Fila pessoal ordenada: Reprovados → Pausados → Em limpeza → Sujos<br>Botões: Iniciar · Pausar · Retomar · Enviar para conferência</td>
           </tr>
           <tr>
-            <td><strong>Supervisora</strong></td>
-            <td>
-              Fila de conferência:<br>
-              — Cards de contagem por status<br>
-              — Aptos aguardando conferência com botões Aprovar/Reprovar<br>
-              — Aptos reprovados<br>
-              — Grid dos em limpeza agora
-            </td>
-          </tr>
-          <tr>
-            <td><strong>Gestor / Admin</strong></td>
-            <td>
-              Visão geral da operação:<br>
-              — 6 cards de contagem<br>
-              — Fila de conferência com aprovação/reprovação<br>
-              — Todos os em limpeza<br>
-              — Atalhos para Mapa e Kanban
-            </td>
+            <td><strong>Supervisora / Gestor / Admin</strong></td>
+            <td>6 cards de contagem · Aptos aguardando conferência (Aprovar/Reprovar) · Aptos reprovados · Grid dos em limpeza</td>
           </tr>
         </tbody>
       </table>
     </div>
-
-    <div class="info-box green">
-      <strong>Atualização automática:</strong> A Minha Fila atualiza automaticamente quando qualquer ação de status é realizada. Use o botão <strong>↺ Atualizar</strong> para forçar um recarregamento manual.
-    </div>
   </section>
 
   <section id="mod-equipe" class="section">
-    <div class="section-title">👥 Módulo: Equipe</div>
+    <div class="section-title">👥 Módulo: Equipe <span class="novidade-badge">Atualizado</span></div>
     <p style="color:var(--text2);margin-bottom:16px;"><em>Disponível para: Admin Global, Admin Hotel, Gestor, Supervisora</em></p>
 
     <ul class="steps">
-      <li><div class="step-num">1</div><div class="step-body">Clique em <strong>Equipe</strong> no menu lateral para ver todos os membros da equipe do hotel.</div></li>
-      <li><div class="step-num">2</div><div class="step-body">A lista exibe: nome, perfil/função, status ativo/inativo.</div></li>
-      <li><div class="step-num">3</div><div class="step-body">Use a busca para localizar um colaborador específico.</div></li>
-      <li><div class="step-num">4</div><div class="step-body">Gestores e admins podem <strong>ativar/desativar</strong> membros da equipe diretamente nesta tela.</div></li>
+      <li><div class="step-num">1</div><div class="step-body">Clique em <strong>Equipe</strong>. A lista exibe camareiras e técnicos de manutenção cadastrados no sistema (via perfil de usuário) e registros legados (tabela maids).</div></li>
+      <li><div class="step-num">2</div><div class="step-body"><strong>Admin Global</strong>: selecione o hotel desejado no seletor <strong>🏨 Hotel</strong> para ver a equipe do hotel escolhido.</div></li>
+      <li><div class="step-num">3</div><div class="step-body"><strong>Admin Hotel / Gestor</strong>: visualiza automaticamente a equipe do hotel vinculado.</div></li>
+      <li><div class="step-num">4</div><div class="step-body">Use a busca para localizar um membro por nome ou cargo.</div></li>
+      <li><div class="step-num">5</div><div class="step-body"><strong>Admin</strong> pode ativar/desativar membros e editar cadastro. <strong>Gestor e Supervisora</strong> têm acesso somente de leitura.</div></li>
     </ul>
+
+    <div class="card">
+      <h4>Indicadores da Equipe — calculados em tempo real <span class="novidade-badge">Novo</span></h4>
+      <table>
+        <thead><tr><th>Indicador</th><th>Como é calculado</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Produtividade hoje (%)</strong></td>
+            <td>
+              Aptos que chegaram ao status <em>Limpo</em> hoje ÷ Aptos que saíram do status <em>Sujo</em> hoje × 100<br>
+              <span style="color:var(--text3);font-size:12px;">Exemplo: 6 aptos limpos ÷ 8 aptos que iniciaram = 75%</span>
+            </td>
+          </tr>
+          <tr>
+            <td><strong>Aptos/camareira hoje</strong></td>
+            <td>
+              Aptos que chegaram ao status <em>Limpo</em> hoje ÷ Camareiras ativas na equipe<br>
+              <span style="color:var(--text3);font-size:12px;">Exemplo: 6 aptos limpos ÷ 3 camareiras = 2,0</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p style="font-size:12px;color:var(--text3);margin-top:4px;">Ambos os indicadores são calculados com base no histórico de status do dia (meia-noite até agora) e resetam automaticamente a cada novo dia.</p>
+    </div>
   </section>
 
   <section id="mod-relatorios" class="section">
     <div class="section-title">📈 Módulo: Relatórios</div>
     <p style="color:var(--text2);margin-bottom:16px;"><em>Disponível para: Admin Global, Admin Hotel, Gestor</em></p>
-
     <ul class="steps">
       <li><div class="step-num">1</div><div class="step-body">Clique em <strong>Relatórios</strong> no menu lateral.</div></li>
       <li><div class="step-num">2</div><div class="step-body">Selecione o período desejado (dia, semana, mês).</div></li>
@@ -1017,12 +833,11 @@
   <section id="mod-config" class="section">
     <div class="section-title">⚙ Módulo: Configurações</div>
     <p style="color:var(--text2);margin-bottom:16px;"><em>Disponível para: Admin Global, Admin Hotel</em></p>
-
     <ul class="steps">
       <li><div class="step-num">1</div><div class="step-body">Clique em <strong>Config</strong> no menu lateral.</div></li>
-      <li><div class="step-num">2</div><div class="step-body"><strong>Tipos de chamado:</strong> Gerencie os tipos disponíveis por departamento (governança / manutenção).</div></li>
-      <li><div class="step-num">3</div><div class="step-body"><strong>Checklist de limpeza:</strong> Configure os itens do checklist padrão que a camareira verifica ao concluir.</div></li>
-      <li><div class="step-num">4</div><div class="step-body"><strong>Tipos de apartamento:</strong> Adicione ou edite os tipos (Standard, Luxo, Suíte, etc.).</div></li>
+      <li><div class="step-num">2</div><div class="step-body"><strong>Tipos de chamado:</strong> Gerencie os tipos disponíveis por departamento. Ao abrir um chamado, apenas os tipos ativos do departamento selecionado são exibidos.</div></li>
+      <li><div class="step-num">3</div><div class="step-body"><strong>Checklist de limpeza:</strong> Configure os itens que a camareira verifica ao concluir a limpeza.</div></li>
+      <li><div class="step-num">4</div><div class="step-body"><strong>Tipos de apartamento:</strong> Adicione ou edite tipos (Standard, Luxo, Suíte, etc.).</div></li>
     </ul>
     <div class="info-box red">
       <strong>Atenção:</strong> Alterações nas configurações afetam todos os usuários do hotel imediatamente. Desativar um tipo de chamado impede que novos chamados desse tipo sejam criados.
@@ -1031,8 +846,28 @@
 
   <hr>
 
-  <!-- ══ DÚVIDAS FREQUENTES ═════════════════════════════════ -->
-  <section class="section">
+  <!-- ══ USO MOBILE ════════════════════════════════════════ -->
+  <section id="mobile" class="section">
+    <div class="section-title">📱 Uso em Celular <span class="novidade-badge">Atualizado</span></div>
+    <div class="info-box blue">
+      O GovHotel é totalmente responsivo. Em smartphones e tablets, a interface se adapta automaticamente para telas menores.
+    </div>
+    <ul class="steps">
+      <li><div class="step-num">1</div><div class="step-body">Toque no botão <strong>☰</strong> no canto superior esquerdo para abrir o menu lateral.</div></li>
+      <li><div class="step-num">2</div><div class="step-body">O menu lateral é rolável. Todos os itens de navegação ficam disponíveis na lista, incluindo <strong>🔑 Alterar senha</strong> e <strong>↪ Sair do sistema</strong> ao final do menu.</div></li>
+      <li><div class="step-num">3</div><div class="step-body">Toque em qualquer área fora do menu ou em um item de menu para fechar o painel lateral.</div></li>
+      <li><div class="step-num">4</div><div class="step-body">Para <strong>alterar a senha</strong> no celular: abra o menu → role até o final → toque em <strong>🔑 Alterar senha</strong>.</div></li>
+      <li><div class="step-num">5</div><div class="step-body">Para <strong>sair do sistema</strong> no celular: abra o menu → role até o final → toque em <strong>↪ Sair do sistema</strong>.</div></li>
+    </ul>
+    <div class="info-box amber">
+      <strong>Recomendação:</strong> Camareiras e técnicos de manutenção normalmente utilizam o sistema pelo celular. Certifique-se de que a tela do dispositivo não adormeça durante o turno para receber notificações em tempo real.
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ══ FAQ ════════════════════════════════════════════════ -->
+  <section id="faq" class="section">
     <div class="section-title">❓ Dúvidas Frequentes</div>
 
     <div class="card">
@@ -1041,28 +876,48 @@
     </div>
 
     <div class="card">
-      <h4>O apartamento não aparece no mapa, o que pode ser?</h4>
-      <p>Verifique se o apartamento está <strong>ativo</strong> no cadastro (Cadastro Apto). Apartamentos inativos não aparecem no mapa.</p>
+      <h4>Como alterar minha própria senha?</h4>
+      <p>No desktop: clique em <strong>🔑 Alterar senha</strong> no rodapé do menu lateral. No celular: abra o menu <strong>☰</strong> → role até o final → toque em <strong>🔑 Alterar senha</strong>. Informe a nova senha (mínimo 6 caracteres) e confirme.</p>
+    </div>
+
+    <div class="card">
+      <h4>O sistema não atualizou automaticamente. O que fazer?</h4>
+      <p>O GovHotel usa Supabase Realtime para atualizações automáticas via WebSocket. Se a conexão cair (ex.: troca de rede, tela bloqueada por muito tempo), recarregue a página para restabelecer a conexão. Use o botão <strong>↺ Atualizar</strong> disponível em cada módulo para forçar o recarregamento.</p>
+    </div>
+
+    <div class="card">
+      <h4>O apartamento não aparece no mapa. O que pode ser?</h4>
+      <p>Verifique se o apartamento está <strong>ativo</strong> no Cadastro de Aptos. Apartamentos inativos não aparecem no mapa. Apenas Admin pode reativar um apartamento.</p>
     </div>
 
     <div class="card">
       <h4>Iniciei uma limpeza por engano, como desfazer?</h4>
-      <p>O gestor ou supervisora pode alterar o status do apartamento manualmente pelo Mapa: clique no apto → escolha o status correto (ex.: Sujo).</p>
+      <p>O gestor, supervisora ou admin pode alterar o status do apartamento manualmente: Mapa → clique no apto → Forçar Status → escolha o status correto (ex.: Sujo).</p>
+    </div>
+
+    <div class="card">
+      <h4>Não consigo ver chamados na aba "Disponíveis". Por quê?</h4>
+      <p>A aba Disponíveis mostra chamados sem responsável com status <em>Aberto, Em análise ou Reaberto</em> do departamento correto para o seu perfil. Se estiver vazia, não há chamados nessa condição no momento.</p>
     </div>
 
     <div class="card">
       <h4>Posso reabrir um chamado já resolvido?</h4>
-      <p>Sim. Abra o detalhe do chamado e clique em <strong>Reabrir</strong>. O status volta para <span class="badge b-reprovado">Reaberto</span> e o histórico registra quem reabriu e quando.</p>
+      <p>Sim. Abra o detalhe do chamado e clique em <strong>→ Reaberto</strong>. O status volta para <span class="badge b-reprovado">Reaberto</span> e o histórico registra quem reabriu e quando.</p>
     </div>
 
     <div class="card">
-      <h4>A Minha Fila da camareira está mostrando aptos que não são dela?</h4>
-      <p>Por padrão, enquanto a atribuição de camareira por apartamento não está configurada, a fila exibe todos os aptos do hotel nos status relevantes. A atribuição individual será configurada pelo administrador.</p>
+      <h4>O número de chamados no menu não bate com a listagem. O que pode ser?</h4>
+      <p>O badge do menu usa a mesma regra da aba <strong>Em aberto</strong> (status: Aberto + Em análise + Reaberto), incluindo chamados disponíveis (sem responsável). Se o número diverge, recarregue a página para sincronizar o cache.</p>
     </div>
 
     <div class="card">
-      <h4>Como alterar minha própria senha?</h4>
-      <p>Clique no seu nome/avatar no canto superior direito → <strong>Alterar senha</strong>. Informe a nova senha (mínimo 6 caracteres) e confirme.</p>
+      <h4>Gestor consegue editar dados cadastrais de um apartamento?</h4>
+      <p>Não. O gestor pode alterar o <em>status operacional</em> (ex.: Sujo → Limpando) mas não pode editar dados cadastrais como número, andar ou tipo. Essas alterações são exclusivas para Admin Hotel e Admin Global.</p>
+    </div>
+
+    <div class="card">
+      <h4>A equipe da página Equipe está vazia. O que verificar?</h4>
+      <p>1. Verifique se o hotel correto está selecionado (Admin Global usa o seletor de hotel no topo). 2. Verifique se os usuários têm perfil <em>camareira</em> ou <em>manutencao</em> e estão ativos no módulo Usuários.</p>
     </div>
   </section>
 
@@ -1073,11 +928,9 @@
 </main>
 
 <script>
-  // Highlight sidebar link on scroll
   const sections = document.querySelectorAll('section[id]');
   const links     = document.querySelectorAll('.sidebar a[href^="#"]');
-
-  const observer = new IntersectionObserver(entries => {
+  const observer  = new IntersectionObserver(entries => {
     entries.forEach(e => {
       if (e.isIntersecting) {
         links.forEach(l => l.classList.remove('active'));
@@ -1086,7 +939,6 @@
       }
     });
   }, { rootMargin: '-20% 0px -70% 0px' });
-
   sections.forEach(s => observer.observe(s));
 </script>
 </body>

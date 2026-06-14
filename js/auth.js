@@ -180,7 +180,7 @@ const PERFIL_PAGES = {
   gestor:       ['dashboard','mapa','kanban','chamados','equipe','relatorios','minha-fila'],
   supervisora:  ['mapa','kanban','chamados','equipe','minha-fila'],
   camareira:    ['app-camareira','mapa','chamados','minha-fila'],
-  manutencao:   ['app-manutencao','mapa','chamados'],
+  manutencao:   ['mapa','chamados'],
 };
 
 function canAccess(page) {
