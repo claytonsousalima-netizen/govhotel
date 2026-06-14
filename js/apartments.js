@@ -737,17 +737,12 @@ async function mudarStatusApto(id, novoStatus, obs = null) {
 
   const statusAnterior = apto.status;
 
-  const { data: updated, error } = await supabaseClient
+  const { error } = await supabaseClient
     .from('apartments')
     .update({ status: novoStatus })
-    .eq('id', id)
-    .select('id');
+    .eq('id', id);
 
   if (error) { toast('Erro ao atualizar: ' + error.message, 'error'); return; }
-  if (!updated || !updated.length) {
-    toast('Não foi possível alterar o status. Verifique suas permissões no banco de dados.', 'error');
-    return;
-  }
 
   // Registrar histórico com obs opcional
   const histPayload = {
