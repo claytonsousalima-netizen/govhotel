@@ -2725,7 +2725,7 @@ function closeModal(id) {
   el?.classList.remove('open');
 }
 // Modais que não fecham ao clicar fora (requerem ação explícita do usuário)
-const MODAIS_PROTEGIDOS = ['modal-usuario-form', 'modal-senha', 'modal-cadastro-apto', 'modal-novo-membro'];
+const MODAIS_PROTEGIDOS = ['modal-usuario-form', 'modal-senha', 'modal-cadastro-apto', 'modal-novo-membro', 'modal-novo-chamado'];
 document.querySelectorAll('.modal-overlay').forEach(m => {
   m.addEventListener('click', e => {
     if (e.target !== m) return;
