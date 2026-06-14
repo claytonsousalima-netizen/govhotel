@@ -308,6 +308,14 @@ async function salvarUsuario() {
     }
     const result = await _invocarConvite({ nome, login, senha, perfil, hotel_id, ativo, turno_id });
     error = result.error;
+    // Persiste o login no user_profiles após criação via Edge Function
+    if (!error) {
+      await supabaseClient.from('user_profiles')
+        .update({ login })
+        .eq('nome', nome)
+        .eq('hotel_id', hotel_id)
+        .is('login', null);
+    }
   }
 
   btn.disabled = false;

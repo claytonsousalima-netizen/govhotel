@@ -1180,10 +1180,10 @@ function _cfgEdit(key, idx) {
   toast('Atualizado!', 'success');
 }
 
-// Patch openPage para renderizar config
-(function patchOpenPageConfig() {
-  if (window._configPatch) return;
-  window._configPatch = true;
+// Patch openPage para renderizar config (flag próprio para não colidir com config.js)
+(function patchOpenPageConfigApto() {
+  if (window._configAptoPatch) return;
+  window._configAptoPatch = true;
   const _prev = openPage;
   openPage = function(id) {
     _prev(id);
