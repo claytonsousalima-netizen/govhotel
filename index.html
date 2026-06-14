@@ -390,6 +390,56 @@ tr:last-child td { border-bottom: none; }
   .form-row { grid-template-columns: 1fr; }
   .form-row.three { grid-template-columns: 1fr 1fr; }
   .mobile-menu-btn { display: flex !important; }
+  .report-grid { grid-template-columns: 1fr; }
+}
+
+/* MOBILE PEQUENO — smartphones 375–480px */
+@media (max-width: 480px) {
+  /* Espaçamento geral */
+  .content { padding: 12px; }
+  .topbar { padding: 0 12px; }
+
+  /* Touch targets — mínimo 40px de altura */
+  .btn-sm { padding: 9px 12px; font-size: 12px; min-height: 40px; }
+  .btn-xs { padding: 7px 10px; font-size: 11px; min-height: 40px; }
+  .btn-close { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  .filter-btn { padding: 9px 14px; min-height: 40px; }
+
+  /* Modal — padding interno reduzido, footer empilhável */
+  .modal-header { padding: 14px 14px 12px; }
+  .modal-body { padding: 14px; }
+  .modal-footer { padding: 12px 14px; flex-wrap: wrap; }
+  .modal-footer .btn { flex: 1 1 auto; justify-content: center; min-height: 42px; }
+
+  /* Formulários — 3 colunas vira 1 coluna */
+  .form-row.three { grid-template-columns: 1fr; }
+
+  /* Campos de formulário — fonte e altura maiores para toque */
+  .field input, .field select, .field textarea { padding: 11px 12px; font-size: 14px; min-height: 44px; }
+  .field select { min-height: 44px; }
+
+  /* Barra de busca — flexível, não trava em 200px */
+  .search-input { width: auto; flex: 1; min-width: 120px; max-width: 100%; }
+
+  /* Abas — scroll horizontal quando não cabem */
+  .tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; }
+  .tab-btn { padding: 10px 14px; font-size: 12px; white-space: nowrap; }
+
+  /* Cabeçalho de página */
+  .page-header { gap: 10px; }
+  .page-title { font-size: 17px; }
+
+  /* Toast — largura total na base da tela */
+  .toast { left: 12px; right: 12px; bottom: 12px; text-align: center; }
+
+  /* Stats cards da dashboard — já 2 cols, manter */
+  .stat-value { font-size: 24px; }
+
+  /* Hotéis grid — 1 coluna */
+  .hoteis-grid { grid-template-columns: 1fr; }
+
+  /* Tabela — garantir wrapper com scroll */
+  .table-wrap { -webkit-overflow-scrolling: touch; }
 }
 .mobile-menu-btn {
   display: none; align-items: center; justify-content: center;
