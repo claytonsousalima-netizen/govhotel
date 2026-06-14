@@ -346,17 +346,8 @@ function mfAcao(id, acao) {
   if (acao === 'reprovar') abrirModalReprovacao();
 }
 
-// ── RE-RENDER APÓS MUDANÇA DE STATUS ─────────────────────────
-// Usa IIFE com variável para evitar hoisting de function declaration
-// (function declaration seria hoisted antes de _mfOrigMudar ser capturado,
-//  capturando a si mesmo e causando recursão infinita)
-(function _patchMudarStatus() {
-  const _orig = mudarStatusApto; // captura apartments.js version corretamente
-  mudarStatusApto = async function(id, novoStatus, obs) {
-    await _orig(id, novoStatus, obs);
-    if (currentPage === 'minha-fila') renderMinhaFila();
-  };
-})();
+// RE-RENDER após mudança de status é gerenciado por apartments.js
+// (window.mudarStatusApto já chama renderMinhaFila quando currentPage === 'minha-fila')
 
 // ── PATCH openPage ────────────────────────────────────────────
 (function patchOpenPageMinhaFila() {

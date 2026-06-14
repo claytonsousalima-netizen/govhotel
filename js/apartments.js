@@ -727,56 +727,63 @@ async function confirmarGerarLote() {
 }
 
 // ── ALTERAR STATUS (com escrita no Supabase + histórico) ──────
+// Função global — usada pelo mapa, kanban, minha fila e cadastro
+window.mudarStatusApto = async function mudarStatusApto(id, novoStatus, obs) {
+  obs = obs || null;
+  try {
+    const apto = aptos.find(a => a.id === id);
+    if (!apto) { toast('Apartamento não encontrado', 'error'); return; }
 
-// Override do mudarStatusApto do inline script
-async function mudarStatusApto(id, novoStatus, obs = null) {
-  const apto = aptos.find(a => a.id === id);
-  if (!apto) return;
+    if (!sameHotel(apto.hotel_id)) {
+      toast('Sem permissão: apartamento de outro hotel', 'error'); return;
+    }
 
-  // Gestor só pode alterar aptos do próprio hotel
-  if (!sameHotel(apto.hotel_id)) {
-    toast('Sem permissão para alterar apartamento de outro hotel', 'error'); return;
+    const statusAnterior = apto.status;
+
+    const { error } = await supabaseClient
+      .from('apartments')
+      .update({ status: novoStatus })
+      .eq('id', id);
+
+    if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
+
+    // Histórico (não bloqueia o fluxo se falhar)
+    supabaseClient.from('apartment_status_history').insert({
+      apartment_id:    id,
+      status_anterior: statusAnterior,
+      status_novo:     novoStatus,
+      alterado_por:    currentUser.id,
+      obs:             obs || null,
+    });
+
+    apto.status = novoStatus;
+    const label = (_STATUS_LABELS && _STATUS_LABELS[novoStatus]) || novoStatus;
+    toast('Apto ' + apto.numero + ' → ' + label, 'success');
+
+    if (typeof closeModal === 'function') closeModal('modal-apto-detail');
+
+    if (currentPage === 'mapa')          renderMapa();
+    if (currentPage === 'kanban')        renderKanban();
+    if (currentPage === 'minha-fila')    { if (typeof renderMinhaFila === 'function') renderMinhaFila(); }
+    if (currentPage === 'dashboard')     renderDashboard();
+    if (currentPage === 'app-camareira') renderAppCamareira();
+    if (currentPage === 'cadastro-apto') renderCadastroTableDb();
+
+  } catch (e) {
+    toast('Erro inesperado: ' + e.message, 'error');
   }
-
-  const statusAnterior = apto.status;
-
-  const { error } = await supabaseClient
-    .from('apartments')
-    .update({ status: novoStatus })
-    .eq('id', id);
-
-  if (error) { toast('Erro ao atualizar: ' + error.message, 'error'); return; }
-
-  // Registrar histórico com obs opcional
-  const histPayload = {
-    apartment_id:    id,
-    status_anterior: statusAnterior,
-    status_novo:     novoStatus,
-    alterado_por:    currentUser.id,
-  };
-  if (obs) histPayload.obs = obs;
-  await supabaseClient.from('apartment_status_history').insert(histPayload);
-
-  apto.status = novoStatus;
-  const label = (typeof _STATUS_LABELS !== 'undefined' ? _STATUS_LABELS[novoStatus] : null) || novoStatus;
-  toast(`Apto ${apto.numero} → ${label}`, 'success');
-  closeModal('modal-apto-detail');
-
-  if (currentPage === 'mapa')          renderMapa();
-  if (currentPage === 'kanban')        renderKanban();
-  if (currentPage === 'dashboard')     renderDashboard();
-  if (currentPage === 'app-camareira') renderAppCamareira();
-  if (currentPage === 'cadastro-apto') renderCadastroTableDb();
-}
+};
 
 async function salvarTrocarStatus() {
-  const aptoNum  = document.getElementById('ts-apto').value;
+  const aptoNum    = document.getElementById('ts-apto').value;
   const novoStatus = document.getElementById('ts-status').value;
-  if (!aptoNum) { toast('Selecione um apartamento', 'error'); return; }
+  const obs        = document.getElementById('ts-obs')?.value?.trim() || null;
+  if (!aptoNum)    { toast('Selecione um apartamento', 'error'); return; }
+  if (!novoStatus) { toast('Selecione o novo status', 'error'); return; }
   const apto = aptos.find(a => a.numero === aptoNum);
-  if (!apto) return;
+  if (!apto) { toast('Apartamento não encontrado', 'error'); return; }
   closeModal('modal-trocar-status');
-  await mudarStatusApto(apto.id, novoStatus);
+  await window.mudarStatusApto(apto.id, novoStatus, obs);
 }
 
 function alterarStatusRapido(id) {
