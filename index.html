@@ -1925,38 +1925,10 @@ let filterMapaStatus = 'todos';
 
 // ============ MOCK DATA (mantido até Etapa 4 — integração Supabase data) ============
 function initData() {
-  equipe = [
-    { id:1, nome:'Ana Paula Silva', cargo:'Camareira', andar:'2', turno:'Manhã', status:'ativo', aptos_hoje:8, avId:1 },
-    { id:2, nome:'Maria Santos', cargo:'Camareira', andar:'3', turno:'Manhã', status:'ativo', aptos_hoje:7, avId:2 },
-    { id:3, nome:'Lucia Ferreira', cargo:'Supervisora', andar:'Todos', turno:'Manhã', status:'ativo', aptos_hoje:0, avId:3 },
-    { id:4, nome:'Carla Mendes', cargo:'Camareira', andar:'1', turno:'Tarde', status:'ativo', aptos_hoje:5, avId:4 },
-    { id:5, nome:'Fátima Oliveira', cargo:'Camareira', andar:'4', turno:'Manhã', status:'ferias', aptos_hoje:0, avId:5 },
-  ];
-
-  const statusList = ['livre','sujo','limpando','conferencia','bloqueado','ocupado','manutencao','livre','sujo','livre'];
-  const tipos = ['Standard','Standard','Superior','Deluxe','Suite','Standard','Superior','Deluxe','Suite Master','Standard'];
-  const cats = ['Regular','Regular','VIP','Regular','VIP','Regular','Regular','VIP','VIP','Família'];
-  aptos = [];
-  let id = 1;
-  for (let andar = 1; andar <= 4; andar++) {
-    for (let num = 1; num <= 12; num++) {
-      const idx = (id-1) % statusList.length;
-      aptos.push({
-        id, numero:`${andar}0${num < 10 ? '0'+num : num}`, andar,
-        tipo:tipos[idx], categoria:cats[idx], status:statusList[idx],
-        leitos:[1,2,2,3,4,2,2,3,4,2][idx], camareira_id:[1,2,4,null,null,1,2,4,null,null][idx],
-        obs:'', prioridade:Math.random()>0.8
-      });
-      id++;
-    }
-  }
-
-  chamados = [
-    { id:1, apto:'101', tipo:'Limpeza urgente', prioridade:'urgente', status:'aberto', solicitante:'recepcao', hospede:'João Silva', desc:'Hóspede encontrou o quarto sem limpar após check-in', camareira_id:1, prazo:'2026-06-12T14:00', criado:'10:30', criado_por:'Recepção' },
-    { id:2, apto:'203', tipo:'Troca de roupa de cama', prioridade:'normal', status:'andamento', solicitante:'hospede', hospede:'Maria Júlia', desc:'Solicitação de troca de toda a roupa de cama', camareira_id:2, prazo:'2026-06-12T15:00', criado:'09:15', criado_por:'Recepção' },
-    { id:3, apto:'305', tipo:'Reposição de amenidades', prioridade:'baixa', status:'aberto', solicitante:'hospede', hospede:'Pedro Alves', desc:'Repor shampoo, condicionador e sabonetes', camareira_id:null, prazo:'2026-06-12T18:00', criado:'11:00', criado_por:'Recepção' },
-    { id:4, apto:'402', tipo:'Inspeção pós-checkout', prioridade:'normal', status:'concluido', solicitante:'supervisora', hospede:'', desc:'Inspeção de saída realizada com sucesso', camareira_id:4, prazo:'2026-06-12T12:00', criado:'08:45', criado_por:'Supervisora' },
-  ];
+  // Arrays inicializados vazios — dados reais carregados do Supabase via syncApartamentos() e _fetchChamados()
+  aptos    = [];
+  chamados = [];
+  equipe   = [];
 }
 
 // ============ INICIALIZAR APP (chamado após login bem-sucedido) ============
