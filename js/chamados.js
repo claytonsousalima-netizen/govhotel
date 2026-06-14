@@ -242,14 +242,23 @@ async function _popularAtribuidosModal(departamento, hotelId) {
 async function _popularAptosModalChamado(hotelId) {
   const sel = document.getElementById('nc-apto');
   if (!sel) return;
-  // Limpa imediatamente para evitar que dados velhos (fake ou de outro hotel) fiquem visíveis
   sel.innerHTML = '<option value="">Carregando...</option>';
-  const hId = hotelId || currentUser.hotelId;
-  let q = supabaseClient.from('apartments').select('id, numero, tipo').eq('ativo', true).order('numero');
-  if (hId) q = q.eq('hotel_id', hId);
-  const { data } = await q;
-  sel.innerHTML = '<option value="">Selecionar...</option>' +
+  const hId = hotelId || currentUser?.hotelId;
+  if (!hId) {
+    sel.innerHTML = '<option value="">— Selecione o hotel primeiro —</option>';
+    return;
+  }
+  const { data } = await supabaseClient
+    .from('apartments')
+    .select('id, numero, tipo')
+    .eq('ativo', true)
+    .eq('hotel_id', hId)
+    .order('numero');
+  sel.innerHTML = '<option value="">Selecionar apartamento...</option>' +
     (data||[]).map(a=>`<option value="${a.id}">${a.numero} — ${a.tipo}</option>`).join('');
+  if (!data?.length) {
+    sel.innerHTML = '<option value="">— Nenhum apartamento cadastrado —</option>';
+  }
 }
 
 // ── ABRIR MODAL CHAMADO ───────────────────────────────────────
@@ -269,17 +278,22 @@ async function openModalNovoChamado() {
       const { data: hotels } = await supabaseClient
         .from('hotels').select('id, nome').eq('ativo', true).order('nome');
       const sel = document.getElementById('nc-hotel-id');
+      // Pré-seleciona o hotel já filtrado na tela de chamados
+      const preHotel = _chamadoHotelId || '';
       if (sel) {
         sel.innerHTML = '<option value="">Selecione o hotel *</option>' +
-          (hotels||[]).map(h=>`<option value="${h.id}">${h.nome}</option>`).join('');
+          (hotels||[]).map(h =>
+            `<option value="${h.id}" ${h.id === preHotel ? 'selected' : ''}>${h.nome}</option>`
+          ).join('');
         sel.onchange = async () => {
           const dept = document.getElementById('nc-departamento')?.value || defaultDept;
           await _popularAptosModalChamado(sel.value);
           await _popularAtribuidosModal(dept, sel.value);
         };
       }
-      await _popularAptosModalChamado(null);
-      await _popularAtribuidosModal(defaultDept, null);
+      // Carrega aptos e responsáveis do hotel pré-selecionado (ou limpa se nenhum)
+      await _popularAptosModalChamado(preHotel || null);
+      await _popularAtribuidosModal(defaultDept, preHotel || null);
     } else {
       hotelWrap.style.display = 'none';
       document.getElementById('nc-hotel-label-wrap').style.display = '';
