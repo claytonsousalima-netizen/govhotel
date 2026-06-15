@@ -76,10 +76,10 @@ async function _popularCategoriasSelect(departamento) {
   );
 
   if (!tipos.length) {
-    sel.innerHTML = `<option value="">Nenhuma categoria cadastrada para este tipo</option>`;
+    sel.innerHTML = `<option value="">Nenhum tipo de chamado cadastrado para este departamento</option>`;
     return;
   }
-  sel.innerHTML = '<option value="">Selecionar categoria *</option>' +
+  sel.innerHTML = '<option value="">Selecionar tipo de chamado *</option>' +
     tipos.map(t => `<option value="${t.nome}">${t.nome}</option>`).join('');
 }
 
@@ -391,7 +391,7 @@ async function salvarNovoChamado() {
   const hospede      = document.getElementById('nc-hospede')?.value || '';
 
   const categoria = document.getElementById('nc-categoria')?.value || null;
-  if (!categoria) { toast('Selecione a categoria', 'error'); return; }
+  if (!categoria) { toast('Selecione o tipo de chamado', 'error'); return; }
   const tipo = categoria;
 
   const { data: inserted, error } = await supabaseClient
