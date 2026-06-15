@@ -791,32 +791,42 @@ function renderKanban() {
 }
 
 // ── REALTIME — NOTIFICAÇÕES DE NOVOS CHAMADOS ────────────────
-let _realtimeChannel = null;
+let _realtimeChannel  = null;
+let _pollingInterval  = null;
 
 function _initRealtimeChamados() {
   if (_realtimeChannel) return; // já inscrito
 
-  const isAdminGlobal = currentUser.perfil === 'admin_global';
-  const hotelId       = currentUser.hotelId;
-
+  // Sem filtro de coluna: filtros de coluna (hotel_id=eq.X) no Realtime só funcionam
+  // para UPDATE/DELETE quando a tabela tem REPLICA IDENTITY FULL. Para INSERT, o evento
+  // não seria entregue. A filtragem por hotel é feita dentro de _fetchChamados() via SQL.
   const pgConfig = { event: '*', schema: 'public', table: 'work_orders' };
-  if (!isAdminGlobal && hotelId) pgConfig.filter = `hotel_id=eq.${hotelId}`;
 
   _realtimeChannel = supabaseClient
     .channel('govhotel_work_orders')
-    .on('postgres_changes', pgConfig, async (payload) => {
-      // Sempre atualiza cache, badge e detecta novos chamados (notificação fica dentro de _fetchChamados)
+    .on('postgres_changes', pgConfig, async () => {
       await _fetchChamados();
       if (currentPage === 'chamados') { renderChamados(); }
       if (currentPage === 'kanban')   { renderKanban();   }
     })
     .subscribe();
+
+  // Polling a cada 30 s como fallback caso o Realtime caia (troca de rede, tela bloqueada etc.)
+  _pollingInterval = setInterval(async () => {
+    await _fetchChamados();
+    if (currentPage === 'chamados') { renderChamados(); }
+    if (currentPage === 'kanban')   { renderKanban();   }
+  }, 30000);
 }
 
 function stopRealtimeChamados() {
   if (_realtimeChannel) {
     supabaseClient.removeChannel(_realtimeChannel);
     _realtimeChannel = null;
+  }
+  if (_pollingInterval) {
+    clearInterval(_pollingInterval);
+    _pollingInterval = null;
   }
   _chamadosIniciado = false;
   _chamadosKnownIds.clear();
