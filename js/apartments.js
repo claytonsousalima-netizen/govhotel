@@ -996,10 +996,17 @@ async function concluirChecklistLimpeza() {
 
 // ── ADAPTAR renderAppCamareira para usar dados do Supabase ────
 
-let _appCamFiltro = ''; // '' = todos
+let _appCamFiltro      = ''; // '' = todos, 'meus' = atribuídos a mim, ou status string
+let _appCamFiltroMeus  = false; // true quando filtro "Atribuídos a mim" está ativo
 
 function setAppCamFiltro(status) {
-  _appCamFiltro = (_appCamFiltro === status) ? '' : status; // toggle
+  if (status === 'meus') {
+    _appCamFiltroMeus = !_appCamFiltroMeus;
+    _appCamFiltro = '';
+  } else {
+    _appCamFiltroMeus = false;
+    _appCamFiltro = (_appCamFiltro === status) ? '' : status;
+  }
   renderAppCamareira();
 }
 
@@ -1030,16 +1037,32 @@ async function renderAppCamareira() {
     conferencia:'Conferência', limpo:'Limpo', reprovado:'Reprovado',
     bloqueado:'Bloqueado', ocupado:'Ocupado', manutencao:'Manutenção'
   };
+  const totalMeusAtrib = meus.filter(a => a.camareira_id === currentUser.id).length;
   const filtroEl = document.getElementById('app-filtro-status');
   if (filtroEl) {
+    const btnMeus = totalMeusAtrib > 0
+      ? `<button class="btn btn-sm ${_appCamFiltroMeus ? 'btn-primary' : 'btn-ghost'}"
+           onclick="setAppCamFiltro('meus')"
+           style="${_appCamFiltroMeus ? '' : 'border-color:#1d4ed8;color:#1d4ed8;'}">
+           👤 Meus atribuídos (${totalMeusAtrib})
+         </button>`
+      : '';
     filtroEl.innerHTML =
-      `<button class="btn btn-sm ${_appCamFiltro===''?'btn-primary':'btn-ghost'}" onclick="setAppCamFiltro('')">Todos</button>` +
+      `<button class="btn btn-sm ${(!_appCamFiltro && !_appCamFiltroMeus) ? 'btn-primary' : 'btn-ghost'}" onclick="setAppCamFiltro('')">Todos</button>` +
+      btnMeus +
       statusPresentes.map(s =>
         `<button class="btn btn-sm ${_appCamFiltro===s?'btn-primary':'btn-ghost'}" onclick="setAppCamFiltro('${s}')">${labelStatus[s]||s}</button>`
       ).join('');
   }
 
-  const exibir = _appCamFiltro ? meus.filter(a => a.status === _appCamFiltro) : meus;
+  let exibir;
+  if (_appCamFiltroMeus) {
+    exibir = meus.filter(a => a.camareira_id === currentUser.id);
+  } else if (_appCamFiltro) {
+    exibir = meus.filter(a => a.status === _appCamFiltro);
+  } else {
+    exibir = meus;
+  }
 
   const icons = {
     livre:'✅', sujo:'🧺', limpando:'🧹', pausado:'⏸',
