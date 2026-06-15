@@ -120,74 +120,89 @@ async function _carregarDashboard(hotelId) {
   const govAtrasados = govAtrasadosRes.count ?? 0;
   const retrabalhos  = retrabalhoRes.count  ?? 0;
 
-  // Stats grid
+  // Stats grid — linha 1: composição dos aptos | linha 2: outros indicadores
   document.getElementById('stats-grid').innerHTML = `
-    <div class="stat-card s-blue">
-      <div class="stat-label">Total aptos</div>
-      <div class="stat-value">${total}</div>
-      <div class="stat-sub">unidades cadastradas</div>
+    <div style="margin-bottom:6px;">
+      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;">
+        Composição dos Apartamentos
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;">
+        <div class="stat-card s-blue">
+          <div class="stat-label">Total aptos</div>
+          <div class="stat-value">${total}</div>
+          <div class="stat-sub">unidades cadastradas</div>
+        </div>
+        <div class="stat-card s-green">
+          <div class="stat-label">Livres</div>
+          <div class="stat-value">${livre}</div>
+          <div class="stat-sub">disponíveis agora</div>
+        </div>
+        <div class="stat-card s-orange">
+          <div class="stat-label">A limpar</div>
+          <div class="stat-value">${sujo}</div>
+          <div class="stat-sub">aguardando limpeza</div>
+        </div>
+        <div class="stat-card s-blue">
+          <div class="stat-label">Em limpeza</div>
+          <div class="stat-value">${limpando}</div>
+          <div class="stat-sub">em andamento</div>
+        </div>
+        ${pausado > 0 ? `
+        <div class="stat-card" style="border-top:3px solid #7c3aed;">
+          <div class="stat-label">Pausados</div>
+          <div class="stat-value" style="color:#7c3aed;">${pausado}</div>
+          <div class="stat-sub">limpeza interrompida</div>
+        </div>` : ''}
+        ${conferencia > 0 ? `
+        <div class="stat-card" style="border-top:3px solid #0891b2;">
+          <div class="stat-label">Ag. conferência</div>
+          <div class="stat-value" style="color:#0891b2;">${conferencia}</div>
+          <div class="stat-sub">aguardando vistoria</div>
+        </div>` : ''}
+        ${limpo > 0 ? `
+        <div class="stat-card" style="border-top:3px solid #16a34a;">
+          <div class="stat-label">Limpos</div>
+          <div class="stat-value" style="color:#16a34a;">${limpo}</div>
+          <div class="stat-sub">prontos para recepção</div>
+        </div>` : ''}
+        ${reprovado > 0 ? `
+        <div class="stat-card" style="border-top:3px solid #dc2626;">
+          <div class="stat-label">Reprovados</div>
+          <div class="stat-value" style="color:#dc2626;">${reprovado}</div>
+          <div class="stat-sub">requer retrabalho</div>
+        </div>` : ''}
+        ${bloqueado > 0 ? `
+        <div class="stat-card" style="border-top:3px solid #64748b;">
+          <div class="stat-label">Bloqueados</div>
+          <div class="stat-value" style="color:#64748b;">${bloqueado}</div>
+          <div class="stat-sub">fora de uso</div>
+        </div>` : ''}
+        ${manutencao > 0 ? `
+        <div class="stat-card" style="border-top:3px solid #b45309;">
+          <div class="stat-label">Em manutenção</div>
+          <div class="stat-value" style="color:#b45309;">${manutencao}</div>
+          <div class="stat-sub">aguardando reparo</div>
+        </div>` : ''}
+      </div>
     </div>
-    <div class="stat-card s-green">
-      <div class="stat-label">Livres</div>
-      <div class="stat-value">${livre}</div>
-      <div class="stat-sub">disponíveis agora</div>
-    </div>
-    <div class="stat-card s-orange">
-      <div class="stat-label">A limpar</div>
-      <div class="stat-value">${sujo}</div>
-      <div class="stat-sub">aguardando limpeza</div>
-    </div>
-    <div class="stat-card s-blue">
-      <div class="stat-label">Em limpeza</div>
-      <div class="stat-value">${limpando}</div>
-      <div class="stat-sub">em andamento</div>
-    </div>
-    <div class="stat-card s-red">
-      <div class="stat-label">Chamados abertos</div>
-      <div class="stat-value">${abertos}</div>
-      <div class="stat-sub">${andamento} em andamento</div>
-    </div>
-    <div class="stat-card s-purple">
-      <div class="stat-label">Equipe ativa</div>
-      <div class="stat-value">${equipeArr.length}</div>
-      <div class="stat-sub">camareiras + manutenção</div>
-    </div>
-    ${pausado > 0 ? `
-    <div class="stat-card" style="border-top:3px solid #7c3aed;">
-      <div class="stat-label">Pausados</div>
-      <div class="stat-value" style="color:#7c3aed;">${pausado}</div>
-      <div class="stat-sub">limpeza interrompida</div>
-    </div>` : ''}
-    ${conferencia > 0 ? `
-    <div class="stat-card" style="border-top:3px solid #0891b2;">
-      <div class="stat-label">Ag. conferência</div>
-      <div class="stat-value" style="color:#0891b2;">${conferencia}</div>
-      <div class="stat-sub">aguardando vistoria</div>
-    </div>` : ''}
-    ${limpo > 0 ? `
-    <div class="stat-card" style="border-top:3px solid #16a34a;">
-      <div class="stat-label">Limpos</div>
-      <div class="stat-value" style="color:#16a34a;">${limpo}</div>
-      <div class="stat-sub">prontos para recepção</div>
-    </div>` : ''}
-    ${reprovado > 0 ? `
-    <div class="stat-card" style="border-top:3px solid #dc2626;">
-      <div class="stat-label">Reprovados</div>
-      <div class="stat-value" style="color:#dc2626;">${reprovado}</div>
-      <div class="stat-sub">requer retrabalho</div>
-    </div>` : ''}
-    ${bloqueado > 0 ? `
-    <div class="stat-card" style="border-top:3px solid #64748b;">
-      <div class="stat-label">Bloqueados</div>
-      <div class="stat-value" style="color:#64748b;">${bloqueado}</div>
-      <div class="stat-sub">fora de uso</div>
-    </div>` : ''}
-    ${manutencao > 0 ? `
-    <div class="stat-card" style="border-top:3px solid #b45309;">
-      <div class="stat-label">Em manutenção</div>
-      <div class="stat-value" style="color:#b45309;">${manutencao}</div>
-      <div class="stat-sub">aguardando reparo</div>
-    </div>` : ''}`;
+
+    <div>
+      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;">
+        Outros Indicadores
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;">
+        <div class="stat-card s-red">
+          <div class="stat-label">Chamados abertos</div>
+          <div class="stat-value">${abertos}</div>
+          <div class="stat-sub">${andamento} em andamento</div>
+        </div>
+        <div class="stat-card s-purple">
+          <div class="stat-label">Equipe ativa</div>
+          <div class="stat-value">${equipeArr.length}</div>
+          <div class="stat-sub">camareiras + manutenção</div>
+        </div>
+      </div>
+    </div>`;
 
   // Indicadores de Governança
   const _govCard = (label, value, color, sub) =>
