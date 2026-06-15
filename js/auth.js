@@ -169,6 +169,7 @@ const PERFIL_LABELS = {
   admin_global: 'Administrador Global',
   admin_hotel:  'Admin do Hotel',
   gestor:       'Gestor',
+  supervisora:  'Supervisora',
   camareira:    'Camareira',
   manutencao:   'Manutenção',
 };

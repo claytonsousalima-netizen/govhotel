@@ -228,8 +228,8 @@ function _popularPerfilSelectUsuario() {
   const sel = document.getElementById('us-perfil');
   if (!sel) return;
   const opcoes = currentUser.perfil === 'admin_global'
-    ? [['admin_global','Administrador Global'],['admin_hotel','Admin do Hotel'],['gestor','Gestor'],['camareira','Camareira'],['manutencao','Manutenção']]
-    : [['admin_hotel','Admin do Hotel'],['gestor','Gestor'],['camareira','Camareira'],['manutencao','Manutenção']];
+    ? [['admin_global','Administrador Global'],['admin_hotel','Admin do Hotel'],['gestor','Gestor'],['supervisora','Supervisora'],['camareira','Camareira'],['manutencao','Manutenção']]
+    : [['admin_hotel','Admin do Hotel'],['gestor','Gestor'],['supervisora','Supervisora'],['camareira','Camareira'],['manutencao','Manutenção']];
   sel.innerHTML = opcoes.map(([val, label]) =>
     `<option value="${val}">${label}</option>`
   ).join('');
