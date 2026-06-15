@@ -1798,6 +1798,25 @@ tr:last-child td { border-bottom: none; }
   </div>
 </div>
 
+<!-- Modal Ação Apto App (limpando / pausado / reprovado) -->
+<div class="modal-overlay" id="modal-acao-apto-app">
+  <div class="modal" style="max-width:360px;">
+    <div class="modal-header">
+      <div class="modal-title" id="acao-apto-title">Apto</div>
+      <button class="btn-close" onclick="closeModal('modal-acao-apto-app')">✕</button>
+    </div>
+    <div class="modal-body" style="text-align:center;padding:24px 20px;">
+      <div id="acao-apto-icon" style="font-size:48px;margin-bottom:12px;"></div>
+      <div id="acao-apto-status-badge" style="margin-bottom:8px;"></div>
+      <div id="acao-apto-info" style="font-size:13px;color:var(--text2);margin-bottom:4px;"></div>
+      <div id="acao-apto-reprov-motivo" style="display:none;margin:12px 0;padding:10px 14px;
+           background:#fef2f2;border-left:3px solid var(--danger);border-radius:6px;
+           font-size:12px;color:#991b1b;text-align:left;"></div>
+    </div>
+    <div class="modal-footer" id="acao-apto-footer" style="flex-direction:column;gap:8px;"></div>
+  </div>
+</div>
+
 <!-- Modal Checklist Limpeza -->
 <div class="modal-overlay" id="modal-checklist">
   <div class="modal">
@@ -2516,10 +2535,91 @@ function abrirChecklistApp(id) {
   selectedAptoId = id;
   const apto = aptos.find(a => a.id === id);
   if (!apto) return;
-  document.getElementById('checklist-title').textContent = `Limpeza — Apto ${apto.numero}`;
-  checklistState = CHECKLIST_PADRAO.map(item => ({ label:item, done:false }));
-  renderChecklist();
-  openModal('modal-checklist');
+
+  // Roteia para modal correto conforme status
+  if (apto.status === 'sujo') {
+    document.getElementById('checklist-title').textContent = `Limpeza — Apto ${apto.numero}`;
+    checklistState = CHECKLIST_PADRAO.map(item => ({ label:item, done:false }));
+    renderChecklist();
+    openModal('modal-checklist');
+    return;
+  }
+
+  if (['limpando','pausado','reprovado'].includes(apto.status)) {
+    _abrirAcaoAptoApp(apto);
+    return;
+  }
+
+  // Demais status: abre detalhes
+  openAptoDetail(id);
+}
+
+function _abrirAcaoAptoApp(apto) {
+  const labelStatus = { limpando:'Em andamento', pausado:'Pausado', reprovado:'Reprovado' };
+  const badgeClass  = { limpando:'badge-limpando', pausado:'badge-pausado', reprovado:'badge-reprovado' };
+  const icon        = { limpando:'🧹', pausado:'⏸', reprovado:'❌' };
+
+  document.getElementById('acao-apto-title').textContent   = `Apto ${apto.numero}`;
+  document.getElementById('acao-apto-icon').textContent    = icon[apto.status] || '🏠';
+  document.getElementById('acao-apto-info').textContent    = `${apto.tipo} · ${apto.andar}º andar`;
+  document.getElementById('acao-apto-status-badge').innerHTML =
+    `<span class="badge ${badgeClass[apto.status]}">${labelStatus[apto.status]}</span>`;
+
+  // Motivo de reprovação
+  const motivoEl = document.getElementById('acao-apto-reprov-motivo');
+  if (apto.status === 'reprovado' && apto.obs) {
+    motivoEl.style.display = '';
+    motivoEl.innerHTML = `<strong>Motivo da reprovação:</strong><br>${apto.obs}`;
+  } else {
+    motivoEl.style.display = 'none';
+  }
+
+  // Botões por status
+  const footer = document.getElementById('acao-apto-footer');
+  if (apto.status === 'limpando') {
+    footer.innerHTML = `
+      <button class="btn btn-warning" style="width:100%;" onclick="acaoAptoApp('pausar')">⏸ Pausar limpeza</button>
+      <button class="btn btn-success" style="width:100%;" onclick="acaoAptoApp('conferencia')">🔍 Enviar para conferência</button>
+      <button class="btn btn-ghost"   style="width:100%;" onclick="closeModal('modal-acao-apto-app')">Fechar</button>`;
+  } else if (apto.status === 'pausado') {
+    footer.innerHTML = `
+      <button class="btn btn-primary" style="width:100%;" onclick="acaoAptoApp('retomar')">▶ Retomar limpeza</button>
+      <button class="btn btn-ghost"   style="width:100%;" onclick="closeModal('modal-acao-apto-app')">Fechar</button>`;
+  } else if (apto.status === 'reprovado') {
+    footer.innerHTML = `
+      <button class="btn btn-primary" style="width:100%;" onclick="acaoAptoApp('reiniciar')">▶ Iniciar re-limpeza</button>
+      <button class="btn btn-ghost"   style="width:100%;" onclick="closeModal('modal-acao-apto-app')">Fechar</button>`;
+  }
+
+  openModal('modal-acao-apto-app');
+}
+
+async function acaoAptoApp(acao) {
+  closeModal('modal-acao-apto-app');
+  const apto = aptos.find(a => a.id === selectedAptoId);
+  if (!apto) return;
+
+  if (acao === 'pausar') {
+    const obs = `Limpeza pausada por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
+    await mudarStatusApto(selectedAptoId, 'pausado', obs);
+
+  } else if (acao === 'conferencia') {
+    const obs = `Limpeza concluída por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')} — enviado para conferência`;
+    await mudarStatusApto(selectedAptoId, 'conferencia', obs);
+
+  } else if (acao === 'retomar') {
+    const obs = `Limpeza retomada por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
+    await mudarStatusApto(selectedAptoId, 'limpando', obs);
+
+  } else if (acao === 'reiniciar') {
+    // Abre checklist para re-limpeza
+    if (apto) {
+      document.getElementById('checklist-title').textContent = `Re-limpeza — Apto ${apto.numero}`;
+      checklistState = CHECKLIST_PADRAO.map(item => ({ label:item, done:false }));
+      renderChecklist();
+      openModal('modal-checklist');
+    }
+  }
 }
 
 function renderChecklist() {
