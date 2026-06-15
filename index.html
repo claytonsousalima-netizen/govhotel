@@ -2320,7 +2320,7 @@ async function _popularSelectCamareiraApto(hotelId, currentCamId) {
   sel.onchange = () => _atribuirCamareiraApto(selectedAptoId, sel.value || null);
 }
 
-function openAptoDetail(id) {
+async function openAptoDetail(id) {
   selectedAptoId = id;
   const apto = aptos.find(a => a.id === id);
   if (!apto) return;
