@@ -55,7 +55,7 @@ async function syncApartamentos() {
     avId:         (i % 6) + 1,
   }));
 
-  // Sincroniza equipe (maids) do mesmo hotel
+  // Sincroniza equipe do mesmo hotel via user_profiles
   await _syncEquipe(hotelId);
 
   // Atualiza badge do menu (confCount depende de aptos frescos)

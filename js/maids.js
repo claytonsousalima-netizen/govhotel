@@ -237,7 +237,7 @@ function _zerarStatsEquipe() {
 // ── FORMULÁRIO ────────────────────────────────────────────────
 
 async function openMaidForm(id = null) {
-  if (!requireWrite('maids')) return;
+  if (!requireWrite('equipe')) return;
   _editingMaidId = id;
   const isEdit = !!id;
 
@@ -293,45 +293,11 @@ async function _popularCaHotelSelectMaid() {
     ).join('');
 }
 
-// Override do salvarNovoMembro inline
+// Membros da equipe são gerenciados via página Usuários (cadastro com login no sistema)
 async function salvarNovoMembro() {
-  if (!requireWrite('maids')) return;
-  const nome     = document.getElementById('nm-nome').value.trim();
-  const cargo    = document.getElementById('nm-cargo').value;
-  const andar    = document.getElementById('nm-andar').value || null;
-  const turno    = document.getElementById('nm-turno').value;
-  const status   = document.getElementById('nm-status').value;
-  const telefone = document.getElementById('nm-telefone').value.trim() || null;
-  const email    = document.getElementById('nm-email').value.trim()    || null;
-
-  let hotel_id = currentUser.perfil === 'admin_global'
-    ? (document.getElementById('nm-hotel-id')?.value || _maidViewHotelId)
-    : currentUser.hotelId;
-
-  if (!nome)     { toast('Informe o nome completo', 'error'); return; }
-  if (!hotel_id) { toast('Selecione o hotel', 'error'); return; }
-
-  const btn = document.getElementById('btn-salvar-membro');
-  if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
-
-  const payload = {
-    nome, cargo, turno, status, hotel_id,
-    andar_responsavel: andar,
-    telefone, email,
-  };
-
-  let error;
-  if (_editingMaidId) {
-    ({ error } = await supabaseClient.from('maids').update(payload).eq('id', _editingMaidId));
-  } else {
-    ({ error } = await supabaseClient.from('maids').insert([payload]));
-  }
-
-  if (btn) { btn.disabled = false; btn.textContent = _editingMaidId ? 'Salvar alterações' : 'Adicionar membro'; }
-
-  if (error) { toast('Erro: ' + error.message, 'error'); return; }
-
   closeModal('modal-novo-membro');
+  toast('Para adicionar ou editar membros, use o menu Usuários.', 'warning');
+  openPage('usuarios');
   toast(_editingMaidId ? `${nome} atualizado(a)!` : `${nome} adicionado(a) à equipe!`, 'success');
   _editingMaidId = null;
 

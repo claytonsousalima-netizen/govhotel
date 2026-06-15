@@ -13,15 +13,15 @@
 // "write" = criar + editar; "delete" = excluir
 
 const WRITE_PERMISSIONS = {
-  admin_global: ['hotels','apartments','apartment_status','maids','users','work_orders'],
-  admin_hotel:  ['apartments','apartment_status','maids','users','work_orders'],
-  gestor:       ['apartments','apartment_status','maids','work_orders'],
+  admin_global: ['hotels','apartments','apartment_status','equipe','users','work_orders'],
+  admin_hotel:  ['apartments','apartment_status','equipe','users','work_orders'],
+  gestor:       ['apartments','apartment_status','equipe','work_orders'],
   camareira:    ['apartment_status', 'work_orders'],
 };
 
 const DELETE_PERMISSIONS = {
-  admin_global: ['hotels','apartments','maids','users','work_orders'],
-  admin_hotel:  ['apartments','maids','users','work_orders'],
+  admin_global: ['hotels','apartments','equipe','users','work_orders'],
+  admin_hotel:  ['apartments','equipe','users','work_orders'],
   gestor:       [],
   camareira:    [],
 };
@@ -101,7 +101,7 @@ function applyProfileRestrictions() {
   // A camareira não tem 'equipe' no PERFIL_PAGES, então nunca chega aqui.
   // Mas por precaução, buscamos o botão e ocultamos se não tiver permissão.
   document.querySelectorAll('[onclick="openMaidForm()"]').forEach(btn => {
-    btn.style.display = canWrite('maids') ? '' : 'none';
+    btn.style.display = canWrite('equipe') ? '' : 'none';
   });
 
   // Mapa: ações do cabeçalho — cadastro restrito a admin
