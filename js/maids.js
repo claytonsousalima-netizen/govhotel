@@ -45,11 +45,13 @@ async function renderEquipe() {
   _renderEquipeTabela();
   _atualizarStatsEquipe();
 
-  // Oculta botão "Adicionar Membro" para gestor (somente admin gerencia equipe)
+  // Botão "Adicionar Membro" redireciona para Usuários (criação de camareira exige login no sistema)
   const btnAddMembro = document.querySelector('[onclick="openMaidForm()"]');
   if (btnAddMembro) {
     const isAdmin = ['admin_global','admin_hotel'].includes(currentUser.perfil);
     btnAddMembro.style.display = isAdmin ? '' : 'none';
+    btnAddMembro.setAttribute('onclick', "openPage('usuarios')");
+    btnAddMembro.title = 'Cadastrar novo membro em Usuários';
   }
 
   // Sincroniza seletor de camareira no formulário de aptos
@@ -68,8 +70,7 @@ async function _popularSeletorHotelEquipe() {
 }
 
 async function _fetchMaids(hotelId) {
-  // Fonte primária: user_profiles (camareiras e manutenção do sistema de login)
-  const { data: perfilData, error: perfilErr } = await supabaseClient
+  const { data, error } = await supabaseClient
     .from('user_profiles')
     .select('user_id, nome, perfil, ativo, hotel_id, turnos(label)')
     .in('perfil', ['camareira', 'manutencao'])
@@ -77,19 +78,11 @@ async function _fetchMaids(hotelId) {
     .eq('ativo', true)
     .order('nome');
 
-  if (perfilErr) console.error('Erro equipe (user_profiles):', perfilErr.message);
-
-  // Fonte legada: tabela maids (registros operacionais sem login no sistema)
-  const { data: maidsData } = await supabaseClient
-    .from('maids').select('*').eq('hotel_id', hotelId).order('nome');
+  if (error) console.error('Erro equipe (user_profiles):', error.message);
 
   const cargoMap = { camareira: 'Camareira', manutencao: 'Manutenção' };
-  const nomesDoSistema = new Set(
-    (perfilData || []).map(u => u.nome.toLowerCase().trim())
-  );
-
-  const fromProfiles = (perfilData || []).map((u, i) => ({
-    id:         'up_' + u.user_id,
+  equipe = (data || []).map((u, i) => ({
+    id:         u.user_id,
     user_id:    u.user_id,
     nome:       u.nome,
     cargo:      cargoMap[u.perfil] || u.perfil,
@@ -103,27 +96,6 @@ async function _fetchMaids(hotelId) {
     avId:       (i % 6) + 1,
     _source:    'user_profiles',
   }));
-
-  // Inclui maids sem correspondência em user_profiles (evita duplicatas por nome)
-  const fromMaids = (maidsData || [])
-    .filter(m => !nomesDoSistema.has(m.nome.toLowerCase().trim()))
-    .map((m, i) => ({
-      id:         m.id,
-      user_id:    null,
-      nome:       m.nome,
-      cargo:      m.cargo             || 'Camareira',
-      andar:      m.andar_responsavel || 'Todos',
-      turno:      m.turno             || '—',
-      status:     m.status,
-      telefone:   m.telefone          || '',
-      email:      m.email             || '',
-      hotel_id:   m.hotel_id,
-      aptos_hoje: 0,
-      avId:       ((fromProfiles.length + i) % 6) + 1,
-      _source:    'maids',
-    }));
-
-  equipe = [...fromProfiles, ...fromMaids];
 }
 
 async function selecionarHotelEquipe(hotelId) {
@@ -376,19 +348,9 @@ async function toggleMaidStatus(id, statusAtual) {
   const acao   = ativar ? 'ativar' : 'inativar';
   if (!confirm(`Deseja ${acao} "${maid.nome}"?`)) return;
 
-  let error;
-  if (maid._source === 'user_profiles') {
-    // Usuário do sistema — alterna campo ativo em user_profiles
-    ({ error } = await supabaseClient
-      .from('user_profiles').update({ ativo: ativar }).eq('user_id', maid.user_id));
-    if (!error) maid.status = ativar ? 'ativo' : 'inativo';
-  } else {
-    // Registro legado — alterna status em maids
-    const novoStatus = ativar ? 'ativo' : 'inativo';
-    ({ error } = await supabaseClient
-      .from('maids').update({ status: novoStatus }).eq('id', id));
-    if (!error) maid.status = novoStatus;
-  }
+  const { error } = await supabaseClient
+    .from('user_profiles').update({ ativo: ativar }).eq('user_id', maid.user_id);
+  if (!error) maid.status = ativar ? 'ativo' : 'inativo';
 
   if (error) { toast('Erro: ' + error.message, 'error'); return; }
 

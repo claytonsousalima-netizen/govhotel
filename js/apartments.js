@@ -18,7 +18,7 @@ async function syncApartamentos() {
 
   const { data: aptosData, error: aptosErr } = await supabaseClient
     .from('apartments')
-    .select('*, maids!maid_id(id, nome)')
+    .select('*')
     .eq('hotel_id', hotelId)
     .order('andar')
     .order('numero');
@@ -28,7 +28,7 @@ async function syncApartamentos() {
     return;
   }
 
-  // Resolve nomes de camareira: tenta maids, depois user_profiles
+  // Resolve nomes de camareira via user_profiles (maid_id armazena user_profiles.user_id)
   const maidIdsRaw = [...new Set((aptosData || []).filter(a => a.maid_id).map(a => a.maid_id))];
   let _camNamesExtra = {};
   if (maidIdsRaw.length) {
@@ -51,7 +51,7 @@ async function syncApartamentos() {
     prioridade:   a.prioridade  || false,
     hotel_id:     a.hotel_id,
     ativo:        a.ativo !== false,
-    _maid_nome:   _camNamesExtra[a.maid_id] || a.maids?.nome || null,
+    _maid_nome:   _camNamesExtra[a.maid_id] || null,
     avId:         (i % 6) + 1,
   }));
 
@@ -79,24 +79,27 @@ async function _popularCamareiraSelect(selectedId, hotelId) {
 
 async function _syncEquipe(hotelId) {
   const { data } = await supabaseClient
-    .from('maids')
-    .select('*')
+    .from('user_profiles')
+    .select('user_id, nome, perfil, ativo, turnos(label)')
+    .in('perfil', ['camareira', 'manutencao'])
     .eq('hotel_id', hotelId)
-    .eq('status', 'ativo')
+    .eq('ativo', true)
     .order('nome');
 
-  if (data) {
-    equipe = data.map((m, i) => ({
-      id:        m.id,
-      nome:      m.nome,
-      cargo:     m.cargo              || 'Camareira',
-      andar:     m.andar_responsavel  || 'Todos',
-      turno:     m.turno              || 'Manhã (07:00–15:00)',
-      status:    m.status,
-      aptos_hoje: 0,
-      avId:      (i % 6) + 1,
-    }));
-  }
+  const cargoMap = { camareira: 'Camareira', manutencao: 'Manutenção' };
+  equipe = (data || []).map((u, i) => ({
+    id:         u.user_id,
+    user_id:    u.user_id,
+    nome:       u.nome,
+    cargo:      cargoMap[u.perfil] || u.perfil,
+    andar:      'Todos',
+    turno:      u.turnos?.label || '—',
+    status:     'ativo',
+    hotel_id:   hotelId,
+    aptos_hoje: 0,
+    avId:       (i % 6) + 1,
+    _source:    'user_profiles',
+  }));
 }
 
 // ── RENDER PÁGINA PRINCIPAL ───────────────────────────────────
