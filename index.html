@@ -2263,7 +2263,7 @@ function searchMapa(q) {
 }
 
 async function _atribuirCamareiraApto(aptoId, userId) {
-  const payload = { camareira_id: userId || null };
+  const payload = { maid_id: userId || null };
   const { error } = await supabaseClient.from('apartments').update(payload).eq('id', aptoId);
   if (error) { toast('Erro ao atribuir camareira: ' + error.message, 'error'); return; }
   // Atualiza cache local
