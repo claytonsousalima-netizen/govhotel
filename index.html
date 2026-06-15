@@ -1781,7 +1781,6 @@ tr:last-child td { border-bottom: none; }
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title" id="checklist-title">Limpeza — Apto</div>
-      <button class="btn-close" onclick="closeModal('modal-checklist')">✕</button>
     </div>
     <div class="modal-body">
       <div id="checklist-progress" style="margin-bottom:16px;"></div>
@@ -2454,10 +2453,8 @@ function abrirChecklistApp(id) {
   if (!apto) return;
   document.getElementById('checklist-title').textContent = `Limpeza — Apto ${apto.numero}`;
   checklistState = CHECKLIST_PADRAO.map(item => ({ label:item, done:false }));
-  if (apto.status === 'sujo') apto.status = 'limpando';
   renderChecklist();
   openModal('modal-checklist');
-  renderAppCamareira();
 }
 
 function renderChecklist() {
@@ -2478,16 +2475,20 @@ function renderChecklist() {
 }
 
 function toggleCheck(i) { checklistState[i].done = !checklistState[i].done; renderChecklist(); }
-function pausarLimpezaChecklist() { closeModal('modal-checklist'); toast('Limpeza pausada — pode continuar depois'); }
+async function pausarLimpezaChecklist() {
+  closeModal('modal-checklist');
+  const obs = `Limpeza pausada por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
+  await mudarStatusApto(selectedAptoId, 'pausado', obs);
+}
 
-function concluirChecklist() {
+async function concluirChecklist() {
   const done = checklistState.filter(i => i.done).length;
   if (done < checklistState.length * 0.8) { toast('Complete pelo menos 80% dos itens', 'error'); return; }
   const apto = aptos.find(a => a.id === selectedAptoId);
-  if (apto) apto.status = 'conferencia';
+  if (!apto) return;
   closeModal('modal-checklist');
-  toast(`Apto ${apto.numero} enviado para conferência! ✅`, 'success');
-  renderAppCamareira();
+  const obs = `Limpeza em andamento — checklist iniciado por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
+  await mudarStatusApto(selectedAptoId, 'limpando', obs);
 }
 
 // ============ SELECTS ============
@@ -2512,7 +2513,7 @@ function closeModal(id) {
   el?.classList.remove('open');
 }
 // Modais que não fecham ao clicar fora (requerem ação explícita do usuário)
-const MODAIS_PROTEGIDOS = ['modal-usuario-form', 'modal-senha', 'modal-cadastro-apto', 'modal-novo-membro', 'modal-novo-chamado'];
+const MODAIS_PROTEGIDOS = ['modal-usuario-form', 'modal-senha', 'modal-cadastro-apto', 'modal-novo-membro', 'modal-novo-chamado', 'modal-checklist', 'modal-checklist-limpeza'];
 document.querySelectorAll('.modal-overlay').forEach(m => {
   m.addEventListener('click', e => {
     if (e.target !== m) return;
@@ -2555,7 +2556,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <script src="js/hotels.js?v=20260613p"></script>
-<script src="js/apartments.js?v=20260614h"></script>
+<script src="js/apartments.js?v=20260615a"></script>
 <script src="js/maids.js?v=20260614d"></script>
 <script src="js/users.js?v=20260615a"></script>
 <script src="js/permissions.js?v=20260614b"></script>
@@ -2563,6 +2564,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 <script src="js/config.js?v=20260613v"></script>
 <script src="js/dashboard.js?v=20260615c"></script>
 <script src="js/relatorios.js?v=20260613p"></script>
-<script src="js/minha-fila.js?v=20260615a"></script>
+<script src="js/minha-fila.js?v=20260615b"></script>
 </body>
 </html>

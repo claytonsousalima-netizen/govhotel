@@ -1044,9 +1044,6 @@ function abrirChecklistApp(id) {
   if (!apto) return;
   document.getElementById('checklist-title').textContent = `Limpeza — Apto ${apto.numero}`;
   checklistState = CHECKLIST_PADRAO.map(item => ({ label: item, done: false }));
-  if (apto.status === 'sujo') {
-    mudarStatusApto(id, 'limpando'); // persiste no Supabase
-  }
   renderChecklist();
   openModal('modal-checklist');
 }

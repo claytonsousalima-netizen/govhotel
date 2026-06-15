@@ -488,16 +488,8 @@ function _mfScrollTo(id) {
 function mfAcao(id, acao) {
   selectedAptoId = id;
   if (acao === 'iniciar') {
-    // Muda status para limpando e abre o checklist de acompanhamento
-    iniciarLimpeza();
-    const apto = aptos.find(a => a.id === id);
-    if (apto && typeof CHECKLIST_PADRAO !== 'undefined') {
-      const titleEl = document.getElementById('checklist-title');
-      if (titleEl) titleEl.textContent = `Limpeza — Apto ${apto.numero}`;
-      checklistState = CHECKLIST_PADRAO.map(item => ({ label: item, done: false }));
-      if (typeof renderChecklist === 'function') renderChecklist();
-      openModal('modal-checklist');
-    }
+    // Abre checklist sem mudar status — status só muda ao concluir o checklist
+    if (typeof abrirChecklistApp === 'function') abrirChecklistApp(id);
   }
   if (acao === 'pausar')   abrirModalPausa(id);
   if (acao === 'concluir') concluirLimpeza();
