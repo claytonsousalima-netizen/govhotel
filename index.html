@@ -2286,11 +2286,11 @@ async function _popularSelectCamareiraApto(hotelId, currentCamId) {
   if (!sel) return;
   sel.innerHTML = '<option value="">Carregando...</option>';
   const { data } = await supabaseClient
-    .from('user_profiles').select('user_id, nome')
-    .eq('perfil', 'camareira').eq('ativo', true).eq('hotel_id', hotelId).order('nome');
+    .from('maids').select('id, nome')
+    .eq('hotel_id', hotelId).eq('status', 'ativo').order('nome');
   const lista = data || [];
   sel.innerHTML = '<option value="">— Não atribuída</option>' +
-    lista.map(u => `<option value="${u.user_id}" ${u.user_id === currentCamId ? 'selected' : ''}>${u.nome}</option>`).join('');
+    lista.map(m => `<option value="${m.id}" ${m.id === currentCamId ? 'selected' : ''}>${m.nome}</option>`).join('');
   sel.onchange = () => _atribuirCamareiraApto(selectedAptoId, sel.value || null);
 }
 
