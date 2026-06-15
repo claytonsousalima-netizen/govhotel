@@ -8,8 +8,9 @@ let _chamadoHotelId   = null;
 let _chamadoDept      = null;   // null=todos | 'governanca' | 'manutencao'
 let _tiposChamado     = [];
 let _chamadoDetalheId = null;
-let _chamadosKnownIds = new Set(); // IDs já vistos — evita notificar chamados antigos
-let _chamadosIniciado = false;     // false até a primeira _fetchChamados() concluir
+let _chamadosKnownIds      = new Set(); // IDs já vistos — evita notificar chamados antigos
+let _chamadosIniciado      = false;     // false até a primeira _fetchChamados() concluir
+let _chamadosResponsavelMap = new Map(); // chamadoId → responsavel_user_id anterior
 
 const _GOV_STATUS = {
   aberto:     { label:'Aberto',       badge:'badge-sujo'        },
@@ -205,19 +206,36 @@ async function _fetchChamados() {
     const perfil = currentUser?.perfil;
     if (perfil === 'camareira' || perfil === 'manutencao') {
       _chamadosCache.forEach(c => {
-        if (_chamadosKnownIds.has(c.id)) return;
-        if (c.criado_por === currentUser.id) return; // não notifica quem abriu
-        const deptOk = perfil === 'camareira'
-          ? c.departamento === 'governanca'
-          : c.departamento === 'manutencao';
-        if (deptOk && typeof _showNovoChamadoNotif === 'function') {
-          _showNovoChamadoNotif(c);
+        // Notifica chamado novo (INSERT) — departamento compatível
+        if (!_chamadosKnownIds.has(c.id)) {
+          if (c.criado_por !== currentUser.id) {
+            const deptOk = perfil === 'camareira'
+              ? c.departamento === 'governanca'
+              : c.departamento === 'manutencao';
+            if (deptOk && typeof _showNovoChamadoNotif === 'function') {
+              _showNovoChamadoNotif(c);
+            }
+          }
+        }
+        // Notifica atribuição direta (UPDATE responsavel_user_id → currentUser.id)
+        const anteriorResp = _chamadosResponsavelMap.get(c.id);
+        const atualResp    = c.responsavel_user_id || null;
+        if (
+          _chamadosKnownIds.has(c.id) &&          // chamado já existia
+          anteriorResp !== currentUser.id &&       // antes não era para mim
+          atualResp    === currentUser.id &&       // agora é para mim
+          typeof _showNovoChamadoNotif === 'function'
+        ) {
+          _showNovoChamadoNotif(c, 'atribuido');
         }
       });
     }
   }
-  // Marca todos os IDs atuais como conhecidos
-  _chamadosCache.forEach(c => _chamadosKnownIds.add(c.id));
+  // Atualiza mapas de estado
+  _chamadosCache.forEach(c => {
+    _chamadosKnownIds.add(c.id);
+    _chamadosResponsavelMap.set(c.id, c.responsavel_user_id || null);
+  });
   _chamadosIniciado = true;
 
   // Atualiza badge do menu lateral com a contagem real já filtrada por perfil
@@ -841,6 +859,7 @@ function stopRealtimeChamados() {
   }
   _chamadosIniciado = false;
   _chamadosKnownIds.clear();
+  _chamadosResponsavelMap.clear();
 }
 
 // ── INICIALIZAR CHAMADOS ─────────────────────────────────────

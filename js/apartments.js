@@ -1048,19 +1048,28 @@ async function renderAppCamareira() {
   };
 
   document.getElementById('app-apto-list').innerHTML = exibir.length
-    ? exibir.map(a => `
-        <div class="apto-card-app ${a.status}" onclick="abrirChecklistApp('${a.id}')">
+    ? exibir.map(a => {
+        const meuApto = a.camareira_id === currentUser.id;
+        const borderStyle = meuApto
+          ? 'border:2px solid var(--primary);box-shadow:0 0 0 3px rgba(var(--primary-rgb,59,130,246),0.15);'
+          : '';
+        return `
+        <div class="apto-card-app ${a.status}" onclick="abrirChecklistApp('${a.id}')" style="${borderStyle}">
           <div>
             <div class="app-apto-num">${a.numero}</div>
             <div class="app-apto-info">${a.tipo} · ${a.andar}º andar</div>
-            <div style="margin-top:4px;"><span class="badge badge-${a.status}">${labelStatus[a.status]||a.status}</span></div>
+            <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;align-items:center;">
+              <span class="badge badge-${a.status}">${labelStatus[a.status]||a.status}</span>
+              ${meuApto ? '<span style="font-size:10px;background:#dbeafe;color:#1d4ed8;padding:2px 7px;border-radius:10px;font-weight:700;">👤 Atribuído a mim</span>' : ''}
+            </div>
           </div>
           <div style="text-align:right;">
             <div style="font-size:28px;">${icons[a.status]||'❓'}</div>
             ${a.status==='sujo'?'<div style="font-size:11px;color:var(--warning);font-weight:700;margin-top:4px;">TAP PARA INICIAR</div>':''}
             ${a.status==='limpando'?'<div style="font-size:11px;color:var(--info);font-weight:700;margin-top:4px;">EM ANDAMENTO</div>':''}
           </div>
-        </div>`).join('')
+        </div>`;
+      }).join('')
     : `<div style="text-align:center;padding:32px;color:var(--text3);font-size:13px;">Nenhum apartamento com este status.</div>`
 }
 
