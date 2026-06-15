@@ -11,6 +11,7 @@ async function renderConfigPage() {
     renderConfigTurnos(),
     renderConfigTipos(),
     renderConfigSolicitantes(),
+    renderConfigMotivos(),
     renderConfigChecklist(),
   ]);
 }
@@ -434,6 +435,112 @@ async function _excluirSolicitante(id) {
   if (error) { toast('Erro: ' + error.message, 'error'); return; }
   toast('Solicitante excluído!', 'success');
   await renderConfigSolicitantes();
+}
+
+// ── MOTIVOS DE REPROVAÇÃO ─────────────────────────────────────
+let _motivosCache = [];
+
+async function renderConfigMotivos() {
+  const el = document.getElementById('config-motivos-reprovacao');
+  if (!el) return;
+
+  const hotelId = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
+  let query = supabaseClient.from('motivos_reprovacao').select('*').order('ordem');
+  if (hotelId) query = query.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
+
+  const { data, error } = await query;
+  if (error) {
+    el.innerHTML = `<div style="color:var(--danger);font-size:12px;">Erro: ${error.message}</div>`;
+    return;
+  }
+  _motivosCache = data || [];
+
+  el.innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+      <input type="text" id="new-motivo-nome" placeholder="Novo motivo de reprovação..."
+        style="flex:1;min-width:180px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;"
+        onkeydown="if(event.key==='Enter') _adicionarMotivo()">
+      <button class="btn btn-primary btn-sm" onclick="_adicionarMotivo()">+ Adicionar</button>
+    </div>
+    <div id="motivos-lista">
+      ${_motivosCache.map(m => _renderMotivoRow(m)).join('')}
+    </div>`;
+}
+
+function _renderMotivoRow(m) {
+  return `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);gap:8px;" id="motivo-row-${m.id}">
+      <div style="display:flex;align-items:center;gap:8px;flex:1;">
+        <span style="font-size:12px;color:var(--text3);">${m.hotel_id ? '🏨' : '🌐'}</span>
+        <span style="font-size:13px;${!m.ativo ? 'text-decoration:line-through;color:var(--text3);' : ''}"
+          id="motivo-nome-text-${m.id}">${m.nome}</span>
+        ${!m.ativo ? '<span class="badge badge-bloqueado" style="font-size:10px;">Inativo</span>' : ''}
+      </div>
+      <div id="motivo-edit-${m.id}" style="display:none;flex:1;">
+        <input type="text" id="motivo-edit-nome-${m.id}" value="${m.nome}"
+          style="width:100%;padding:5px 8px;border:1.5px solid var(--primary-light);border-radius:var(--radius-sm);font-size:13px;"
+          onkeydown="if(event.key==='Enter') _salvarEdicaoMotivo('${m.id}')">
+      </div>
+      <div style="display:flex;gap:4px;flex-shrink:0;">
+        <button class="btn btn-ghost btn-xs" id="motivo-btn-edit-${m.id}"
+          onclick="_iniciarEdicaoMotivo('${m.id}')" title="Editar">✏️</button>
+        <button class="btn btn-ghost btn-xs" id="motivo-btn-save-${m.id}" style="display:none;"
+          onclick="_salvarEdicaoMotivo('${m.id}')" title="Salvar">💾</button>
+        <button class="btn btn-ghost btn-xs" id="motivo-btn-cancel-${m.id}" style="display:none;"
+          onclick="renderConfigMotivos()" title="Cancelar">✕</button>
+        <button class="btn btn-ghost btn-xs" onclick="_toggleMotivo('${m.id}',${m.ativo})"
+          title="${m.ativo ? 'Inativar' : 'Ativar'}">${m.ativo ? '⏸' : '▶'}</button>
+        ${m.hotel_id
+          ? `<button class="btn btn-ghost btn-xs" style="color:var(--danger);"
+              onclick="_excluirMotivo('${m.id}')" title="Excluir">🗑</button>`
+          : ''}
+      </div>
+    </div>`;
+}
+
+function _iniciarEdicaoMotivo(id) {
+  document.getElementById(`motivo-nome-text-${id}`).style.display  = 'none';
+  document.getElementById(`motivo-edit-${id}`).style.display       = 'block';
+  document.getElementById(`motivo-btn-edit-${id}`).style.display   = 'none';
+  document.getElementById(`motivo-btn-save-${id}`).style.display   = '';
+  document.getElementById(`motivo-btn-cancel-${id}`).style.display = '';
+  document.getElementById(`motivo-edit-nome-${id}`)?.focus();
+}
+
+async function _salvarEdicaoMotivo(id) {
+  const nome = document.getElementById(`motivo-edit-nome-${id}`)?.value.trim();
+  if (!nome) { toast('Informe o motivo', 'error'); return; }
+  const { error } = await supabaseClient.from('motivos_reprovacao').update({ nome }).eq('id', id);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  toast('Motivo atualizado!', 'success');
+  await renderConfigMotivos();
+}
+
+async function _adicionarMotivo() {
+  const input = document.getElementById('new-motivo-nome');
+  const nome  = input?.value.trim();
+  if (!nome) { toast('Informe o motivo de reprovação', 'error'); return; }
+  const hotel_id = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
+  const ordem    = (_motivosCache.length || 0) + 1;
+  const { error } = await supabaseClient.from('motivos_reprovacao').insert([{ nome, hotel_id, ativo: true, ordem }]);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  if (input) input.value = '';
+  toast('Motivo adicionado!', 'success');
+  await renderConfigMotivos();
+}
+
+async function _toggleMotivo(id, ativo) {
+  const { error } = await supabaseClient.from('motivos_reprovacao').update({ ativo: !ativo }).eq('id', id);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  await renderConfigMotivos();
+}
+
+async function _excluirMotivo(id) {
+  if (!confirm('Excluir este motivo de reprovação?')) return;
+  const { error } = await supabaseClient.from('motivos_reprovacao').delete().eq('id', id);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  toast('Motivo excluído!', 'success');
+  await renderConfigMotivos();
 }
 
 // Rendering chamado diretamente por renderConfig() em index.html
