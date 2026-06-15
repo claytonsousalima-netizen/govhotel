@@ -8,6 +8,8 @@ let _chamadoHotelId   = null;
 let _chamadoDept      = null;   // null=todos | 'governanca' | 'manutencao'
 let _tiposChamado     = [];
 let _chamadoDetalheId = null;
+let _chamadosKnownIds = new Set(); // IDs já vistos — evita notificar chamados antigos
+let _chamadosIniciado = false;     // false até a primeira _fetchChamados() concluir
 
 const _GOV_STATUS = {
   aberto:     { label:'Aberto',       badge:'badge-sujo'        },
@@ -197,6 +199,26 @@ async function _fetchChamados() {
   }));
 
   chamados = _chamadosCache;
+
+  // Detecta novos chamados e notifica camareira/manutenção
+  if (_chamadosIniciado) {
+    const perfil = currentUser?.perfil;
+    if (perfil === 'camareira' || perfil === 'manutencao') {
+      _chamadosCache.forEach(c => {
+        if (_chamadosKnownIds.has(c.id)) return;
+        if (c.criado_por === currentUser.id) return; // não notifica quem abriu
+        const deptOk = perfil === 'camareira'
+          ? c.departamento === 'governanca'
+          : c.departamento === 'manutencao';
+        if (deptOk && typeof _showNovoChamadoNotif === 'function') {
+          _showNovoChamadoNotif(c);
+        }
+      });
+    }
+  }
+  // Marca todos os IDs atuais como conhecidos
+  _chamadosCache.forEach(c => _chamadosKnownIds.add(c.id));
+  _chamadosIniciado = true;
 
   // Atualiza badge do menu lateral com a contagem real já filtrada por perfil
   if (typeof buildSidebar === 'function') buildSidebar();
@@ -764,25 +786,7 @@ function _initRealtimeChamados() {
   _realtimeChannel = supabaseClient
     .channel('govhotel_work_orders')
     .on('postgres_changes', pgConfig, async (payload) => {
-      const rec = payload.new || {};
-
-      // Camareira: só governança | Manutenção: só manutenção
-      if (currentUser.perfil === 'camareira'  && rec.departamento !== 'governanca')  return;
-      if (currentUser.perfil === 'manutencao' && rec.departamento !== 'manutencao') return;
-
-      if (payload.eventType === 'INSERT') {
-        // Não notifica quem abriu o chamado
-        if (rec.criado_por === currentUser.id) return;
-        if (typeof _showNovoChamadoNotif === 'function') {
-          _showNovoChamadoNotif(rec);
-        } else {
-          const dept = rec.departamento === 'manutencao' ? '🔧 Manutenção' : '🧹 Governança';
-          const cat  = rec.categoria || rec.tipo || '';
-          toast(`${dept}: novo chamado${cat ? ' — ' + cat : ''}`, 'info');
-        }
-      }
-
-      // Atualiza cache e UI sem travar
+      // Sempre atualiza cache, badge e detecta novos chamados (notificação fica dentro de _fetchChamados)
       await _fetchChamados();
       if (currentPage === 'chamados') { renderChamados(); }
       if (currentPage === 'kanban')   { renderKanban();   }
@@ -795,6 +799,8 @@ function stopRealtimeChamados() {
     supabaseClient.removeChannel(_realtimeChannel);
     _realtimeChannel = null;
   }
+  _chamadosIniciado = false;
+  _chamadosKnownIds.clear();
 }
 
 // ── INICIALIZAR CHAMADOS ─────────────────────────────────────
