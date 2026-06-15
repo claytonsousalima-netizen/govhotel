@@ -127,7 +127,7 @@
 <nav class="sidebar">
   <div class="sidebar-logo">
     <h1>🏨 Gov Estancorp</h1>
-    <p>Manual de Uso — v2026.06.3</p>
+    <p>Manual de Uso — v2026.06.4</p>
   </div>
 
   <div class="sidebar-section">Introdução</div>
@@ -163,7 +163,7 @@
 
   <div class="page-title">Manual de Uso — Gov Estancorp</div>
   <div class="page-subtitle">
-    Sistema de Governança Hoteleira · Todos os perfis de acesso · Versão 2026.06.3
+    Sistema de Governança Hoteleira · Todos os perfis de acesso · Versão 2026.06.4
   </div>
 
   <!-- ══ VISÃO GERAL ════════════════════════════════════════ -->
@@ -356,8 +356,9 @@
         <li><div class="step-num">1</div><div class="step-body">Clique em <strong>Config</strong> no menu lateral.</div></li>
         <li><div class="step-num">2</div><div class="step-body">Configure <strong>tipos de chamados</strong> por departamento (Governança / Manutenção). Esses tipos aparecem no formulário de novo chamado.</div></li>
         <li><div class="step-num">3</div><div class="step-body">Configure <strong>tipos de solicitante</strong> (Recepção, Hóspede, Gerência etc.) — veja detalhes abaixo.</div></li>
-        <li><div class="step-num">4</div><div class="step-body">Configure <strong>checklists de limpeza</strong> padrão que a camareira confere ao concluir.</div></li>
-        <li><div class="step-num">5</div><div class="step-body">Configure <strong>tipos de apartamento</strong> (Standard, Luxo, Suíte, etc.).</div></li>
+        <li><div class="step-num">4</div><div class="step-body">Configure <strong>motivos de reprovação</strong> usados pela supervisora ao reprovar a limpeza de um apartamento. Os motivos ficam disponíveis como lista suspensa no modal de reprovação.</div></li>
+        <li><div class="step-num">5</div><div class="step-body">Configure <strong>checklists de limpeza</strong> padrão que a camareira confere ao concluir.</div></li>
+        <li><div class="step-num">6</div><div class="step-body">Configure <strong>tipos de apartamento</strong> (Standard, Luxo, Suíte, etc.).</div></li>
       </ul>
     </div>
   </section>
@@ -493,7 +494,7 @@
       <ul class="steps">
         <li><div class="step-num">1</div><div class="step-body">Na seção <strong>"Aguardando Conferência"</strong>, veja todos os aptos prontos para vistoria.</div></li>
         <li><div class="step-num">2</div><div class="step-body">Para <strong>aprovar</strong>: clique <strong>Aprovar ✓</strong>. O apto muda para <span class="badge b-limpo">Limpo</span>.</div></li>
-        <li><div class="step-num">3</div><div class="step-body">Para <strong>reprovar</strong>: clique <strong>Reprovar ✗</strong>, informe o motivo e confirme. O apto volta para <span class="badge b-reprovado">Reprovado</span>.</div></li>
+        <li><div class="step-num">3</div><div class="step-body">Para <strong>reprovar</strong>: clique <strong>Reprovar ✗</strong>, selecione o motivo da lista (configurável em <strong>Config → Motivos de Reprovação</strong>), adicione uma observação opcional e confirme. O apto volta para <span class="badge b-reprovado">Reprovado</span> e o motivo fica registrado para a camareira.</div></li>
         <li><div class="step-num">4</div><div class="step-body">Clique em <strong>↺ Atualizar</strong> para ver novos aptos prontos.</div></li>
       </ul>
     </div>
@@ -575,7 +576,7 @@
         <li><div class="step-num">3</div><div class="step-body">Para <strong>iniciar</strong>: clique em <strong>▶ Iniciar limpeza</strong>. O checklist de limpeza abre — o status <strong>não muda ainda</strong>.</div></li>
         <li><div class="step-num">4</div><div class="step-body">No checklist: <strong>Cancelar</strong> (mantém status), <strong>⏸ Pausar</strong> (→ <span class="badge b-pausado">Pausado</span>), ou <strong>✓ Concluir limpeza</strong> (≥ 80% dos itens → <span class="badge b-limpando">Em andamento</span>). O checklist não fecha ao clicar fora.</div></li>
         <li><div class="step-num">5</div><div class="step-body">Com status <span class="badge b-limpando">Em andamento</span>: clique em <strong>🔍 Enviar conf.</strong> para enviar à conferência → <span class="badge b-conferencia">Conferência</span>. Aguarde a supervisora.</div></li>
-        <li><div class="step-num">6</div><div class="step-body">Se <span class="badge b-reprovado">Reprovado</span>: leia o motivo no card e reinicie com <strong>▶ Iniciar limpeza</strong>.</div></li>
+        <li><div class="step-num">6</div><div class="step-body">Se <span class="badge b-reprovado">Reprovado</span>: toque no card para ver a tela com o <strong>motivo da reprovação</strong> e a observação deixada pela supervisora. Clique em <strong>▶ Re-limpar</strong> para iniciar a re-limpeza.</div></li>
       </ul>
       <div class="info-box amber"><strong>Fluxo de status (camareira):</strong> Sujo → (checklist concluído) → Em andamento → (enviar conf.) → Ag. Conferência → (supervisora aprova) → Limpo</div>
     </div>
@@ -925,8 +926,9 @@
       <li><div class="step-num">1</div><div class="step-body">Clique em <strong>Config</strong> no menu lateral.</div></li>
       <li><div class="step-num">2</div><div class="step-body"><strong>Tipos de chamado:</strong> Gerencie os tipos disponíveis por departamento. Ao abrir um chamado, apenas os tipos ativos do departamento selecionado são exibidos.</div></li>
       <li><div class="step-num">3</div><div class="step-body"><strong>Tipos de solicitante:</strong> Gerencie quem pode abrir um chamado (Recepção, Hóspede, Gerência, Supervisora etc.). Registros marcados com 🌐 são padrão global (não excluíveis); registros 🏨 são específicos do hotel. Use <strong>+ Adicionar</strong> para incluir novos, o botão de edição (✏) para renomear, e <strong>Excluir</strong> para remover os do hotel. Solicitantes inativos não aparecem no formulário de abertura de chamado.</div></li>
-      <li><div class="step-num">4</div><div class="step-body"><strong>Checklist de limpeza:</strong> Configure os itens que a camareira verifica ao concluir a limpeza.</div></li>
-      <li><div class="step-num">5</div><div class="step-body"><strong>Tipos de apartamento:</strong> Adicione ou edite tipos (Standard, Luxo, Suíte, etc.).</div></li>
+      <li><div class="step-num">4</div><div class="step-body"><strong>Motivos de Reprovação:</strong> <span class="novidade-badge">Novo</span> Gerencie os motivos disponíveis ao reprovar a limpeza de um apartamento. Registros 🌐 são padrão global; registros 🏨 são específicos do hotel. Use <strong>+ Adicionar</strong> para incluir novos, ✏ para renomear, ⏸ para inativar (motivos inativos não aparecem no modal de reprovação) e 🗑 para excluir os do hotel. Os motivos aparecem como lista suspensa para a supervisora ao reprovar.</div></li>
+      <li><div class="step-num">5</div><div class="step-body"><strong>Checklist de limpeza:</strong> Configure os itens que a camareira verifica ao concluir a limpeza.</div></li>
+      <li><div class="step-num">6</div><div class="step-body"><strong>Tipos de apartamento:</strong> Adicione ou edite tipos (Standard, Luxo, Suíte, etc.).</div></li>
     </ul>
     <div class="info-box red">
       <strong>Atenção:</strong> Alterações nas configurações afetam todos os usuários do hotel imediatamente. Desativar um tipo de chamado impede que novos chamados desse tipo sejam criados.
