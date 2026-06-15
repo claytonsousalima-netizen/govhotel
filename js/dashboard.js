@@ -111,6 +111,8 @@ async function _carregarDashboard(hotelId) {
   const conferencia= aptosArr.filter(a => a.status === 'conferencia').length;
   const limpo      = aptosArr.filter(a => a.status === 'limpo').length;
   const reprovado  = aptosArr.filter(a => a.status === 'reprovado').length;
+  const bloqueado  = aptosArr.filter(a => a.status === 'bloqueado').length;
+  const manutencao = aptosArr.filter(a => a.status === 'manutencao').length;
   const abertos    = chamArr.filter(c => c.status === 'aberto').length;
   const andamento  = chamArr.filter(c => c.status === 'andamento').length;
 
@@ -149,7 +151,19 @@ async function _carregarDashboard(hotelId) {
       <div class="stat-label">Equipe ativa</div>
       <div class="stat-value">${equipeArr.length}</div>
       <div class="stat-sub">camareiras + manutenção</div>
-    </div>`;
+    </div>
+    ${bloqueado > 0 ? `
+    <div class="stat-card" style="border-top:3px solid #64748b;">
+      <div class="stat-label">Bloqueados</div>
+      <div class="stat-value" style="color:#64748b;">${bloqueado}</div>
+      <div class="stat-sub">fora de uso</div>
+    </div>` : ''}
+    ${manutencao > 0 ? `
+    <div class="stat-card" style="border-top:3px solid #b45309;">
+      <div class="stat-label">Em manutenção</div>
+      <div class="stat-value" style="color:#b45309;">${manutencao}</div>
+      <div class="stat-sub">aguardando reparo</div>
+    </div>` : ''}`;
 
   // Indicadores de Governança
   const _govCard = (label, value, color, sub) =>
