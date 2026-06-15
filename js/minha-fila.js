@@ -176,14 +176,16 @@ function _mfBtnsCamareira(a) {
 // ── GESTOR / SUPERVISORA / ADMIN: fila de supervisão ─────────
 
 function _mfRenderGestor(el) {
-  const conferencia = aptos.filter(a => a.status === 'conferencia');
-  const reprovados  = aptos.filter(a => a.status === 'reprovado');
-  const limpando    = aptos.filter(a => ['limpando','pausado'].includes(a.status));
-  const sujos       = aptos.filter(a => a.status === 'sujo');
-  const limpos      = aptos.filter(a => a.status === 'limpo');
-  const livres      = aptos.filter(a => a.status === 'livre');
-  const bloqueados  = aptos.filter(a => a.status === 'bloqueado');
-  const manutencao  = aptos.filter(a => a.status === 'manutencao');
+  const conferencia  = aptos.filter(a => a.status === 'conferencia');
+  const reprovados   = aptos.filter(a => a.status === 'reprovado');
+  const limpandoApts = aptos.filter(a => a.status === 'limpando');
+  const pausadoApts  = aptos.filter(a => a.status === 'pausado');
+  const limpando     = [...limpandoApts, ...pausadoApts];
+  const sujos        = aptos.filter(a => a.status === 'sujo');
+  const limpos       = aptos.filter(a => a.status === 'limpo');
+  const livres       = aptos.filter(a => a.status === 'livre');
+  const bloqueados   = aptos.filter(a => a.status === 'bloqueado');
+  const manutencao   = aptos.filter(a => a.status === 'manutencao');
 
   // ── Painel de contadores ──
   let html = `
@@ -198,16 +200,23 @@ function _mfRenderGestor(el) {
         <div style="font-size:30px;font-weight:800;color:var(--danger);line-height:1;">${reprovados.length}</div>
         <div style="font-size:10px;color:var(--text2);font-weight:700;margin-top:4px;text-transform:uppercase;">Reprovados</div>
       </div>
-      <div class="card" style="text-align:center;padding:14px 10px;border-top:3px solid #2e86c1;">
-        <div style="font-size:30px;font-weight:800;color:#2e86c1;line-height:1;">${limpando.length}</div>
+      <div class="card" style="text-align:center;padding:14px 10px;border-top:3px solid #2e86c1;cursor:pointer;"
+           onclick="_mfScrollTo('mf-sec-limpando')" title="Ver apartamentos em limpeza">
+        <div style="font-size:30px;font-weight:800;color:#2e86c1;line-height:1;">${limpandoApts.length}</div>
         <div style="font-size:10px;color:var(--text2);font-weight:700;margin-top:4px;text-transform:uppercase;">Em limpeza</div>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:${bloqueados.length || manutencao.length ? '14px' : '24px'};">
-      <div class="card" style="text-align:center;padding:10px;border-top:2px solid #e67e22;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:10px;margin-bottom:${bloqueados.length || manutencao.length ? '14px' : '24px'};">
+      <div class="card" style="text-align:center;padding:10px;border-top:2px solid #e67e22;cursor:pointer;"
+           onclick="_mfScrollTo('mf-sec-sujos')" title="Ver apartamentos sujos">
         <div style="font-size:18px;font-weight:700;color:#e67e22;">${sujos.length}</div>
         <div style="font-size:10px;color:var(--text3);margin-top:2px;">Sujos</div>
       </div>
+      ${pausadoApts.length ? `<div class="card" style="text-align:center;padding:10px;border-top:2px solid #f39c12;cursor:pointer;"
+           onclick="_mfScrollTo('mf-sec-pausados')" title="Ver apartamentos pausados">
+        <div style="font-size:18px;font-weight:700;color:#f39c12;">${pausadoApts.length}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px;">Pausados</div>
+      </div>` : ''}
       <div class="card" style="text-align:center;padding:10px;border-top:2px solid #1abc9c;">
         <div style="font-size:18px;font-weight:700;color:#1abc9c;">${limpos.length}</div>
         <div style="font-size:10px;color:var(--text3);margin-top:2px;">Limpos</div>
@@ -305,30 +314,94 @@ function _mfRenderGestor(el) {
   }
   html += `</div>`;
 
-  // ── Limpeza em andamento (resumo) ──
-  if (limpando.length) {
-    html += `<div style="margin-bottom:24px;">
+  // ── Para limpar (Sujos) ──
+  if (sujos.length) {
+    html += `<div id="mf-sec-sujos" style="margin-bottom:24px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;
+                  padding-bottom:8px;border-bottom:2px solid #e67e22;">
+        <span style="font-size:16px;">🟠</span>
+        <span style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;">Para limpar</span>
+        <span style="background:#e67e22;color:#fff;font-size:10px;font-weight:700;
+                     padding:2px 8px;border-radius:10px;margin-left:auto;">${sujos.length}</span>
+      </div>`;
+    sujos.forEach(a => {
+      html += `
+      <div class="card" style="margin-bottom:10px;border-left:4px solid #e67e22;padding:14px 16px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+          <div>
+            <div style="font-size:22px;font-weight:800;line-height:1;">${a.numero}</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} · ${a.andar}º andar</div>
+            ${a.obs ? `<div style="font-size:11px;color:var(--text3);margin-top:3px;font-style:italic;">${a.obs}</div>` : ''}
+          </div>
+          <span class="badge badge-sujo" style="flex-shrink:0;">Sujo</span>
+        </div>
+        <div style="margin-top:10px;">
+          <button class="btn btn-ghost btn-sm" onclick="openAptoDetail('${a.id}')">👁 Ver detalhes</button>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // ── Em limpeza ──
+  if (limpandoApts.length) {
+    html += `<div id="mf-sec-limpando" style="margin-bottom:24px;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;
                   padding-bottom:8px;border-bottom:2px solid #2e86c1;">
         <span style="font-size:16px;">🧹</span>
         <span style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;">Em limpeza agora</span>
         <span style="background:#2e86c1;color:#fff;font-size:10px;font-weight:700;
-                     padding:2px 8px;border-radius:10px;margin-left:auto;">${limpando.length}</span>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;">
-        ${limpando.map(a => {
-          const cam    = equipe.find(e => e.id === a.camareira_id);
-          const isPaused = a.status === 'pausado';
-          return `<div class="card" style="padding:10px 12px;border-left:3px solid ${isPaused ? '#f39c12' : '#2e86c1'};cursor:pointer;"
-                       onclick="openAptoDetail('${a.id}')">
-            <div style="font-size:17px;font-weight:800;">${a.numero}</div>
-            <div style="font-size:11px;color:var(--text2);">${a.andar}º · ${a.tipo}</div>
-            ${cam ? `<div style="font-size:10px;color:var(--text3);margin-top:2px;">👤 ${cam.nome.split(' ')[0]}</div>` : ''}
-            <div style="margin-top:5px;"><span class="badge ${isPaused ? 'badge-pausado' : 'badge-limpando'}" style="font-size:9px;">${isPaused ? 'Pausado' : 'Limpando'}</span></div>
-          </div>`;
-        }).join('')}
-      </div>
-    </div>`;
+                     padding:2px 8px;border-radius:10px;margin-left:auto;">${limpandoApts.length}</span>
+      </div>`;
+    limpandoApts.forEach(a => {
+      const cam = equipe.find(e => e.id === a.camareira_id);
+      html += `
+      <div class="card" style="margin-bottom:10px;border-left:4px solid #2e86c1;padding:14px 16px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+          <div>
+            <div style="font-size:22px;font-weight:800;line-height:1;">${a.numero}</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} · ${a.andar}º andar</div>
+            ${cam ? `<div style="font-size:11px;color:var(--text3);margin-top:3px;">🧹 ${cam.nome.split(' ')[0]}</div>` : ''}
+          </div>
+          <span class="badge badge-limpando" style="flex-shrink:0;">Limpando</span>
+        </div>
+        <div style="margin-top:10px;">
+          <button class="btn btn-ghost btn-sm" onclick="openAptoDetail('${a.id}')">👁 Ver detalhes</button>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // ── Pausados ──
+  if (pausadoApts.length) {
+    html += `<div id="mf-sec-pausados" style="margin-bottom:24px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;
+                  padding-bottom:8px;border-bottom:2px solid #f39c12;">
+        <span style="font-size:16px;">⏸</span>
+        <span style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;">Pausados — limpeza interrompida</span>
+        <span style="background:#f39c12;color:#fff;font-size:10px;font-weight:700;
+                     padding:2px 8px;border-radius:10px;margin-left:auto;">${pausadoApts.length}</span>
+      </div>`;
+    pausadoApts.forEach(a => {
+      const cam = equipe.find(e => e.id === a.camareira_id);
+      html += `
+      <div class="card" style="margin-bottom:10px;border-left:4px solid #f39c12;padding:14px 16px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+          <div>
+            <div style="font-size:22px;font-weight:800;line-height:1;">${a.numero}</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} · ${a.andar}º andar</div>
+            ${cam ? `<div style="font-size:11px;color:var(--text3);margin-top:3px;">🧹 ${cam.nome.split(' ')[0]}</div>` : ''}
+            ${a.obs ? `<div style="font-size:11px;color:var(--text3);margin-top:3px;font-style:italic;">${a.obs}</div>` : ''}
+          </div>
+          <span class="badge badge-pausado" style="flex-shrink:0;">Pausado</span>
+        </div>
+        <div style="margin-top:10px;">
+          <button class="btn btn-ghost btn-sm" onclick="openAptoDetail('${a.id}')">👁 Ver detalhes</button>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
   }
 
   // ── Bloqueados ──
@@ -414,7 +487,18 @@ function _mfScrollTo(id) {
 // ── DISPATCHER DE AÇÕES ───────────────────────────────────────
 function mfAcao(id, acao) {
   selectedAptoId = id;
-  if (acao === 'iniciar')  iniciarLimpeza();
+  if (acao === 'iniciar') {
+    // Muda status para limpando e abre o checklist de acompanhamento
+    iniciarLimpeza();
+    const apto = aptos.find(a => a.id === id);
+    if (apto && typeof CHECKLIST_PADRAO !== 'undefined') {
+      const titleEl = document.getElementById('checklist-title');
+      if (titleEl) titleEl.textContent = `Limpeza — Apto ${apto.numero}`;
+      checklistState = CHECKLIST_PADRAO.map(item => ({ label: item, done: false }));
+      if (typeof renderChecklist === 'function') renderChecklist();
+      openModal('modal-checklist');
+    }
+  }
   if (acao === 'pausar')   abrirModalPausa(id);
   if (acao === 'concluir') concluirLimpeza();
   if (acao === 'aprovar')  aprovarLimpeza();

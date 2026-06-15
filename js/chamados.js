@@ -502,7 +502,11 @@ function _renderDetalheConteudo(c) {
     if (elComentWrap) elComentWrap.style.display = 'none';
   } else {
     if (elComentWrap) elComentWrap.style.display = '';
-    const nexts = _GOV_NEXT[c.status] || [];
+    // Manutenção usa 'concluido'; governança usa 'resolvido'
+    const _nextMap = c.departamento === 'manutencao'
+      ? { ..._GOV_NEXT, andamento: ['pausado','concluido','cancelado'], pausado: ['andamento','concluido','cancelado'] }
+      : _GOV_NEXT;
+    const nexts = _nextMap[c.status] || [];
     if (elAcoes) {
       if (!nexts.length) {
         elAcoes.innerHTML = `<div style="font-size:12px;color:var(--text3);">Nenhuma ação disponível.</div>`;
