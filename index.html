@@ -1197,6 +1197,25 @@ tr:last-child td { border-bottom: none; }
   </div>
 </div>
 
+<!-- ====== NOTIFICAÇÃO: NOVO CHAMADO ====== -->
+<div id="notif-novo-chamado" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border-radius:16px;padding:28px 24px;max-width:360px;width:92%;box-shadow:0 24px 64px rgba(0,0,0,0.35);text-align:center;">
+    <div style="font-size:44px;margin-bottom:8px;" id="notif-chamado-icon">🔔</div>
+    <div style="font-size:13px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">Novo Chamado Aberto</div>
+    <div id="notif-chamado-dept" style="font-size:15px;font-weight:700;margin-bottom:4px;"></div>
+    <div id="notif-chamado-numero" style="font-size:28px;font-weight:800;color:var(--primary);margin-bottom:4px;font-family:monospace;"></div>
+    <div id="notif-chamado-cat" style="font-size:13px;color:var(--text2);margin-bottom:6px;"></div>
+    <div id="notif-chamado-prio" style="margin-bottom:16px;"></div>
+    <input type="hidden" id="notif-chamado-id">
+    <button id="notif-btn-ok" onclick="_ackNovoChamado()"
+      style="width:100%;padding:14px;background:var(--primary);color:#fff;border:none;border-radius:10px;
+             font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.3px;">
+      ✓ OK — Confirmar recebimento
+    </button>
+    <div id="notif-fila-info" style="font-size:11px;color:var(--text3);margin-top:10px;"></div>
+  </div>
+</div>
+
 <!-- Modal Reprovar Limpeza -->
 <div class="modal-overlay" id="modal-reprovacao">
   <div class="modal" style="max-width:440px;">
@@ -2505,6 +2524,61 @@ function populateTsApto() {
   el.innerHTML = '<option value="">Selecionar...</option>' + aptos.map(a => `<option value="${a.numero}">${a.numero} — ${a.tipo}</option>`).join('');
 }
 
+// ============ NOTIFICAÇÃO DE NOVO CHAMADO ============
+let _notifQueue = [];
+let _notifShowing = false;
+
+function _showNovoChamadoNotif(rec) {
+  _notifQueue.push(rec);
+  if (!_notifShowing) _processNotifQueue();
+}
+
+function _processNotifQueue() {
+  if (!_notifQueue.length) { _notifShowing = false; return; }
+  _notifShowing = true;
+  const rec = _notifQueue[0];
+
+  const isMan  = rec.departamento === 'manutencao';
+  const dept   = isMan ? '🔧 Manutenção' : '🧹 Governança';
+  const color  = isMan ? '#b45309' : 'var(--primary)';
+  const icon   = isMan ? '🔧' : '🧹';
+  const prio   = rec.prioridade === 'urgente' ? '<span style="color:#dc2626;font-weight:700;font-size:13px;">⚠️ URGENTE</span>'
+               : rec.prioridade === 'alta'    ? '<span style="color:#ea580c;font-weight:700;font-size:13px;">🔴 Alta prioridade</span>'
+               : '';
+
+  document.getElementById('notif-chamado-icon').textContent   = icon;
+  document.getElementById('notif-chamado-dept').textContent   = dept;
+  document.getElementById('notif-chamado-dept').style.color   = color;
+  document.getElementById('notif-chamado-numero').textContent = rec.numero || 'Novo chamado';
+  document.getElementById('notif-chamado-numero').style.color = color;
+  document.getElementById('notif-chamado-cat').textContent    = rec.categoria || rec.tipo || '';
+  document.getElementById('notif-chamado-prio').innerHTML     = prio;
+  document.getElementById('notif-chamado-id').value          = rec.id;
+  document.getElementById('notif-btn-ok').style.background   = color;
+
+  const restante = _notifQueue.length - 1;
+  document.getElementById('notif-fila-info').textContent =
+    restante > 0 ? `+${restante} outro(s) chamado(s) aguardando confirmação` : '';
+
+  document.getElementById('notif-novo-chamado').style.display = 'flex';
+}
+
+async function _ackNovoChamado() {
+  const chamadoId = document.getElementById('notif-chamado-id').value;
+  if (chamadoId) {
+    await supabaseClient.from('chamado_historico').insert({
+      chamado_id:  chamadoId,
+      hotel_id:    currentUser.hotelId,
+      tipo_evento: 'recebimento',
+      descricao:   `Recebimento confirmado por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`,
+      usuario_id:  currentUser.id
+    });
+  }
+  document.getElementById('notif-novo-chamado').style.display = 'none';
+  _notifQueue.shift();
+  _processNotifQueue();
+}
+
 // ============ MODAL ============
 function openModal(id)  { document.getElementById(id).classList.add('open'); }
 function closeModal(id) {
@@ -2560,7 +2634,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 <script src="js/maids.js?v=20260614d"></script>
 <script src="js/users.js?v=20260615a"></script>
 <script src="js/permissions.js?v=20260614b"></script>
-<script src="js/chamados.js?v=20260615a"></script>
+<script src="js/chamados.js?v=20260615b"></script>
 <script src="js/config.js?v=20260613v"></script>
 <script src="js/dashboard.js?v=20260615c"></script>
 <script src="js/relatorios.js?v=20260613p"></script>

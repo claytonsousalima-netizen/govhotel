@@ -773,9 +773,13 @@ function _initRealtimeChamados() {
       if (payload.eventType === 'INSERT') {
         // Não notifica quem abriu o chamado
         if (rec.criado_por === currentUser.id) return;
-        const dept = rec.departamento === 'manutencao' ? '🔧 Manutenção' : '🧹 Governança';
-        const cat  = rec.categoria || rec.tipo || '';
-        toast(`${dept}: novo chamado${cat ? ' — ' + cat : ''}`, 'info');
+        if (typeof _showNovoChamadoNotif === 'function') {
+          _showNovoChamadoNotif(rec);
+        } else {
+          const dept = rec.departamento === 'manutencao' ? '🔧 Manutenção' : '🧹 Governança';
+          const cat  = rec.categoria || rec.tipo || '';
+          toast(`${dept}: novo chamado${cat ? ' — ' + cat : ''}`, 'info');
+        }
       }
 
       // Atualiza cache e UI sem travar
