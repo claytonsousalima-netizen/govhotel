@@ -148,7 +148,7 @@ function _mfRenderCamareira(el) {
         ${meuApto ? `
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;
                     background:#dbeafe;color:#1d4ed8;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;">
-          📌 Atribuído a mim — prioridade de limpeza
+          📌 Atribuído a mim
         </div>` : ''}
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px;">
           <div>
