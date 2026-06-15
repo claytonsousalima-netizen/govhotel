@@ -2262,6 +2262,38 @@ function searchMapa(q) {
   });
 }
 
+async function _atribuirCamareiraApto(aptoId, userId) {
+  const payload = { camareira_id: userId || null };
+  const { error } = await supabaseClient.from('apartments').update(payload).eq('id', aptoId);
+  if (error) { toast('Erro ao atribuir camareira: ' + error.message, 'error'); return; }
+  // Atualiza cache local
+  const apto = aptos.find(a => a.id === aptoId);
+  if (apto) {
+    apto.camareira_id = userId || null;
+    const sel = document.getElementById('detail-select-camareira');
+    const opt = sel ? sel.options[sel.selectedIndex] : null;
+    apto._maid_nome = (opt && userId) ? opt.text : null;
+    // Atualiza o texto exibido na tabela do modal
+    const elCam = document.getElementById('detail-cam-label');
+    if (elCam) elCam.textContent = apto._maid_nome || '— não atribuído';
+  }
+  toast('Camareira atribuída com sucesso!', 'success');
+  if (currentPage === 'mapa') renderMapa();
+}
+
+async function _popularSelectCamareiraApto(hotelId, currentCamId) {
+  const sel = document.getElementById('detail-select-camareira');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Carregando...</option>';
+  const { data } = await supabaseClient
+    .from('user_profiles').select('user_id, nome')
+    .eq('perfil', 'camareira').eq('ativo', true).eq('hotel_id', hotelId).order('nome');
+  const lista = data || [];
+  sel.innerHTML = '<option value="">— Não atribuída</option>' +
+    lista.map(u => `<option value="${u.user_id}" ${u.user_id === currentCamId ? 'selected' : ''}>${u.nome}</option>`).join('');
+  sel.onchange = () => _atribuirCamareiraApto(selectedAptoId, sel.value || null);
+}
+
 function openAptoDetail(id) {
   selectedAptoId = id;
   const apto = aptos.find(a => a.id === id);
@@ -2270,6 +2302,7 @@ function openAptoDetail(id) {
   const cam = apto._maid_nome ? { nome: apto._maid_nome } : null;
   const isCamareira  = currentUser.perfil === 'camareira';
   const isManutencao = currentUser.perfil === 'manutencao';
+  const podeAtribuir = ['admin_global','admin_hotel','gestor','supervisora'].includes(currentUser.perfil);
 
   // Botões de fluxo contextuais — cada status tem suas ações específicas
   const _flowMap = {
@@ -2319,7 +2352,7 @@ function openAptoDetail(id) {
           <tr><td style="color:var(--text2);padding:4px 0;font-weight:600;">Tipo</td><td>${apto.tipo}</td></tr>
           <tr><td style="color:var(--text2);padding:4px 0;font-weight:600;">Categoria</td><td>${apto.categoria}</td></tr>
           <tr><td style="color:var(--text2);padding:4px 0;font-weight:600;">Leitos</td><td>${apto.leitos}</td></tr>
-          <tr><td style="color:var(--text2);padding:4px 0;font-weight:600;">Camareira</td><td>${cam ? cam.nome : '— não atribuído'}</td></tr>
+          <tr><td style="color:var(--text2);padding:4px 0;font-weight:600;">Camareira</td><td id="detail-cam-label">${cam ? cam.nome : '— não atribuído'}</td></tr>
         </table>
         ${apto.obs ? `<div style="margin-top:10px;padding:8px;background:var(--bg);border-radius:var(--radius-sm);font-size:12px;color:var(--text2);">${apto.obs}</div>` : ''}
       </div>
@@ -2330,7 +2363,14 @@ function openAptoDetail(id) {
         ${flowBtns || '<span style="font-size:13px;color:var(--text3);">Nenhuma ação disponível.</span>'}
       </div>
       ${forceBtns}
-    </div>`;
+    </div>
+    ${podeAtribuir ? `
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">👤 Atribuir Camareira</div>
+      <select id="detail-select-camareira" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;">
+        <option value="">Carregando...</option>
+      </select>
+    </div>` : ''}`;
 
   const _s = apto.status;
   // Manutenção não usa o fluxo de limpeza — oculta todos os botões de limpeza do rodapé
@@ -2345,6 +2385,9 @@ function openAptoDetail(id) {
     document.getElementById('detail-btn-reprovar').style.display = _s === 'conferencia' ? '' : 'none';
   }
   openModal('modal-apto-detail');
+  if (podeAtribuir) {
+    _popularSelectCamareiraApto(apto.hotel_id || currentUser.hotelId, apto.camareira_id || null);
+  }
 }
 
 // Stubs substituídos por apartments.js — não remover, necessários para carregamento inicial
