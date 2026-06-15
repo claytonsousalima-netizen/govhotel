@@ -2405,7 +2405,7 @@ function openAptoDetail(id) {
     ['detail-btn-iniciar','detail-btn-pausar','detail-btn-concluir','detail-btn-aprovar','detail-btn-reprovar']
       .forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
   } else {
-    document.getElementById('detail-btn-iniciar').style.display  = ['sujo','reprovado','pausado'].includes(_s) ? '' : 'none';
+    document.getElementById('detail-btn-iniciar').style.display  = ['sujo','pausado'].includes(_s) ? '' : 'none';
     document.getElementById('detail-btn-pausar').style.display   = _s === 'limpando' ? '' : 'none';
     document.getElementById('detail-btn-concluir').style.display = ['limpando','pausado'].includes(_s) ? '' : 'none';
     document.getElementById('detail-btn-aprovar').style.display  = _s === 'conferencia' ? '' : 'none';
