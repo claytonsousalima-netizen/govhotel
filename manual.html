@@ -256,17 +256,23 @@
 
   <!-- ══ NOTIFICAÇÕES ═══════════════════════════════════════ -->
   <section id="notificacoes" class="section">
-    <div class="section-title">🔔 Notificações em Tempo Real <span class="novidade-badge">Novo</span></div>
+    <div class="section-title">🔔 Notificações em Tempo Real <span class="novidade-badge">Atualizado</span></div>
     <div class="info-box purple">
       <strong>Supabase Realtime:</strong> O sistema usa WebSocket para notificar a equipe automaticamente quando um novo chamado é aberto — sem precisar recarregar a página.
     </div>
     <ul class="steps">
-      <li><div class="step-num">1</div><div class="step-body">Quando qualquer usuário abre um chamado, todos os usuários do mesmo hotel que estiverem com o sistema aberto recebem um <strong>aviso azul</strong> na tela: <em>"🧹 Governança: novo chamado — [categoria]"</em> ou <em>"🔧 Manutenção: novo chamado — [categoria]"</em>.</div></li>
-      <li><div class="step-num">2</div><div class="step-body">A <strong>lista de chamados</strong> e o <strong>badge numérico do menu</strong> atualizam automaticamente, sem ação do usuário.</div></li>
-      <li><div class="step-num">3</div><div class="step-body"><strong>Camareira</strong> só recebe notificação de chamados de Governança. <strong>Manutenção</strong> só recebe notificação de chamados de Manutenção.</div></li>
-      <li><div class="step-num">4</div><div class="step-body">Quem <em>abriu</em> o chamado não recebe notificação de si mesmo.</div></li>
-      <li><div class="step-num">5</div><div class="step-body">A conexão é encerrada automaticamente ao fazer logout.</div></li>
+      <li><div class="step-num">1</div><div class="step-body">Quando um novo chamado é aberto, os destinatários do departamento correspondente recebem um <strong>aviso modal na tela</strong> com o número do chamado, departamento, categoria e prioridade. O aviso <strong>não fecha automaticamente</strong> — exige ação explícita.</div></li>
+      <li><div class="step-num">2</div><div class="step-body">O destinatário deve pressionar o botão <strong>✓ OK — Confirmar recebimento</strong>. Ao confirmar, o sistema registra no histórico do chamado: <em>"Recebimento confirmado por [nome] em [data/hora]"</em>.</div></li>
+      <li><div class="step-num">3</div><div class="step-body">Se chegarem múltiplos chamados enquanto o aviso está aberto, eles são <strong>enfileirados</strong> — ao confirmar um, o próximo aparece automaticamente.</div></li>
+      <li><div class="step-num">4</div><div class="step-body">A <strong>lista de chamados</strong> e o <strong>badge numérico do menu</strong> atualizam automaticamente em paralelo, sem ação do usuário.</div></li>
+      <li><div class="step-num">5</div><div class="step-body"><strong>Camareira</strong> recebe somente notificações de chamados de <strong>Governança</strong>. <strong>Manutenção</strong> recebe somente notificações de chamados de <strong>Manutenção</strong>. Demais perfis (gestor, admin) não recebem o aviso modal.</div></li>
+      <li><div class="step-num">6</div><div class="step-body">Quem <em>abriu</em> o chamado não recebe notificação de si mesmo.</div></li>
+      <li><div class="step-num">7</div><div class="step-body">A conexão é encerrada automaticamente ao fazer logout.</div></li>
     </ul>
+    <div class="card" style="margin-top:14px;">
+      <h4>Registro de Recebimento no Histórico</h4>
+      <p style="font-size:13px;color:var(--text2);margin:0;">Após o <strong>OK</strong>, o detalhe do chamado (aba Histórico) exibirá o evento de recebimento com nome e horário do confirmante — servindo como comprovante de ciência do chamado.</p>
+    </div>
   </section>
 
   <hr>
@@ -542,7 +548,7 @@
         <li><div class="step-num">3</div><div class="step-body">Chamados de <strong>Manutenção</strong>: aparecem marcados com <span class="badge" style="background:#f1f5f9;color:#475569;font-size:11px;">👁 Somente leitura</span>. Nenhuma ação disponível — apenas consulta.</div></li>
         <li><div class="step-num">4</div><div class="step-body">Na aba <strong>Disponíveis</strong>, veja chamados de governança sem responsável. Clique em <strong>✋ Assumir chamado</strong> para se tornar responsável.</div></li>
         <li><div class="step-num">5</div><div class="step-body">Na aba <strong>Meus</strong>, veja apenas chamados atribuídos a você.</div></li>
-        <li><div class="step-num">6</div><div class="step-body">Recebe <strong>notificação em tempo real</strong> (aviso azul na tela) quando um novo chamado de governança é aberto no hotel.</div></li>
+        <li><div class="step-num">6</div><div class="step-body">Recebe <strong>notificação modal na tela</strong> quando um novo chamado de Governança é aberto no hotel. É necessário pressionar <strong>✓ OK</strong> para confirmar o recebimento — o registro é salvo no histórico do chamado.</div></li>
         <li><div class="step-num">7</div><div class="step-body">O badge numérico no menu Chamados mostra a soma de: chamados atribuídos a você + chamados de governança disponíveis no hotel.</div></li>
         <li><div class="step-num">8</div><div class="step-body">Para abrir um chamado: <strong>+ Novo Chamado</strong> → preencha categoria, apartamento, prioridade e descrição. O modal não fecha ao clicar fora.</div></li>
       </ul>
@@ -577,7 +583,7 @@
         <li><div class="step-num">5</div><div class="step-body">Na aba <strong>Meus</strong>: chamados já atribuídos a você.</div></li>
         <li><div class="step-num">6</div><div class="step-body">Clique no card do chamado → use os botões de ação: <strong>Em andamento → Resolvido</strong>.</div></li>
         <li><div class="step-num">7</div><div class="step-body">Ao concluir, adicione um <strong>comentário</strong> descrevendo o que foi feito.</div></li>
-        <li><div class="step-num">8</div><div class="step-body">Recebe <strong>notificação em tempo real</strong> quando um novo chamado de manutenção é aberto no hotel.</div></li>
+        <li><div class="step-num">8</div><div class="step-body">Recebe <strong>notificação modal na tela</strong> quando um novo chamado de Manutenção é aberto no hotel. É necessário pressionar <strong>✓ OK</strong> para confirmar o recebimento — o registro é salvo no histórico do chamado.</div></li>
         <li><div class="step-num">9</div><div class="step-body">O badge no menu Chamados mostra: chamados atribuídos a você + chamados de manutenção disponíveis no hotel.</div></li>
       </ul>
     </div>
