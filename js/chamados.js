@@ -685,10 +685,21 @@ function renderChamados() {
   };
   const prioColors = { urgente:'var(--danger)', alta:'#e67e22', normal:'var(--warning)', baixa:'var(--success)' };
 
-  // Atualiza badge numérico da aba Disponíveis
-  const dispCount = _chamadosCache.filter(tabFilter.disponiveis).length;
-  const btnDisp = document.getElementById('tab-btn-disponiveis');
-  if (btnDisp) btnDisp.textContent = dispCount > 0 ? `Disponíveis (${dispCount})` : 'Disponíveis';
+  // Atualiza contadores de todas as abas
+  const _tabLabels = {
+    todos:       'Todos',
+    disponiveis: 'Disponíveis',
+    meus:        'Meus',
+    abertos:     'Em aberto',
+    andamento:   'Em andamento',
+    concluidos:  'Concluídos',
+  };
+  Object.entries(_tabLabels).forEach(([tab, label]) => {
+    const btn = document.getElementById('tab-btn-' + tab);
+    if (!btn) return;
+    const count = _chamadosCache.filter(tabFilter[tab]).length;
+    btn.textContent = count > 0 ? `${label} (${count})` : label;
+  });
 
   Object.entries(tabFilter).forEach(([tab, fn]) => {
     const lista = _chamadosCache.filter(fn);

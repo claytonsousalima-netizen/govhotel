@@ -758,12 +758,12 @@ tr:last-child td { border-bottom: none; }
           <button id="dept-btn-man"   class="filter-btn" onclick="setDeptFilterChamados('manutencao',this)">🔧 Manutenção</button>
         </div>
         <div class="tabs">
-          <button class="tab-btn active" onclick="switchTab('tab-todos','tab-chamados')">Todos</button>
-          <button class="tab-btn" id="tab-btn-disponiveis" onclick="switchTab('tab-disponiveis','tab-chamados')">Disponíveis</button>
-          <button class="tab-btn" id="tab-btn-meus" onclick="switchTab('tab-meus','tab-chamados')">Meus</button>
-          <button class="tab-btn" onclick="switchTab('tab-abertos','tab-chamados')">Em aberto</button>
-          <button class="tab-btn" onclick="switchTab('tab-andamento','tab-chamados')">Em andamento</button>
-          <button class="tab-btn" onclick="switchTab('tab-concluidos','tab-chamados')">Concluídos</button>
+          <button class="tab-btn active" id="tab-btn-todos"      onclick="switchTab('tab-todos','tab-chamados')">Todos</button>
+          <button class="tab-btn"        id="tab-btn-disponiveis" onclick="switchTab('tab-disponiveis','tab-chamados')">Disponíveis</button>
+          <button class="tab-btn"        id="tab-btn-meus"        onclick="switchTab('tab-meus','tab-chamados')">Meus</button>
+          <button class="tab-btn"        id="tab-btn-abertos"     onclick="switchTab('tab-abertos','tab-chamados')">Em aberto</button>
+          <button class="tab-btn"        id="tab-btn-andamento"   onclick="switchTab('tab-andamento','tab-chamados')">Em andamento</button>
+          <button class="tab-btn"        id="tab-btn-concluidos"  onclick="switchTab('tab-concluidos','tab-chamados')">Concluídos</button>
         </div>
         <div class="tab-content active" id="tab-todos"><div id="chamados-list-todos"></div></div>
         <div class="tab-content" id="tab-disponiveis"><div id="chamados-list-disponiveis"></div></div>
@@ -2637,7 +2637,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 <script src="js/maids.js?v=20260614d"></script>
 <script src="js/users.js?v=20260615a"></script>
 <script src="js/permissions.js?v=20260614b"></script>
-<script src="js/chamados.js?v=20260615f"></script>
+<script src="js/chamados.js?v=20260615g"></script>
 <script src="js/config.js?v=20260615a"></script>
 <script src="js/dashboard.js?v=20260615c"></script>
 <script src="js/relatorios.js?v=20260613p"></script>
