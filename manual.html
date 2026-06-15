@@ -248,9 +248,9 @@
       Um chamado aberto sem responsável atribuído fica visível para <em>toda</em> a equipe do departamento correspondente no hotel. Ele é marcado com o badge <strong>Disponível</strong> na listagem e no detalhe. Qualquer membro autorizado pode clicar em <strong>✋ Assumir chamado</strong> para se tornar o responsável.
     </p>
 
-    <p style="margin-bottom:8px;font-weight:600;">Categorias:</p>
+    <p style="margin-bottom:8px;font-weight:600;">Tipos de Chamado:</p>
     <p style="color:var(--text2);font-size:13px;">
-      As categorias são carregadas do banco de dados por departamento (Governança ou Manutenção) e podem ser configuradas pelo Admin em <strong>Config → Tipos de chamado</strong>.
+      Os tipos de chamado são carregados do banco de dados por departamento (Governança ou Manutenção) e podem ser configurados pelo Admin em <strong>Config → Tipos de chamado</strong>.
     </p>
   </section>
 
@@ -261,7 +261,7 @@
       <strong>Supabase Realtime + detecção automática:</strong> O sistema usa WebSocket para notificar a equipe em tempo real e também detecta novos chamados a cada atualização do cache, garantindo que nenhuma notificação seja perdida mesmo em caso de instabilidade de conexão.
     </div>
     <ul class="steps">
-      <li><div class="step-num">1</div><div class="step-body">Quando um novo chamado é aberto, os destinatários do departamento correspondente recebem um <strong>aviso modal na tela</strong> com o número do chamado, departamento, categoria e prioridade. O aviso <strong>não fecha automaticamente</strong> — exige ação explícita.</div></li>
+      <li><div class="step-num">1</div><div class="step-body">Quando um novo chamado é aberto, os destinatários do departamento correspondente recebem um <strong>aviso modal na tela</strong> com o número do chamado, departamento, tipo de chamado e prioridade. O aviso <strong>não fecha automaticamente</strong> — exige ação explícita.</div></li>
       <li><div class="step-num">2</div><div class="step-body">O destinatário deve pressionar o botão <strong>✓ OK — Confirmar recebimento</strong>. Ao confirmar, o sistema registra no histórico do chamado: <em>"Recebimento confirmado por [nome] em [data/hora]"</em>.</div></li>
       <li><div class="step-num">3</div><div class="step-body">Se chegarem múltiplos chamados enquanto o aviso está aberto, eles são <strong>enfileirados</strong> — ao confirmar um, o próximo aparece automaticamente.</div></li>
       <li><div class="step-num">4</div><div class="step-body">A <strong>lista de chamados</strong> e o <strong>badge numérico do menu</strong> atualizam automaticamente em paralelo, sem ação do usuário — inclusive quando a camareira ou manutenção está em outras telas (Minha Fila, Meus Aptos).</div></li>
@@ -452,7 +452,7 @@
         <li><div class="step-num">3</div><div class="step-body">Use os filtros de departamento: <strong>Todos · 🧹 Governança · 🔧 Manutenção</strong>.</div></li>
         <li><div class="step-num">4</div><div class="step-body">Clique em qualquer card para abrir o detalhe com histórico completo de alterações.</div></li>
         <li><div class="step-num">5</div><div class="step-body">Para chamados <span class="badge b-disponivel">📋 Disponível</span>: clique em <strong>✋ Assumir chamado</strong> para se tornar o responsável.</div></li>
-        <li><div class="step-num">6</div><div class="step-body">Para <strong>criar</strong> um chamado: <strong>+ Novo Chamado</strong> → selecione departamento, categoria, apartamento (opcional), prioridade, responsável e descrição. O modal não fecha ao clicar fora — clique em <strong>Cancelar</strong> ou <strong>Abrir chamado</strong>.</div></li>
+        <li><div class="step-num">6</div><div class="step-body">Para <strong>criar</strong> um chamado: <strong>+ Novo Chamado</strong> → selecione departamento, tipo de chamado, apartamento (opcional), prioridade, responsável e descrição. O modal não fecha ao clicar fora — clique em <strong>Cancelar</strong> ou <strong>Abrir chamado</strong>.</div></li>
       </ul>
     </div>
 
@@ -562,7 +562,7 @@
         <li><div class="step-num">5</div><div class="step-body">Na aba <strong>Meus</strong>, veja apenas chamados atribuídos a você.</div></li>
         <li><div class="step-num">6</div><div class="step-body">Recebe <strong>notificação modal na tela</strong> quando um novo chamado de Governança é aberto no hotel. É necessário pressionar <strong>✓ OK</strong> para confirmar o recebimento — o registro é salvo no histórico do chamado.</div></li>
         <li><div class="step-num">7</div><div class="step-body">O badge numérico no menu Chamados mostra a soma de: chamados atribuídos a você + chamados de governança disponíveis no hotel.</div></li>
-        <li><div class="step-num">8</div><div class="step-body">Para abrir um chamado: <strong>+ Novo Chamado</strong> → preencha categoria, apartamento, prioridade e descrição. O modal não fecha ao clicar fora.</div></li>
+        <li><div class="step-num">8</div><div class="step-body">Para abrir um chamado: <strong>+ Novo Chamado</strong> → preencha tipo de chamado, apartamento, prioridade e descrição. O modal não fecha ao clicar fora.</div></li>
       </ul>
     </div>
   </section>
@@ -738,8 +738,8 @@
       <div class="section-title" style="font-size:14px;">Criar um Chamado</div>
       <ul class="steps">
         <li><div class="step-num">1</div><div class="step-body">Clique em <strong>+ Novo Chamado</strong>. O modal abre e <strong>não fecha ao clicar fora</strong> — use os botões <strong>Cancelar</strong> ou <strong>Abrir chamado</strong>.</div></li>
-        <li><div class="step-num">2</div><div class="step-body">Selecione o <strong>Departamento</strong>: Governança ou Manutenção. As categorias disponíveis mudam conforme o departamento.</div></li>
-        <li><div class="step-num">3</div><div class="step-body">Preencha: Apartamento (opcional), Categoria (obrigatório), Prioridade, Solicitante (lista carregada do banco — configurável em <strong>Config → Tipos de Solicitante</strong>), Responsável (opcional), Prazo, Descrição e Nome do Hóspede. Os campos <strong>Descrição</strong> e <strong>Nome do Hóspede</strong> são zerados automaticamente a cada abertura do modal — as informações já foram salvas no chamado anterior.</div></li>
+        <li><div class="step-num">2</div><div class="step-body">Selecione o <strong>Departamento</strong>: Governança ou Manutenção. Os tipos de chamado disponíveis mudam conforme o departamento.</div></li>
+        <li><div class="step-num">3</div><div class="step-body">Preencha: Apartamento (opcional), Tipo de Chamado (obrigatório), Prioridade, Solicitante (lista carregada do banco — configurável em <strong>Config → Tipos de Solicitante</strong>), Responsável (opcional), Prazo, Descrição e Nome do Hóspede. Os campos <strong>Descrição</strong> e <strong>Nome do Hóspede</strong> são zerados automaticamente a cada abertura do modal — as informações já foram salvas no chamado anterior.</div></li>
         <li><div class="step-num">4</div><div class="step-body">Se o apartamento selecionado já tiver chamados abertos, aparece um aviso: <em>"⚠️ Já existe X chamado(s) aberto(s) para este apartamento."</em> O aviso é informativo — a criação não é bloqueada.</div></li>
         <li><div class="step-num">5</div><div class="step-body">Clique <strong>Abrir chamado</strong>. O código <strong>GOV-XXXXXX</strong> ou <strong>MAN-XXXXXX</strong> é gerado automaticamente. A equipe do hotel recebe notificação em tempo real.</div></li>
       </ul>
