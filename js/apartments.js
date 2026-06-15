@@ -839,14 +839,25 @@ async function aprovarLimpeza() {
   await mudarStatusApto(selectedAptoId, 'limpo', obs);
 }
 
-function abrirModalReprovacao() {
+async function abrirModalReprovacao() {
   const sel = document.getElementById('rep-motivo');
   const obs = document.getElementById('rep-obs');
-  if (sel) sel.value = '';
   if (obs) obs.value = '';
   closeModal('modal-apto-detail');
   openModal('modal-reprovacao');
-  if (sel) sel.focus();
+
+  // Carrega motivos do banco
+  if (sel) {
+    sel.innerHTML = '<option value="">Carregando...</option>';
+    const hotelId = currentUser.hotelId;
+    let q = supabaseClient.from('motivos_reprovacao').select('id, nome').eq('ativo', true).order('ordem');
+    if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
+    const { data } = await q;
+    const motivos = data || [];
+    sel.innerHTML = '<option value="">Selecione o motivo *</option>' +
+      motivos.map(m => `<option value="${m.nome}">${m.nome}</option>`).join('');
+    sel.focus();
+  }
 }
 
 async function reprovarLimpeza() {
