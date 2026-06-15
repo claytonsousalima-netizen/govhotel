@@ -152,6 +152,30 @@ async function _carregarDashboard(hotelId) {
       <div class="stat-value">${equipeArr.length}</div>
       <div class="stat-sub">camareiras + manutenção</div>
     </div>
+    ${pausado > 0 ? `
+    <div class="stat-card" style="border-top:3px solid #7c3aed;">
+      <div class="stat-label">Pausados</div>
+      <div class="stat-value" style="color:#7c3aed;">${pausado}</div>
+      <div class="stat-sub">limpeza interrompida</div>
+    </div>` : ''}
+    ${conferencia > 0 ? `
+    <div class="stat-card" style="border-top:3px solid #0891b2;">
+      <div class="stat-label">Ag. conferência</div>
+      <div class="stat-value" style="color:#0891b2;">${conferencia}</div>
+      <div class="stat-sub">aguardando vistoria</div>
+    </div>` : ''}
+    ${limpo > 0 ? `
+    <div class="stat-card" style="border-top:3px solid #16a34a;">
+      <div class="stat-label">Limpos</div>
+      <div class="stat-value" style="color:#16a34a;">${limpo}</div>
+      <div class="stat-sub">prontos para recepção</div>
+    </div>` : ''}
+    ${reprovado > 0 ? `
+    <div class="stat-card" style="border-top:3px solid #dc2626;">
+      <div class="stat-label">Reprovados</div>
+      <div class="stat-value" style="color:#dc2626;">${reprovado}</div>
+      <div class="stat-sub">requer retrabalho</div>
+    </div>` : ''}
     ${bloqueado > 0 ? `
     <div class="stat-card" style="border-top:3px solid #64748b;">
       <div class="stat-label">Bloqueados</div>
