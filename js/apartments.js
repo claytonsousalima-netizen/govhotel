@@ -993,6 +993,13 @@ async function concluirChecklistLimpeza() {
 
 // ── ADAPTAR renderAppCamareira para usar dados do Supabase ────
 
+let _appCamFiltro = ''; // '' = todos
+
+function setAppCamFiltro(status) {
+  _appCamFiltro = (_appCamFiltro === status) ? '' : status; // toggle
+  renderAppCamareira();
+}
+
 async function renderAppCamareira() {
   document.getElementById('app-camareira-nome').textContent = currentUser.nome;
 
@@ -1002,18 +1009,34 @@ async function renderAppCamareira() {
     await syncApartamentos();
   }
 
-  // Filtra aptos da camareira logada (via maid.user_id)
-  const maid = equipe.find(e => e.id && currentUser.id); // ajuste fino na Etapa 5
-  const meus = aptos; // por ora mostra todos do hotel; Etapa 5 filtrará por maid_id
+  const meus = aptos;
 
   const aLimpar    = meus.filter(a => a.status === 'sujo').length;
   const limpando   = meus.filter(a => a.status === 'limpando').length;
   const concluidos = meus.filter(a => ['livre','conferencia'].includes(a.status)).length;
 
-  document.getElementById('app-a-limpar').textContent   = aLimpar;
-  document.getElementById('app-limpando').textContent   = limpando;
-  document.getElementById('app-concluidos').textContent = concluidos;
-  document.getElementById('app-aptos-count').textContent= `${meus.length} aptos no hotel`;
+  document.getElementById('app-a-limpar').textContent    = aLimpar;
+  document.getElementById('app-limpando').textContent    = limpando;
+  document.getElementById('app-concluidos').textContent  = concluidos;
+  document.getElementById('app-aptos-count').textContent = `${meus.length} aptos no hotel`;
+
+  // Filtros de status
+  const statusPresentes = [...new Set(meus.map(a => a.status))].sort();
+  const labelStatus = {
+    livre:'Livre', sujo:'Sujo', limpando:'Limpando', pausado:'Pausado',
+    conferencia:'Conferência', limpo:'Limpo', reprovado:'Reprovado',
+    bloqueado:'Bloqueado', ocupado:'Ocupado', manutencao:'Manutenção'
+  };
+  const filtroEl = document.getElementById('app-filtro-status');
+  if (filtroEl) {
+    filtroEl.innerHTML =
+      `<button class="btn btn-sm ${_appCamFiltro===''?'btn-primary':'btn-ghost'}" onclick="setAppCamFiltro('')">Todos</button>` +
+      statusPresentes.map(s =>
+        `<button class="btn btn-sm ${_appCamFiltro===s?'btn-primary':'btn-ghost'}" onclick="setAppCamFiltro('${s}')">${labelStatus[s]||s}</button>`
+      ).join('');
+  }
+
+  const exibir = _appCamFiltro ? meus.filter(a => a.status === _appCamFiltro) : meus;
 
   const icons = {
     livre:'✅', sujo:'🧺', limpando:'🧹', pausado:'⏸',
@@ -1021,19 +1044,21 @@ async function renderAppCamareira() {
     bloqueado:'🔒', ocupado:'🏠', manutencao:'🔧'
   };
 
-  document.getElementById('app-apto-list').innerHTML = meus.map(a => `
-    <div class="apto-card-app ${a.status}" onclick="abrirChecklistApp('${a.id}')">
-      <div>
-        <div class="app-apto-num">${a.numero}</div>
-        <div class="app-apto-info">${a.tipo} · ${a.andar}º andar</div>
-        <div style="margin-top:4px;"><span class="badge badge-${a.status}">${a.status}</span></div>
-      </div>
-      <div style="text-align:right;">
-        <div style="font-size:28px;">${icons[a.status]||'❓'}</div>
-        ${a.status==='sujo'?'<div style="font-size:11px;color:var(--warning);font-weight:700;margin-top:4px;">TAP PARA INICIAR</div>':''}
-        ${a.status==='limpando'?'<div style="font-size:11px;color:var(--info);font-weight:700;margin-top:4px;">EM ANDAMENTO</div>':''}
-      </div>
-    </div>`).join('');
+  document.getElementById('app-apto-list').innerHTML = exibir.length
+    ? exibir.map(a => `
+        <div class="apto-card-app ${a.status}" onclick="abrirChecklistApp('${a.id}')">
+          <div>
+            <div class="app-apto-num">${a.numero}</div>
+            <div class="app-apto-info">${a.tipo} · ${a.andar}º andar</div>
+            <div style="margin-top:4px;"><span class="badge badge-${a.status}">${labelStatus[a.status]||a.status}</span></div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:28px;">${icons[a.status]||'❓'}</div>
+            ${a.status==='sujo'?'<div style="font-size:11px;color:var(--warning);font-weight:700;margin-top:4px;">TAP PARA INICIAR</div>':''}
+            ${a.status==='limpando'?'<div style="font-size:11px;color:var(--info);font-weight:700;margin-top:4px;">EM ANDAMENTO</div>':''}
+          </div>
+        </div>`).join('')
+    : `<div style="text-align:center;padding:32px;color:var(--text3);font-size:13px;">Nenhum apartamento com este status.</div>`
 }
 
 // ── ADAPTAR abrirChecklistApp para UUIDs ─────────────────────

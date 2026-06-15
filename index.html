@@ -945,6 +945,13 @@ tr:last-child td { border-bottom: none; }
             <div id="config-apto-cats"></div>
           </div>
 
+          <!-- Solicitantes -->
+          <div class="card">
+            <div class="card-title" style="margin-bottom:6px;">👤 Tipos de Solicitante</div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:12px;">Recepção, Hóspede, Gerência etc. · 🌐 padrão · 🏨 deste hotel</div>
+            <div id="config-solicitantes"></div>
+          </div>
+
           <!-- Checklist de limpeza -->
           <div class="card" style="grid-column:1/-1;">
             <div class="card-title" style="margin-bottom:14px;">✅ Checklist de Limpeza</div>
@@ -985,6 +992,7 @@ tr:last-child td { border-bottom: none; }
             <div class="stat-card s-green" style="padding:10px;"><div class="stat-label" style="font-size:10px;">Concluídos</div><div class="stat-value" style="font-size:20px;" id="app-concluidos">0</div></div>
           </div>
           <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Meus apartamentos</div>
+          <div id="app-filtro-status" style="margin-bottom:10px;display:flex;gap:6px;flex-wrap:wrap;"></div>
           <div id="app-apto-list"></div>
         </div>
       </div>
@@ -1344,12 +1352,7 @@ tr:last-child td { border-bottom: none; }
           </select>
         </div>
         <div class="field"><label>Solicitante</label>
-          <select id="nc-solicitante">
-            <option value="recepcao">Recepção</option>
-            <option value="hospede">Hóspede</option>
-            <option value="supervisora">Supervisora</option>
-            <option value="gerencia">Gerência</option>
-          </select>
+          <select id="nc-solicitante"></select>
         </div>
       </div>
       <div class="form-row">
@@ -2630,12 +2633,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <script src="js/hotels.js?v=20260613p"></script>
-<script src="js/apartments.js?v=20260615b"></script>
+<script src="js/apartments.js?v=20260615c"></script>
 <script src="js/maids.js?v=20260614d"></script>
 <script src="js/users.js?v=20260615a"></script>
 <script src="js/permissions.js?v=20260614b"></script>
-<script src="js/chamados.js?v=20260615c"></script>
-<script src="js/config.js?v=20260613v"></script>
+<script src="js/chamados.js?v=20260615d"></script>
+<script src="js/config.js?v=20260615a"></script>
 <script src="js/dashboard.js?v=20260615c"></script>
 <script src="js/relatorios.js?v=20260613p"></script>
 <script src="js/minha-fila.js?v=20260615b"></script>

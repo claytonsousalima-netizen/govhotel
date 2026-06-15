@@ -291,6 +291,12 @@ async function _verificarDuplicidadeChamado(aptoId) {
 
 // ── ABRIR MODAL CHAMADO ───────────────────────────────────────
 async function openModalNovoChamado() {
+  // Limpa campos que podem ter ficado preenchidos do chamado anterior
+  const descEl    = document.getElementById('nc-desc');
+  const hospedeEl = document.getElementById('nc-hospede');
+  if (descEl)    descEl.value    = '';
+  if (hospedeEl) hospedeEl.value = '';
+
   // Perfil manutenção abre no departamento correto por padrão
   const defaultDept = currentUser.perfil === 'manutencao' ? 'manutencao' : 'governanca';
   const deptSel = document.getElementById('nc-departamento');
@@ -333,7 +339,20 @@ async function openModalNovoChamado() {
 
   await _loadTiposChamado();
   await _popularCategoriasSelect(defaultDept);
+  await _popularSolicitantesSelect();
   openModal('modal-novo-chamado');
+}
+
+async function _popularSolicitantesSelect() {
+  const sel = document.getElementById('nc-solicitante');
+  if (!sel) return;
+  const hotelId = currentUser.hotelId;
+  let query = supabaseClient.from('solicitantes').select('id, nome').eq('ativo', true).order('ordem');
+  if (hotelId) query = query.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
+  else         query = query.is('hotel_id', null);
+  const { data } = await query;
+  const lista = data || [];
+  sel.innerHTML = lista.map(s => `<option value="${s.nome}">${s.nome}</option>`).join('');
 }
 
 // ── LABEL "ATRIBUIR PARA" ─────────────────────────────────────

@@ -10,6 +10,7 @@ async function renderConfigPage() {
   await Promise.all([
     renderConfigTurnos(),
     renderConfigTipos(),
+    renderConfigSolicitantes(),
     renderConfigChecklist(),
   ]);
 }
@@ -330,6 +331,109 @@ async function abrirChecklistApp(id) {
 
   renderChecklist();
   openModal('modal-checklist');
+}
+
+// ── SOLICITANTES ──────────────────────────────────────────────
+let _solicitantesCache = [];
+
+async function renderConfigSolicitantes() {
+  const el = document.getElementById('config-solicitantes');
+  if (!el) return;
+
+  const hotelId = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
+  let query = supabaseClient.from('solicitantes').select('*').order('ordem');
+  if (hotelId) query = query.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
+
+  const { data, error } = await query;
+  if (error) {
+    el.innerHTML = `<div style="color:var(--danger);font-size:12px;">Erro: ${error.message}</div>`;
+    return;
+  }
+  _solicitantesCache = data || [];
+
+  el.innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+      <input type="text" id="new-solicitante-nome" placeholder="Novo tipo de solicitante..."
+        style="flex:1;min-width:180px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;">
+      <button class="btn btn-primary btn-sm" onclick="_adicionarSolicitante()">+ Adicionar</button>
+    </div>
+    <div id="solicitantes-lista">
+      ${_solicitantesCache.map(s => _renderSolicitanteRow(s)).join('')}
+    </div>`;
+}
+
+function _renderSolicitanteRow(s) {
+  return `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);gap:8px;" id="sol-row-${s.id}">
+      <div style="display:flex;align-items:center;gap:8px;flex:1;">
+        <span style="font-size:12px;color:var(--text3);">${s.hotel_id ? '🏨' : '🌐'}</span>
+        <span style="font-size:13px;" id="sol-nome-text-${s.id}">${s.nome}</span>
+        ${!s.ativo ? '<span class="badge badge-bloqueado" style="font-size:10px;">Inativo</span>' : ''}
+      </div>
+      <div id="sol-edit-${s.id}" style="display:none;flex:1;">
+        <input type="text" id="sol-edit-nome-${s.id}" value="${s.nome}"
+          style="width:100%;padding:5px 8px;border:1.5px solid var(--primary-light);border-radius:var(--radius-sm);font-size:13px;">
+      </div>
+      <div style="display:flex;gap:4px;flex-shrink:0;">
+        <button class="btn btn-ghost btn-xs" id="sol-btn-edit-${s.id}"
+          onclick="_iniciarEdicaoSolicitante('${s.id}')" title="Editar">✏️</button>
+        <button class="btn btn-ghost btn-xs" id="sol-btn-save-${s.id}" style="display:none;"
+          onclick="_salvarEdicaoSolicitante('${s.id}')" title="Salvar">💾</button>
+        <button class="btn btn-ghost btn-xs" id="sol-btn-cancel-${s.id}" style="display:none;"
+          onclick="renderConfigSolicitantes()" title="Cancelar">✕</button>
+        <button class="btn btn-ghost btn-xs" onclick="_toggleSolicitante('${s.id}',${s.ativo})"
+          title="${s.ativo ? 'Inativar' : 'Ativar'}">${s.ativo ? '⏸' : '▶'}</button>
+        ${s.hotel_id
+          ? `<button class="btn btn-ghost btn-xs" style="color:var(--danger);"
+              onclick="_excluirSolicitante('${s.id}')" title="Excluir">🗑</button>`
+          : ''}
+      </div>
+    </div>`;
+}
+
+function _iniciarEdicaoSolicitante(id) {
+  document.getElementById(`sol-nome-text-${id}`).style.display  = 'none';
+  document.getElementById(`sol-edit-${id}`).style.display       = 'block';
+  document.getElementById(`sol-btn-edit-${id}`).style.display   = 'none';
+  document.getElementById(`sol-btn-save-${id}`).style.display   = '';
+  document.getElementById(`sol-btn-cancel-${id}`).style.display = '';
+  document.getElementById(`sol-edit-nome-${id}`)?.focus();
+}
+
+async function _salvarEdicaoSolicitante(id) {
+  const nome = document.getElementById(`sol-edit-nome-${id}`)?.value.trim();
+  if (!nome) { toast('Informe o nome', 'error'); return; }
+  const { error } = await supabaseClient.from('solicitantes').update({ nome }).eq('id', id);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  toast('Solicitante atualizado!', 'success');
+  await renderConfigSolicitantes();
+}
+
+async function _adicionarSolicitante() {
+  const input = document.getElementById('new-solicitante-nome');
+  const nome  = input?.value.trim();
+  if (!nome) { toast('Informe o nome do solicitante', 'error'); return; }
+  const hotel_id = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
+  const ordem    = (_solicitantesCache.length || 0) + 1;
+  const { error } = await supabaseClient.from('solicitantes').insert([{ nome, hotel_id, ativo: true, ordem }]);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  if (input) input.value = '';
+  toast('Solicitante adicionado!', 'success');
+  await renderConfigSolicitantes();
+}
+
+async function _toggleSolicitante(id, ativo) {
+  const { error } = await supabaseClient.from('solicitantes').update({ ativo: !ativo }).eq('id', id);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  await renderConfigSolicitantes();
+}
+
+async function _excluirSolicitante(id) {
+  if (!confirm('Excluir este solicitante?')) return;
+  const { error } = await supabaseClient.from('solicitantes').delete().eq('id', id);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  toast('Solicitante excluído!', 'success');
+  await renderConfigSolicitantes();
 }
 
 // Rendering chamado diretamente por renderConfig() em index.html
