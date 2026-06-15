@@ -1,5 +1,5 @@
 // ================================================================
-// HOTELS SERVICE — GovHotel
+// HOTELS SERVICE — Gov Estancorp
 // Gerenciamento de hotéis para perfil admin_global
 // Depende de: supabase-client.js
 // ================================================================

@@ -1,5 +1,5 @@
 // ================================================================
-// MINHA FILA — GovHotel
+// MINHA FILA — Gov Estancorp
 // Visualização operacional por perfil.
 // Reutiliza: aptos[], equipe[], mudarStatusApto(), iniciarLimpeza(),
 //            abrirModalPausa(), concluirLimpeza(), aprovarLimpeza(),

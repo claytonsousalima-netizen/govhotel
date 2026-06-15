@@ -1,5 +1,5 @@
 // ================================================================
-// USERS SERVICE — GovHotel
+// USERS SERVICE — Gov Estancorp
 // Gerenciamento de usuários vinculados ao hotel
 // Depende de: supabase-client.js, auth.js
 // ================================================================

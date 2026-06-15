@@ -1,5 +1,5 @@
 // ================================================================
-// MAIDS SERVICE — GovHotel
+// MAIDS SERVICE — Gov Estancorp
 // Gerenciamento de camareiras vinculadas ao hotel
 // Depende de: supabase-client.js, auth.js, apartments.js
 // ================================================================

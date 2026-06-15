@@ -1,5 +1,5 @@
 // ============================================================
-// SUPABASE CLIENT — GovHotel
+// SUPABASE CLIENT — Gov Estancorp
 //
 // Substitua os dois valores abaixo pelos do seu projeto:
 //   Dashboard Supabase → Project Settings → API

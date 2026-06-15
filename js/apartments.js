@@ -1,5 +1,5 @@
 // ================================================================
-// APARTMENTS SERVICE — GovHotel
+// APARTMENTS SERVICE — Gov Estancorp
 // Gerenciamento de apartamentos vinculados ao hotel
 // Depende de: supabase-client.js, auth.js
 // ================================================================

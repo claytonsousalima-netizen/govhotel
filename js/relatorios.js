@@ -1,5 +1,5 @@
 // ================================================================
-// RELATÓRIOS SERVICE — GovHotel
+// RELATÓRIOS SERVICE — Gov Estancorp
 // Analytics reais do Supabase com seletor de hotel para admin_global.
 // ================================================================
 

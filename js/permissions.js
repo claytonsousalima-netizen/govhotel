@@ -1,5 +1,5 @@
 // ================================================================
-// PERMISSIONS — GovHotel
+// PERMISSIONS — Gov Estancorp
 // Camada de controle de acesso no frontend.
 // O Supabase RLS é a barreira definitiva — este arquivo garante
 // que a UI não exiba ações indevidas e bloqueia tentativas antes

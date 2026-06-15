@@ -1,5 +1,5 @@
 // ================================================================
-// CONFIG SERVICE — GovHotel
+// CONFIG SERVICE — Gov Estancorp
 // CRUD de tipos de chamado, checklist de limpeza e turnos.
 // Visível apenas para admin_global e admin_hotel.
 // ================================================================

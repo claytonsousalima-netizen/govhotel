@@ -1,5 +1,5 @@
 // ============================================================
-// SERVIÇO DE AUTENTICAÇÃO — GovHotel
+// SERVIÇO DE AUTENTICAÇÃO — Gov Estancorp
 // Depende de: supabase-client.js (supabaseClient já instanciado)
 // ============================================================
 

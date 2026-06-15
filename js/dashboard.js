@@ -1,5 +1,5 @@
 // ================================================================
-// DASHBOARD SERVICE — GovHotel
+// DASHBOARD SERVICE — Gov Estancorp
 // Stats reais do Supabase com seletor de hotel para admin_global.
 // ================================================================
 

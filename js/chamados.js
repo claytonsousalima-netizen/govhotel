@@ -1,5 +1,5 @@
 // ================================================================
-// CHAMADOS SERVICE — GovHotel
+// CHAMADOS SERVICE — Gov Estancorp
 // Depende de: supabase-client.js, auth.js, apartments.js
 // ================================================================
 
