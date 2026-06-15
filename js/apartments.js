@@ -1049,9 +1049,11 @@ function abrirChecklistApp(id) {
 }
 
 async function concluirChecklist() {
-  // Redireciona para o checklist completo (valida obrigatórios, salva no banco)
+  const done = checklistState.filter(i => i.done).length;
+  if (done < checklistState.length * 0.8) { toast('Complete pelo menos 80% dos itens', 'error'); return; }
   closeModal('modal-checklist');
-  abrirChecklistLimpeza();
+  const obs = `Limpeza em andamento — checklist iniciado por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
+  await mudarStatusApto(selectedAptoId, 'limpando', obs);
 }
 
 // ── MAPA COM SELETOR DE HOTEL (admin_global) ──────────────────
