@@ -127,7 +127,7 @@
 <nav class="sidebar">
   <div class="sidebar-logo">
     <h1>🏨 GovHotel</h1>
-    <p>Manual de Uso — v2026.06.2</p>
+    <p>Manual de Uso — v2026.06.3</p>
   </div>
 
   <div class="sidebar-section">Introdução</div>
@@ -163,7 +163,7 @@
 
   <div class="page-title">Manual de Uso — GovHotel</div>
   <div class="page-subtitle">
-    Sistema de Governança Hoteleira · Todos os perfis de acesso · Versão 2026.06
+    Sistema de Governança Hoteleira · Todos os perfis de acesso · Versão 2026.06.3
   </div>
 
   <!-- ══ VISÃO GERAL ════════════════════════════════════════ -->
@@ -258,16 +258,16 @@
   <section id="notificacoes" class="section">
     <div class="section-title">🔔 Notificações em Tempo Real <span class="novidade-badge">Atualizado</span></div>
     <div class="info-box purple">
-      <strong>Supabase Realtime:</strong> O sistema usa WebSocket para notificar a equipe automaticamente quando um novo chamado é aberto — sem precisar recarregar a página.
+      <strong>Supabase Realtime + detecção automática:</strong> O sistema usa WebSocket para notificar a equipe em tempo real e também detecta novos chamados a cada atualização do cache, garantindo que nenhuma notificação seja perdida mesmo em caso de instabilidade de conexão.
     </div>
     <ul class="steps">
       <li><div class="step-num">1</div><div class="step-body">Quando um novo chamado é aberto, os destinatários do departamento correspondente recebem um <strong>aviso modal na tela</strong> com o número do chamado, departamento, categoria e prioridade. O aviso <strong>não fecha automaticamente</strong> — exige ação explícita.</div></li>
       <li><div class="step-num">2</div><div class="step-body">O destinatário deve pressionar o botão <strong>✓ OK — Confirmar recebimento</strong>. Ao confirmar, o sistema registra no histórico do chamado: <em>"Recebimento confirmado por [nome] em [data/hora]"</em>.</div></li>
       <li><div class="step-num">3</div><div class="step-body">Se chegarem múltiplos chamados enquanto o aviso está aberto, eles são <strong>enfileirados</strong> — ao confirmar um, o próximo aparece automaticamente.</div></li>
-      <li><div class="step-num">4</div><div class="step-body">A <strong>lista de chamados</strong> e o <strong>badge numérico do menu</strong> atualizam automaticamente em paralelo, sem ação do usuário.</div></li>
-      <li><div class="step-num">5</div><div class="step-body"><strong>Camareira</strong> recebe somente notificações de chamados de <strong>Governança</strong>. <strong>Manutenção</strong> recebe somente notificações de chamados de <strong>Manutenção</strong>. Demais perfis (gestor, admin) não recebem o aviso modal.</div></li>
+      <li><div class="step-num">4</div><div class="step-body">A <strong>lista de chamados</strong> e o <strong>badge numérico do menu</strong> atualizam automaticamente em paralelo, sem ação do usuário — inclusive quando a camareira ou manutenção está em outras telas (Minha Fila, Meus Aptos).</div></li>
+      <li><div class="step-num">5</div><div class="step-body"><strong>Camareira</strong> recebe somente notificações de chamados de <strong>Governança</strong>. <strong>Manutenção</strong> recebe somente notificações de chamados de <strong>Manutenção</strong>. Demais perfis (gestor, admin, supervisora) não recebem o aviso modal, mas o badge do menu é atualizado para todos.</div></li>
       <li><div class="step-num">6</div><div class="step-body">Quem <em>abriu</em> o chamado não recebe notificação de si mesmo.</div></li>
-      <li><div class="step-num">7</div><div class="step-body">A conexão é encerrada automaticamente ao fazer logout.</div></li>
+      <li><div class="step-num">7</div><div class="step-body">A conexão é encerrada automaticamente ao fazer logout. Os chamados conhecidos são resetados a cada novo login.</div></li>
     </ul>
     <div class="card" style="margin-top:14px;">
       <h4>Registro de Recebimento no Histórico</h4>
@@ -355,8 +355,9 @@
       <ul class="steps">
         <li><div class="step-num">1</div><div class="step-body">Clique em <strong>Config</strong> no menu lateral.</div></li>
         <li><div class="step-num">2</div><div class="step-body">Configure <strong>tipos de chamados</strong> por departamento (Governança / Manutenção). Esses tipos aparecem no formulário de novo chamado.</div></li>
-        <li><div class="step-num">3</div><div class="step-body">Configure <strong>checklists de limpeza</strong> padrão que a camareira confere ao concluir.</div></li>
-        <li><div class="step-num">4</div><div class="step-body">Configure <strong>tipos de apartamento</strong> (Standard, Luxo, Suíte, etc.).</div></li>
+        <li><div class="step-num">3</div><div class="step-body">Configure <strong>tipos de solicitante</strong> (Recepção, Hóspede, Gerência etc.) — veja detalhes abaixo.</div></li>
+        <li><div class="step-num">4</div><div class="step-body">Configure <strong>checklists de limpeza</strong> padrão que a camareira confere ao concluir.</div></li>
+        <li><div class="step-num">5</div><div class="step-body">Configure <strong>tipos de apartamento</strong> (Standard, Luxo, Suíte, etc.).</div></li>
       </ul>
     </div>
   </section>
@@ -524,6 +525,17 @@
       <span class="acesso-badge">🗺 Mapa</span>
       <span class="acesso-badge">🎫 Chamados (Governança)</span>
       <span class="acesso-badge">📌 Minha Fila</span>
+    </div>
+
+    <div class="section">
+      <div class="section-title">🧹 Meus Aptos <span class="novidade-badge">Atualizado</span></div>
+      <div class="info-box blue">A tela <strong>Meus Aptos</strong> exibe todos os apartamentos do hotel com ícone e status visual. Ideal para uso no celular durante o turno.</div>
+      <ul class="steps">
+        <li><div class="step-num">1</div><div class="step-body">Clique em <strong>Meus Aptos</strong> no menu. Os apartments são exibidos em cards com ícone, número, andar, tipo e status.</div></li>
+        <li><div class="step-num">2</div><div class="step-body">Use os <strong>botões de filtro por status</strong> acima da lista para exibir apenas os apartamentos de um determinado status (ex.: Sujo, Limpando, Pausado). Clique no mesmo botão novamente para voltar a "Todos".</div></li>
+        <li><div class="step-num">3</div><div class="step-body">Os botões de filtro mostram apenas os status que existem no hotel no momento — se não há aptos Reprovados, o botão Reprovado não aparece.</div></li>
+        <li><div class="step-num">4</div><div class="step-body">Toque em um card de apartamento <span class="badge b-sujo">Sujo</span> para abrir o checklist e iniciar a limpeza.</div></li>
+      </ul>
     </div>
 
     <div class="section">
@@ -727,7 +739,7 @@
       <ul class="steps">
         <li><div class="step-num">1</div><div class="step-body">Clique em <strong>+ Novo Chamado</strong>. O modal abre e <strong>não fecha ao clicar fora</strong> — use os botões <strong>Cancelar</strong> ou <strong>Abrir chamado</strong>.</div></li>
         <li><div class="step-num">2</div><div class="step-body">Selecione o <strong>Departamento</strong>: Governança ou Manutenção. As categorias disponíveis mudam conforme o departamento.</div></li>
-        <li><div class="step-num">3</div><div class="step-body">Preencha: Apartamento (opcional), Categoria (obrigatório), Prioridade, Solicitante, Responsável (opcional — deixe em branco para chamado disponível à equipe), Prazo, Descrição e Hóspede.</div></li>
+        <li><div class="step-num">3</div><div class="step-body">Preencha: Apartamento (opcional), Categoria (obrigatório), Prioridade, Solicitante (lista carregada do banco — configurável em <strong>Config → Tipos de Solicitante</strong>), Responsável (opcional), Prazo, Descrição e Nome do Hóspede. Os campos <strong>Descrição</strong> e <strong>Nome do Hóspede</strong> são zerados automaticamente a cada abertura do modal — as informações já foram salvas no chamado anterior.</div></li>
         <li><div class="step-num">4</div><div class="step-body">Se o apartamento selecionado já tiver chamados abertos, aparece um aviso: <em>"⚠️ Já existe X chamado(s) aberto(s) para este apartamento."</em> O aviso é informativo — a criação não é bloqueada.</div></li>
         <li><div class="step-num">5</div><div class="step-body">Clique <strong>Abrir chamado</strong>. O código <strong>GOV-XXXXXX</strong> ou <strong>MAN-XXXXXX</strong> é gerado automaticamente. A equipe do hotel recebe notificação em tempo real.</div></li>
       </ul>
@@ -869,8 +881,9 @@
     <ul class="steps">
       <li><div class="step-num">1</div><div class="step-body">Clique em <strong>Config</strong> no menu lateral.</div></li>
       <li><div class="step-num">2</div><div class="step-body"><strong>Tipos de chamado:</strong> Gerencie os tipos disponíveis por departamento. Ao abrir um chamado, apenas os tipos ativos do departamento selecionado são exibidos.</div></li>
-      <li><div class="step-num">3</div><div class="step-body"><strong>Checklist de limpeza:</strong> Configure os itens que a camareira verifica ao concluir a limpeza.</div></li>
-      <li><div class="step-num">4</div><div class="step-body"><strong>Tipos de apartamento:</strong> Adicione ou edite tipos (Standard, Luxo, Suíte, etc.).</div></li>
+      <li><div class="step-num">3</div><div class="step-body"><strong>Tipos de solicitante:</strong> Gerencie quem pode abrir um chamado (Recepção, Hóspede, Gerência, Supervisora etc.). Registros marcados com 🌐 são padrão global (não excluíveis); registros 🏨 são específicos do hotel. Use <strong>+ Adicionar</strong> para incluir novos, o botão de edição (✏) para renomear, e <strong>Excluir</strong> para remover os do hotel. Solicitantes inativos não aparecem no formulário de abertura de chamado.</div></li>
+      <li><div class="step-num">4</div><div class="step-body"><strong>Checklist de limpeza:</strong> Configure os itens que a camareira verifica ao concluir a limpeza.</div></li>
+      <li><div class="step-num">5</div><div class="step-body"><strong>Tipos de apartamento:</strong> Adicione ou edite tipos (Standard, Luxo, Suíte, etc.).</div></li>
     </ul>
     <div class="info-box red">
       <strong>Atenção:</strong> Alterações nas configurações afetam todos os usuários do hotel imediatamente. Desativar um tipo de chamado impede que novos chamados desse tipo sejam criados.
@@ -955,7 +968,7 @@
   </section>
 
   <div style="text-align:center;padding:32px 0;color:var(--text3);font-size:12px;border-top:1px solid var(--border);">
-    GovHotel · Manual de Uso · Versão 2026.06.2 · Sistema de Governança Hoteleira
+    GovHotel · Manual de Uso · Versão 2026.06.3 · Sistema de Governança Hoteleira
   </div>
 
 </main>
