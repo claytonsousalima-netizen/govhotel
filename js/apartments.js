@@ -1495,6 +1495,13 @@ function _reaplicarFiltros() {
 
 // ── OVERRIDE: renderMapa (com filtros) ───────────────────────
 function renderMapa() {
+  const perfil = currentUser?.perfil;
+  const podeSelecionar = perfil && !['camareira','manutencao'].includes(perfil);
+  const btnSel = document.getElementById('btn-lote-selecionar');
+  if (btnSel) btnSel.style.display = podeSelecionar ? '' : 'none';
+  const btnAlt = document.getElementById('btn-alterar-status-header');
+  if (btnAlt) btnAlt.style.display = podeSelecionar ? '' : 'none';
+
   const lista   = _filtrarAptos(aptos);
   const andares = [...new Set(lista.map(a => a.andar))].sort((a, b) => a - b);
   let html = '';
@@ -1506,17 +1513,37 @@ function renderMapa() {
       <div class="floor-label">🏢 ${andar}º Andar — ${do_andar.length} apto${do_andar.length !== 1 ? 's' : ''}</div>
       <div class="aptos-grid">`;
     do_andar.forEach(a => {
-      const icon       = (typeof _STATUS_ICONS  !== 'undefined' ? _STATUS_ICONS[a.status]  : null) || '❓';
-      const lbl        = (typeof _STATUS_LABELS !== 'undefined' ? _STATUS_LABELS[a.status] : null) || a.status;
+      const icon = _STATUS_ICONS[a.status]  || '❓';
+      const lbl  = _STATUS_LABELS[a.status] || a.status;
       const temChamado = _aptosComChamadoAberto.has(a.id);
-      html += `<div class="apto-card ${a.status}" onclick="openAptoDetail('${a.id}')" style="position:relative;">
-        ${a.prioridade ? '<div class="apto-priority"></div>' : ''}
-        ${temChamado ? '<div style="position:absolute;top:4px;right:4px;font-size:9px;font-weight:700;background:var(--danger);color:#fff;border-radius:8px;padding:1px 5px;line-height:1.5;" title="Chamado aberto">📋</div>' : ''}
-        <div class="apto-status-icon">${icon}</div>
-        <div class="apto-num">${a.numero}</div>
-        <div class="apto-tipo">${a.tipo}</div>
-        <span class="badge badge-${a.status}" style="font-size:10px;">${lbl}</span>
-      </div>`;
+
+      if (_loteMode) {
+        const bloqueado   = _LOTE_STATUS_BLOQUEADOS.has(a.status);
+        const selecionado = _loteSelected.has(a.id);
+        html += `<div class="apto-card ${a.status}${selecionado ? ' lote-selecionado' : ''}${bloqueado ? ' lote-bloqueado' : ''}"
+          data-id="${a.id}" onclick="_loteToggleApto('${a.id}',this)" style="position:relative;">
+          ${selecionado ? '<div style="position:absolute;top:4px;left:4px;background:#1d4ed8;color:#fff;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">✓</div>' : ''}
+          ${a.prioridade ? '<div class="apto-priority"></div>' : ''}
+          ${temChamado ? '<div style="position:absolute;top:4px;right:4px;font-size:9px;font-weight:700;background:var(--danger);color:#fff;border-radius:8px;padding:1px 5px;line-height:1.5;" title="Chamado aberto">📋</div>' : ''}
+          <div class="apto-status-icon">${icon}</div>
+          <div class="apto-num">${a.numero}</div>
+          <div class="apto-tipo">${a.tipo}</div>
+          <span class="badge badge-${a.status}" style="font-size:10px;">${lbl}</span>
+        </div>`;
+      } else {
+        const _tempo = typeof _tempoStatus === 'function' ? _tempoStatus(a.status_at) : '';
+        const _semR  = !a.camareira_id;
+        html += `<div class="apto-card ${a.status}" data-id="${a.id}" onclick="openAptoDetail('${a.id}')" style="position:relative;">
+          ${a.prioridade ? '<div class="apto-priority"></div>' : ''}
+          ${temChamado ? '<div style="position:absolute;top:4px;right:4px;font-size:9px;font-weight:700;background:var(--danger);color:#fff;border-radius:8px;padding:1px 5px;line-height:1.5;" title="Chamado aberto">📋</div>' : ''}
+          <div class="apto-status-icon">${icon}</div>
+          <div class="apto-num">${a.numero}</div>
+          <div class="apto-tipo">${a.tipo}</div>
+          <span class="badge badge-${a.status}" style="font-size:10px;">${lbl}</span>
+          ${_semR ? '<div style="font-size:9px;color:var(--danger);font-weight:700;margin-top:3px;">Sem responsável</div>' : ''}
+          ${_tempo ? `<div style="font-size:9px;color:var(--text3);margin-top:2px;">${_tempo}</div>` : ''}
+        </div>`;
+      }
     });
     html += '</div></div>';
   });

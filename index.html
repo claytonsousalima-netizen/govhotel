@@ -2341,56 +2341,7 @@ const _STATUS_LABELS = {
   bloqueado:'Bloqueado', ocupado:'Ocupado', manutencao:'Manutenção'
 };
 
-function renderMapa() {
-  const perfil = currentUser?.perfil;
-  const podeSelecionar = perfil && !['camareira','manutencao'].includes(perfil);
-  const btnSel = document.getElementById('btn-lote-selecionar');
-  if (btnSel) btnSel.style.display = podeSelecionar ? '' : 'none';
-  const btnAlt = document.getElementById('btn-alterar-status-header');
-  if (btnAlt) btnAlt.style.display = podeSelecionar ? '' : 'none';
-
-  // Aplica TODOS os filtros avançados (status, andar, camareira, tipo, semCamareira)
-  const lista   = typeof _filtrarAptos === 'function' ? _filtrarAptos(aptos) : aptos;
-  const andares = [...new Set(lista.map(a => a.andar))].sort((a,b) => a-b);
-  let html = '';
-  andares.forEach(andar => {
-    const list = lista.filter(a => a.andar === andar);
-    if (!list.length) return;
-    html += `<div class="floor-section">
-      <div class="floor-label">🏢 ${andar}º Andar — ${list.length} apto${list.length !== 1 ? 's' : ''}</div>
-      <div class="aptos-grid">`;
-    list.forEach(a => {
-      if (_loteMode) {
-        const bloqueado = _LOTE_STATUS_BLOQUEADOS.has(a.status);
-        const selecionado = _loteSelected.has(a.id);
-        html += `<div class="apto-card ${a.status}${selecionado?' lote-selecionado':''}${bloqueado?' lote-bloqueado':''}"
-          data-id="${a.id}" onclick="_loteToggleApto('${a.id}',this)">
-          ${selecionado ? '<div style="position:absolute;top:4px;left:4px;background:#1d4ed8;color:#fff;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">✓</div>' : ''}
-          ${a.prioridade ? '<div class="apto-priority"></div>' : ''}
-          <div class="apto-status-icon">${_STATUS_ICONS[a.status]||'❓'}</div>
-          <div class="apto-num">${a.numero}</div>
-          <div class="apto-tipo">${a.tipo}</div>
-          <span class="badge badge-${a.status}" style="font-size:10px;">${_STATUS_LABELS[a.status]||a.status}</span>
-        </div>`;
-      } else {
-        const _tempo = typeof _tempoStatus === 'function' ? _tempoStatus(a.status_at) : '';
-        const _semR  = !a.camareira_id;
-        html += `<div class="apto-card ${a.status}" data-id="${a.id}" onclick="openAptoDetail('${a.id}')">
-          ${a.prioridade ? '<div class="apto-priority"></div>' : ''}
-          <div class="apto-status-icon">${_STATUS_ICONS[a.status]||'❓'}</div>
-          <div class="apto-num">${a.numero}</div>
-          <div class="apto-tipo">${a.tipo}</div>
-          <span class="badge badge-${a.status}" style="font-size:10px;">${_STATUS_LABELS[a.status]||a.status}</span>
-          ${_semR ? '<div style="font-size:9px;color:var(--danger);font-weight:700;margin-top:3px;">Sem responsável</div>' : ''}
-          ${_tempo ? `<div style="font-size:9px;color:var(--text3);margin-top:2px;">${_tempo}</div>` : ''}
-        </div>`;
-      }
-    });
-    html += '</div></div>';
-  });
-  document.getElementById('mapa-container').innerHTML = html || '<p style="color:var(--text3);text-align:center;padding:32px;">Nenhum apartamento encontrado</p>';
-  populateTsApto();
-}
+// renderMapa definida em js/apartments.js
 
 // ── FILTRO SEM CAMAREIRA ─────────────────────────────────────
 function _filtrarSemCamareira(btn) {
