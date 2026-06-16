@@ -950,14 +950,25 @@ function concluirLimpeza() {
 
 // ── CONFERÊNCIA DA SUPERVISORA ────────────────────────────────
 
+const _PERFIS_CONFERENCIA = new Set(['admin_global','admin_hotel','gestor','supervisora','governanta']);
+
 let _supChecklistAtivo = [];
 
 function aprovarLimpeza() {
+  if (!_PERFIS_CONFERENCIA.has(currentUser?.perfil)) {
+    toast('Somente supervisora, gestora ou admin podem aprovar a limpeza', 'error'); return;
+  }
   abrirChecklistSupervisora();
 }
 
 async function abrirChecklistSupervisora() {
+  if (!_PERFIS_CONFERENCIA.has(currentUser?.perfil)) {
+    toast('Sem permissão para realizar conferência', 'error'); return;
+  }
   const apto = aptos.find(a => a.id === selectedAptoId);
+  if (!apto || apto.status !== 'conferencia') {
+    toast('Conferência só é permitida em apartamento Aguardando conferência', 'error'); return;
+  }
   const titulo = document.getElementById('sup-cl-titulo');
   if (titulo && apto) titulo.textContent = `🔍 Conferência — Apto ${apto.numero}`;
 
@@ -1035,6 +1046,13 @@ async function confirmarChecklistSupervisora(decisao) {
 }
 
 async function abrirModalReprovacao() {
+  if (!_PERFIS_CONFERENCIA.has(currentUser?.perfil)) {
+    toast('Somente supervisora, gestora ou admin podem reprovar a limpeza', 'error'); return;
+  }
+  const apto = aptos.find(a => a.id === selectedAptoId);
+  if (!apto || apto.status !== 'conferencia') {
+    toast('Reprovação só é permitida em apartamento Aguardando conferência', 'error'); return;
+  }
   const sel = document.getElementById('rep-motivo');
   const obs = document.getElementById('rep-obs');
   if (obs) obs.value = '';
@@ -1056,6 +1074,9 @@ async function abrirModalReprovacao() {
 }
 
 async function reprovarLimpeza() {
+  if (!_PERFIS_CONFERENCIA.has(currentUser?.perfil)) {
+    toast('Sem permissão para reprovar limpeza', 'error'); return;
+  }
   const motivo = document.getElementById('rep-motivo')?.value || '';
   const obs    = document.getElementById('rep-obs')?.value.trim() || null;
 
