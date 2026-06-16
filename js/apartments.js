@@ -1256,9 +1256,43 @@ async function concluirChecklist() {
 
 // ── MAPA COM SELETOR DE HOTEL (admin_global) ──────────────────
 
+function _garantirBotoesMapa() {
+  const isOperacional = ['camareira','manutencao'].includes(currentUser?.perfil);
+  if (isOperacional) return;
+
+  const container = document.getElementById('mapa-header-actions');
+  if (!container) return;
+
+  // Garante btn-alterar-status-header
+  if (!document.getElementById('btn-alterar-status-header')) {
+    const btn = document.createElement('button');
+    btn.id = 'btn-alterar-status-header';
+    btn.className = 'btn btn-outline btn-sm';
+    btn.textContent = '🔄 Alterar Status';
+    btn.onclick = () => openModal('modal-trocar-status');
+    container.appendChild(btn);
+  } else {
+    document.getElementById('btn-alterar-status-header').style.display = '';
+  }
+
+  // Garante btn-lote-selecionar
+  if (!document.getElementById('btn-lote-selecionar')) {
+    const btn = document.createElement('button');
+    btn.id = 'btn-lote-selecionar';
+    btn.className = 'btn btn-primary btn-sm';
+    btn.textContent = '☑ Selecionar em lote';
+    btn.onclick = _toggleLoteMode;
+    container.appendChild(btn);
+  } else {
+    document.getElementById('btn-lote-selecionar').style.display = '';
+  }
+}
+
 async function initMapaAdmin() {
   const wrap = document.getElementById('mapa-hotel-selector');
   if (!wrap) return;
+
+  _garantirBotoesMapa();
 
   if (currentUser.perfil !== 'admin_global') {
     if (typeof _renderHotelChip === 'function') _renderHotelChip('mapa-hotel-selector');
