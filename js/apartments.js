@@ -1559,7 +1559,7 @@ function renderMapa() {
         </div>`;
       } else {
         const _tempo = typeof _tempoStatus === 'function' ? _tempoStatus(a.status_at) : '';
-        const _semR  = !a.camareira_id;
+        const _camNome = a._maid_nome || null;
         html += `<div class="apto-card ${a.status}" data-id="${a.id}" onclick="openAptoDetail('${a.id}')" style="position:relative;">
           ${a.prioridade ? '<div class="apto-priority"></div>' : ''}
           ${temChamado ? '<div style="position:absolute;top:4px;right:4px;font-size:9px;font-weight:700;background:var(--danger);color:#fff;border-radius:8px;padding:1px 5px;line-height:1.5;" title="Chamado aberto">📋</div>' : ''}
@@ -1567,7 +1567,9 @@ function renderMapa() {
           <div class="apto-num">${a.numero}</div>
           <div class="apto-tipo">${a.tipo}</div>
           <span class="badge badge-${a.status}" style="font-size:10px;">${lbl}</span>
-          ${_semR ? '<div style="font-size:9px;color:var(--danger);font-weight:700;margin-top:3px;">Sem responsável</div>' : ''}
+          ${_camNome
+            ? `<div style="font-size:9px;color:var(--text2);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">👤 ${_camNome.split(' ')[0]}</div>`
+            : '<div style="font-size:9px;color:var(--danger);font-weight:700;margin-top:3px;">Sem responsável</div>'}
           ${_tempo ? `<div style="font-size:9px;color:var(--text3);margin-top:2px;">${_tempo}</div>` : ''}
         </div>`;
       }
