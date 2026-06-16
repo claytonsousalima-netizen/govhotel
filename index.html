@@ -703,6 +703,7 @@ tr:last-child td { border-bottom: none; }
             <div class="page-subtitle">Visão em tempo real de todos os andares</div>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;" id="mapa-header-actions">
+            <button id="btn-cadastrar-apto-mapa" class="btn btn-ghost btn-sm" onclick="openPage('cadastro-apto')">⊕ Cadastrar Apto</button>
             <button id="btn-alterar-status-header" class="btn btn-outline btn-sm" onclick="openModal('modal-trocar-status')" style="display:none;">🔄 Alterar Status</button>
             <button id="btn-lote-selecionar" class="btn btn-primary btn-sm" onclick="_toggleLoteMode()" style="display:none;">☑ Selecionar em lote</button>
           </div>
@@ -2088,18 +2089,10 @@ function applyProfileRestrictions() {
   // Camareira e Manutenção não vêem botão "+ Novo" na topbar
   document.getElementById('btn-nova-acao').style.display = isOperacional ? 'none' : '';
 
-  // Mapa: ações de cadastro ocultas para operacionais
-  const mapaActions = document.getElementById('mapa-header-actions');
-  if (mapaActions) {
-    if (!isOperacional) {
-      mapaActions.innerHTML = `
-        <button class="btn btn-ghost btn-sm" onclick="openPage('cadastro-apto')">⊕ Cadastrar Apto</button>
-        <button class="btn btn-primary btn-sm" onclick="openModal('modal-trocar-status')">Alterar Status</button>`;
-    } else {
-      mapaActions.innerHTML = `
-        <button class="btn btn-primary btn-sm" onclick="openModal('modal-trocar-status')">Alterar Status</button>`;
-    }
-  }
+  // Mapa: botão Cadastrar Apto visível apenas para não-operacionais
+  // (btn-alterar-status-header e btn-lote-selecionar são controlados por renderMapa)
+  const btnCadastrarApto = document.getElementById('btn-cadastrar-apto-mapa');
+  if (btnCadastrarApto) btnCadastrarApto.style.display = isOperacional ? 'none' : '';
 
   // Manutenção não pode abrir novo chamado
   const btnChamado = document.getElementById('btn-novo-chamado');
