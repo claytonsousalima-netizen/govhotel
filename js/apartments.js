@@ -831,16 +831,19 @@ async function salvarTrocarStatus() {
   if (!aptoNum)    { toast('Selecione um apartamento', 'error'); return; }
   if (!novoStatus) { toast('Selecione o novo status', 'error'); return; }
 
-  if (_TS_SENSIVEIS_APT.has(novoStatus)) {
-    if (!_TS_PODE_SENSIVEL.has(currentUser?.perfil)) {
-      toast('Este status só pode ser alterado pelo fluxo de limpeza/conferência', 'error'); return;
-    }
-    if (!obs) { toast('Informe o motivo para alterar este status sensível', 'error'); return; }
-    if (!confirm(`Atenção: este status normalmente é definido pelo fluxo de limpeza. Confirma alterar manualmente?`)) return;
-  }
-
   const apto = aptos.find(a => a.numero === aptoNum);
   if (!apto) { toast('Apartamento não encontrado', 'error'); return; }
+
+  // Sensível = novo status É sensível OU status atual É sensível (ex.: sair de "limpando")
+  const sensivel = _TS_SENSIVEIS_APT.has(novoStatus) || _TS_SENSIVEIS_APT.has(apto.status);
+  if (sensivel) {
+    if (!_TS_PODE_SENSIVEL.has(currentUser?.perfil)) {
+      toast('Alteração de status em limpeza/conferência requer perfil Gestor ou superior', 'error'); return;
+    }
+    if (!obs) { toast('Informe o motivo para esta alteração manual', 'error'); return; }
+    if (!confirm(`Atenção: o apto ${aptoNum} está "${apto.status}" — alterar manualmente pode interromper o fluxo de limpeza. Confirma?`)) return;
+  }
+
   closeModal('modal-trocar-status');
   await window.mudarStatusApto(apto.id, novoStatus, obs || `Status alterado manualmente por ${currentUser.nome}`);
 }

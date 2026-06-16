@@ -703,7 +703,8 @@ tr:last-child td { border-bottom: none; }
             <div class="page-subtitle">Visão em tempo real de todos os andares</div>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;" id="mapa-header-actions">
-            <button id="btn-lote-selecionar" class="btn btn-outline btn-sm" onclick="_toggleLoteMode()" style="display:none;">☑ Selecionar aptos</button>
+            <button id="btn-alterar-status-header" class="btn btn-outline btn-sm" onclick="openModal('modal-trocar-status')" style="display:none;">🔄 Alterar Status</button>
+            <button id="btn-lote-selecionar" class="btn btn-primary btn-sm" onclick="_toggleLoteMode()" style="display:none;">☑ Selecionar em lote</button>
           </div>
         </div>
         <div id="mapa-hotel-selector"></div>
@@ -2395,14 +2396,18 @@ function renderMapa() {
   const podeSelecionar = perfil && !['camareira','manutencao'].includes(perfil);
   const btnSel = document.getElementById('btn-lote-selecionar');
   if (btnSel) btnSel.style.display = podeSelecionar ? '' : 'none';
+  const btnAlt = document.getElementById('btn-alterar-status-header');
+  if (btnAlt) btnAlt.style.display = podeSelecionar ? '' : 'none';
 
-  const andares = [...new Set(aptos.map(a => a.andar))].sort((a,b) => a-b);
+  // Aplica TODOS os filtros avançados (status, andar, camareira, tipo, semCamareira)
+  const lista   = typeof _filtrarAptos === 'function' ? _filtrarAptos(aptos) : aptos;
+  const andares = [...new Set(lista.map(a => a.andar))].sort((a,b) => a-b);
   let html = '';
   andares.forEach(andar => {
-    const list = aptos.filter(a => a.andar === andar && (filterMapaStatus === 'todos' || a.status === filterMapaStatus));
+    const list = lista.filter(a => a.andar === andar);
     if (!list.length) return;
     html += `<div class="floor-section">
-      <div class="floor-label">🏢 ${andar}º Andar — ${list.length} aptos</div>
+      <div class="floor-label">🏢 ${andar}º Andar — ${list.length} apto${list.length !== 1 ? 's' : ''}</div>
       <div class="aptos-grid">`;
     list.forEach(a => {
       if (_loteMode) {
@@ -2601,9 +2606,15 @@ async function _executarLote() {
 
 function filterMapa(status, btn) {
   filterMapaStatus = status;
+  if (typeof _aptoFiltros !== 'undefined') _aptoFiltros.status = status;
   document.querySelectorAll('#mapa-filters .filter-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (typeof _renderFiltrosBar === 'function') {
+    _renderFiltrosBar('mapa-filtros-avancados');
+    _renderFiltrosBar('kanban-filtros-aptos');
+  }
   renderMapa();
+  if (typeof renderAptoKanban === 'function') renderAptoKanban();
 }
 
 function searchMapa(q) {
@@ -3196,7 +3207,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <script src="js/hotels.js?v=20260613p"></script>
-<script src="js/apartments.js?v=20260616j"></script>
+<script src="js/apartments.js?v=20260616k"></script>
 <script src="js/maids.js?v=20260616c"></script>
 <script src="js/users.js?v=20260615a"></script>
 <script src="js/permissions.js?v=20260616a"></script>
