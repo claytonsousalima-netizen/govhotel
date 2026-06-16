@@ -1215,27 +1215,33 @@ async function renderAppCamareira() {
         <span style="background:${g.color};color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:auto;">${lista.length}</span>
       </div>`;
 
-    lista.forEach(a => {
-      const meuApto = a.camareira_id === currentUser.id;
-      const borderColor = meuApto ? '#1d4ed8' : (a.prioridade ? 'var(--danger)' : g.color);
-      const extraStyle  = meuApto ? 'background:linear-gradient(135deg,#eff6ff 0%,#fff 60%);box-shadow:0 2px 12px rgba(29,78,216,0.12);' : '';
-
-      html += `
-      <div class="card" style="margin-bottom:10px;border-left:4px solid ${borderColor};padding:14px 16px;${extraStyle}">
-        ${meuApto ? `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;background:#dbeafe;color:#1d4ed8;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;">📌 Atribuído a mim</div>` : ''}
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px;">
-          <div>
-            <div style="font-size:22px;font-weight:800;color:${meuApto?'#1d4ed8':'var(--text)'};line-height:1;">${a.numero}</div>
-            <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} &nbsp;·&nbsp; ${a.andar}º andar &nbsp;·&nbsp; ${a.leitos} leito${a.leitos!==1?'s':''}</div>
-            ${a.prioridade ? `<div style="font-size:11px;font-weight:700;color:var(--danger);margin-top:4px;">⚠️ PRIORIDADE</div>` : ''}
-          </div>
-          <span class="badge ${g.badge}" style="flex-shrink:0;">${LABEL[a.status]||a.status}</span>
-        </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          <button class="btn btn-ghost btn-sm" onclick="openAptoDetail('${a.id}')">👁 Ver detalhes</button>
-        </div>
+    if (g.key === 'livre') {
+      html += `<div class="card" style="padding:14px 16px;color:var(--text2);font-size:13px;">
+        ✅ ${lista.length} apartamento${lista.length !== 1 ? 's' : ''} livre${lista.length !== 1 ? 's' : ''} — sem ação necessária.
       </div>`;
-    });
+    } else {
+      lista.forEach(a => {
+        const meuApto = a.camareira_id === currentUser.id;
+        const borderColor = meuApto ? '#1d4ed8' : (a.prioridade ? 'var(--danger)' : g.color);
+        const extraStyle  = meuApto ? 'background:linear-gradient(135deg,#eff6ff 0%,#fff 60%);box-shadow:0 2px 12px rgba(29,78,216,0.12);' : '';
+
+        html += `
+        <div class="card" style="margin-bottom:10px;border-left:4px solid ${borderColor};padding:14px 16px;${extraStyle}">
+          ${meuApto ? `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;background:#dbeafe;color:#1d4ed8;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;">📌 Atribuído a mim</div>` : ''}
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px;">
+            <div>
+              <div style="font-size:22px;font-weight:800;color:${meuApto?'#1d4ed8':'var(--text)'};line-height:1;">${a.numero}</div>
+              <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} &nbsp;·&nbsp; ${a.andar}º andar &nbsp;·&nbsp; ${a.leitos} leito${a.leitos!==1?'s':''}</div>
+              ${a.prioridade ? `<div style="font-size:11px;font-weight:700;color:var(--danger);margin-top:4px;">⚠️ PRIORIDADE</div>` : ''}
+            </div>
+            <span class="badge ${g.badge}" style="flex-shrink:0;">${LABEL[a.status]||a.status}</span>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="btn btn-ghost btn-sm" onclick="openAptoDetail('${a.id}')">👁 Ver detalhes</button>
+          </div>
+        </div>`;
+      });
+    }
 
     html += `</div>`;
   });
