@@ -821,8 +821,8 @@ window.mudarStatusApto = async function mudarStatusApto(id, novoStatus, obs) {
   }
 };
 
-const _TS_SENSIVEIS_APT = new Set(['limpando','pausado','conferencia','limpo','reprovado']);
-const _TS_PODE_SENSIVEL = new Set(['admin_global','admin_hotel','gestor','supervisora','governanta']);
+// Status que só podem ser atribuídos pelo fluxo — bloqueados no modal manual
+const _TS_BLOQUEADOS_MANUAL = new Set(['limpando','pausado','conferencia','limpo','reprovado']);
 
 async function salvarTrocarStatus() {
   const aptoNum    = document.getElementById('ts-apto').value;
@@ -834,14 +834,19 @@ async function salvarTrocarStatus() {
   const apto = aptos.find(a => a.numero === aptoNum);
   if (!apto) { toast('Apartamento não encontrado', 'error'); return; }
 
-  // Sensível = novo status É sensível OU status atual É sensível (ex.: sair de "limpando")
-  const sensivel = _TS_SENSIVEIS_APT.has(novoStatus) || _TS_SENSIVEIS_APT.has(apto.status);
-  if (sensivel) {
-    if (!_TS_PODE_SENSIVEL.has(currentUser?.perfil)) {
-      toast('Alteração de status em limpeza/conferência requer perfil Gestor ou superior', 'error'); return;
+  // Bloqueia status que devem vir somente do fluxo operacional
+  if (_TS_BLOQUEADOS_MANUAL.has(novoStatus)) {
+    toast('Este status é definido exclusivamente pelo fluxo de limpeza/conferência', 'error'); return;
+  }
+
+  // Se o apto está em fluxo ativo, exige confirmação de gestor+
+  const _PODE_INTERROMPER = new Set(['admin_global','admin_hotel','gestor','supervisora','governanta']);
+  if (_TS_BLOQUEADOS_MANUAL.has(apto.status)) {
+    if (!_PODE_INTERROMPER.has(currentUser?.perfil)) {
+      toast('Interromper o fluxo de limpeza requer perfil Gestor ou superior', 'error'); return;
     }
-    if (!obs) { toast('Informe o motivo para esta alteração manual', 'error'); return; }
-    if (!confirm(`Atenção: o apto ${aptoNum} está "${apto.status}" — alterar manualmente pode interromper o fluxo de limpeza. Confirma?`)) return;
+    if (!obs) { toast('Informe o motivo para interromper o fluxo de limpeza', 'error'); return; }
+    if (!confirm(`Atenção: o apto ${aptoNum} está em fluxo ativo ("${apto.status}"). Alterar manualmente pode perder o histórico. Confirma?`)) return;
   }
 
   closeModal('modal-trocar-status');
@@ -865,6 +870,40 @@ async function iniciarLimpeza() {
   const acao = apto.status === 'pausado' ? 'retomada' : 'iniciada';
   const obs  = `Limpeza ${acao} por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
   await mudarStatusApto(selectedAptoId, 'limpando', obs);
+}
+
+async function abrirModalCancelarLimpeza(id) {
+  selectedAptoId = id;
+  const apto = aptos.find(a => a.id === id);
+  if (!apto || apto.status !== 'limpando') {
+    toast('Cancelamento só é possível durante limpeza ativa', 'error'); return;
+  }
+  const sel   = document.getElementById('cancelar-motivo');
+  const obsEl = document.getElementById('cancelar-obs');
+  if (obsEl) obsEl.value = '';
+  closeModal('modal-apto-detail');
+
+  if (sel) {
+    sel.innerHTML = '<option value="">Carregando...</option>';
+    const hotelId = currentUser.hotelId;
+    let q = supabaseClient.from('motivos_cancelamento').select('id, nome').eq('ativo', true).order('ordem');
+    if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
+    const { data } = await q;
+    sel.innerHTML = '<option value="">Selecione o motivo *</option>' +
+      (data || []).map(m => `<option value="${m.nome}">${m.nome}</option>`).join('');
+  }
+
+  openModal('modal-cancelar-limpeza');
+  if (sel) sel.focus();
+}
+
+async function cancelarLimpeza() {
+  const motivo = document.getElementById('cancelar-motivo')?.value || '';
+  const obs    = (document.getElementById('cancelar-obs')?.value || '').trim();
+  if (!motivo) { toast('Selecione o motivo do cancelamento', 'error'); return; }
+  closeModal('modal-cancelar-limpeza');
+  const texto = `Limpeza cancelada por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}: ${motivo}${obs ? ' — ' + obs : ''}`;
+  await mudarStatusApto(selectedAptoId, 'sujo', texto);
 }
 
 async function abrirModalPausa(id) {
