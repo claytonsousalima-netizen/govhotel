@@ -184,6 +184,7 @@ function _mfBtnsCamareira(a) {
               <button class="btn btn-outline btn-sm"  onclick="mfAcao('${a.id}','concluir')">🔍 Enviar conf.</button>`;
     case 'limpando':
       return `<button class="btn btn-warning btn-sm" onclick="mfAcao('${a.id}','pausar')">⏸ Pausar</button>
+              <button class="btn btn-danger btn-sm"   onclick="mfAcao('${a.id}','cancelar')">🚫 Cancelar</button>
               <button class="btn btn-success btn-sm"  onclick="mfAcao('${a.id}','concluir')">🔍 Enviar conf.</button>`;
     default:
       return '';
@@ -509,6 +510,11 @@ function mfAcao(id, acao) {
     if (typeof abrirChecklistApp === 'function') abrirChecklistApp(id);
   }
   if (acao === 'pausar')   abrirModalPausa(id);
+  if (acao === 'cancelar') {
+    document.getElementById('cancelar-motivo').value = '';
+    document.getElementById('cancelar-obs').value = '';
+    openModal('modal-cancelar-limpeza');
+  }
   if (acao === 'concluir') concluirLimpeza();
   if (acao === 'aprovar')  aprovarLimpeza();
   if (acao === 'reprovar') abrirModalReprovacao();

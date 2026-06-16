@@ -875,11 +875,87 @@ function concluirLimpeza() {
 
 // ── CONFERÊNCIA DA SUPERVISORA ────────────────────────────────
 
-async function aprovarLimpeza() {
+const _SUP_CHECKLIST_ITENS = [
+  'Banheiro aprovado',
+  'Enxoval correto',
+  'Amenities corretos',
+  'Piso aprovado',
+  'Odor adequado',
+  'Frigobar conferido',
+  'Padrão visual aprovado',
+  'Nenhuma pendência aparente',
+];
+
+function aprovarLimpeza() {
+  abrirChecklistSupervisora();
+}
+
+function abrirChecklistSupervisora() {
+  const apto = aptos.find(a => a.id === selectedAptoId);
+  const titulo = document.getElementById('sup-cl-titulo');
+  if (titulo && apto) titulo.textContent = `🔍 Conferência — Apto ${apto.numero}`;
+
+  const obs = document.getElementById('sup-cl-obs');
+  if (obs) obs.value = '';
+
+  const container = document.getElementById('sup-cl-items');
+  if (container) {
+    container.innerHTML = _SUP_CHECKLIST_ITENS.map((item, i) => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+        <span style="font-size:14px;font-weight:500;">${item}</span>
+        <div style="display:flex;gap:6px;">
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;">
+            <input type="radio" name="sup-cl-${i}" value="ok" style="accent-color:var(--success);"> Conforme
+          </label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;">
+            <input type="radio" name="sup-cl-${i}" value="nao"> Não conforme
+          </label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;">
+            <input type="radio" name="sup-cl-${i}" value="na"> N/A
+          </label>
+        </div>
+      </div>`).join('');
+  }
+
+  closeModal('modal-apto-detail');
+  openModal('modal-conferencia-supervisora');
+}
+
+async function confirmarChecklistSupervisora(decisao) {
+  const respostas = {};
+  let incompleto = false;
+  _SUP_CHECKLIST_ITENS.forEach((item, i) => {
+    const sel = document.querySelector(`input[name="sup-cl-${i}"]:checked`);
+    if (!sel) { incompleto = true; return; }
+    respostas[item] = sel.value;
+  });
+  if (incompleto) { toast('Avalie todos os itens antes de continuar', 'error'); return; }
+
+  const obs = (document.getElementById('sup-cl-obs')?.value || '').trim();
+
+  closeModal('modal-conferencia-supervisora');
+
   const apto = aptos.find(a => a.id === selectedAptoId);
   if (!apto) return;
-  const obs = `Aprovado por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
-  await mudarStatusApto(selectedAptoId, 'limpo', obs);
+
+  // Salvar no banco
+  try {
+    await supabaseClient.from('conferencia_supervisora_checklists').insert({
+      apartment_id: selectedAptoId,
+      hotel_id:     apto.hotel_id,
+      usuario_id:   currentUser.id,
+      respostas,
+      obs:          obs || null,
+      resultado:    decisao,
+    });
+  } catch(e) { console.warn('Erro ao salvar checklist supervisora:', e); }
+
+  if (decisao === 'aprovar') {
+    const obsStatus = `Aprovado por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}${obs ? ' — ' + obs : ''}`;
+    await mudarStatusApto(selectedAptoId, 'limpo', obsStatus);
+  } else {
+    abrirModalReprovacao();
+  }
 }
 
 async function abrirModalReprovacao() {

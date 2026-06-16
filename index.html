@@ -1198,6 +1198,64 @@ tr:last-child td { border-bottom: none; }
   </div>
 </div>
 
+<!-- Modal Cancelar Limpeza -->
+<div class="modal-overlay" id="modal-cancelar-limpeza">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <div class="modal-title">🚫 Cancelar limpeza</div>
+      <button class="btn-close" onclick="closeModal('modal-cancelar-limpeza')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">O apartamento voltará para o status <strong>Sujo</strong>. Informe o motivo.</p>
+      <div class="form-row single">
+        <div class="field">
+          <label>Motivo do cancelamento *</label>
+          <select id="cancelar-motivo">
+            <option value="">Selecione o motivo *</option>
+            <option>Hóspede no quarto</option>
+            <option>Falta de enxoval</option>
+            <option>Falta de material</option>
+            <option>Manutenção pendente</option>
+            <option>Interrupção operacional</option>
+            <option>Outro</option>
+          </select>
+        </div>
+      </div>
+      <div class="field" style="margin-top:10px;">
+        <label>Observação (opcional)</label>
+        <textarea id="cancelar-obs" rows="2" placeholder="Detalhes adicionais..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-cancelar-limpeza')">Fechar</button>
+      <button class="btn btn-danger" onclick="cancelarLimpeza()">🚫 Confirmar cancelamento</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Checklist Conferência — Supervisora -->
+<div class="modal-overlay" id="modal-conferencia-supervisora">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-header">
+      <div class="modal-title" id="sup-cl-titulo">🔍 Conferência — Checklist da Supervisora</div>
+      <button class="btn-close" onclick="closeModal('modal-conferencia-supervisora')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12px;color:var(--text3);margin-bottom:12px;">Avalie cada item antes de aprovar ou reprovar o apartamento.</p>
+      <div id="sup-cl-items"></div>
+      <div class="field" style="margin-top:14px;">
+        <label>Observação da conferência (opcional)</label>
+        <textarea id="sup-cl-obs" rows="2" placeholder="Registre observações gerais..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-conferencia-supervisora')">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmarChecklistSupervisora('reprovar')">❌ Reprovar</button>
+      <button class="btn btn-success" onclick="confirmarChecklistSupervisora('aprovar')">✅ Aprovar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Checklist de Limpeza -->
 <div class="modal-overlay" id="modal-checklist-limpeza">
   <div class="modal" style="max-width:600px;">
@@ -2629,6 +2687,7 @@ async function _abrirAcaoAptoApp(apto) {
   if (apto.status === 'limpando') {
     footer.innerHTML = `
       <button class="btn btn-warning" style="width:100%;" onclick="acaoAptoApp('pausar')">⏸ Pausar limpeza</button>
+      <button class="btn btn-danger"  style="width:100%;" onclick="acaoAptoApp('cancelar')">🚫 Cancelar limpeza</button>
       <button class="btn btn-success" style="width:100%;" onclick="acaoAptoApp('conferencia')">🔍 Enviar para conferência</button>
       <button class="btn btn-ghost"   style="width:100%;" onclick="closeModal('modal-acao-apto-app')">Fechar</button>`;
   } else if (apto.status === 'pausado') {
@@ -2650,12 +2709,18 @@ async function acaoAptoApp(acao) {
   if (!apto) return;
 
   if (acao === 'pausar') {
-    const obs = `Limpeza pausada por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
-    await mudarStatusApto(selectedAptoId, 'pausado', obs);
+    abrirModalPausa(selectedAptoId);
+    return;
+
+  } else if (acao === 'cancelar') {
+    document.getElementById('cancelar-motivo').value = '';
+    document.getElementById('cancelar-obs').value = '';
+    openModal('modal-cancelar-limpeza');
+    return;
 
   } else if (acao === 'conferencia') {
-    const obs = `Limpeza concluída por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')} — enviado para conferência`;
-    await mudarStatusApto(selectedAptoId, 'conferencia', obs);
+    concluirLimpeza();
+    return;
 
   } else if (acao === 'retomar') {
     const obs = `Limpeza retomada por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
@@ -2690,6 +2755,15 @@ function renderChecklist() {
 }
 
 function toggleCheck(i) { checklistState[i].done = !checklistState[i].done; renderChecklist(); }
+async function cancelarLimpeza() {
+  const motivo = document.getElementById('cancelar-motivo')?.value || '';
+  const obs    = (document.getElementById('cancelar-obs')?.value || '').trim();
+  if (!motivo) { toast('Selecione o motivo do cancelamento', 'error'); return; }
+  closeModal('modal-cancelar-limpeza');
+  const texto = `Limpeza cancelada por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}: ${motivo}${obs ? ' — ' + obs : ''}`;
+  await mudarStatusApto(selectedAptoId, 'sujo', texto);
+}
+
 async function pausarLimpezaChecklist() {
   closeModal('modal-checklist');
   const obs = `Limpeza pausada por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
@@ -2829,7 +2903,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <script src="js/hotels.js?v=20260613p"></script>
-<script src="js/apartments.js?v=20260616h"></script>
+<script src="js/apartments.js?v=20260616i"></script>
 <script src="js/maids.js?v=20260616b"></script>
 <script src="js/users.js?v=20260615a"></script>
 <script src="js/permissions.js?v=20260616a"></script>
@@ -2837,6 +2911,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 <script src="js/config.js?v=20260616d"></script>
 <script src="js/dashboard.js?v=20260615c"></script>
 <script src="js/relatorios.js?v=20260613p"></script>
-<script src="js/minha-fila.js?v=20260616b"></script>
+<script src="js/minha-fila.js?v=20260616c"></script>
 </body>
 </html>
