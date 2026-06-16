@@ -2528,7 +2528,8 @@ async function openAptoDetail(id) {
       ? `<button class="btn btn-xs btn-primary" onclick="aprovarLimpeza()">✅ Aprovar limpeza</button>
          <button class="btn btn-xs btn-danger"  onclick="abrirModalReprovacao()">❌ Reprovar limpeza</button>`
       : `<span style="font-size:12px;color:var(--text3);">Aguardando conferência da supervisora.</span>`,
-    limpo:       `<button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','ocupado')">🏠 Marcar ocupado</button>
+    limpo:       `<button class="btn btn-xs btn-primary" onclick="mudarStatusApto('${id}','livre')">✅ Liberar para check-in</button>
+                  <button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','ocupado')">🏠 Marcar ocupado</button>
                   <button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','sujo')">↩ Marcar sujo</button>`,
     bloqueado:   (!isCamareira && !isManutencao)
       ? `<button class="btn btn-xs btn-primary" onclick="mudarStatusApto('${id}','sujo')">🔓 Desbloquear</button>`
