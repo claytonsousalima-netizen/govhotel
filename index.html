@@ -281,6 +281,11 @@ tr:last-child td { border-bottom: none; }
   position: relative;
 }
 .apto-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.apto-card.lote-selecionado { outline: 3px solid #1d4ed8; box-shadow: 0 0 0 4px rgba(29,78,216,0.18); }
+.apto-card.lote-bloqueado   { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
+#lote-bar { background: linear-gradient(135deg,#1d4ed8,#1e3a8a); color:#fff; padding:10px 14px;
+            border-radius: var(--radius); margin-bottom:12px; display:flex; align-items:center;
+            gap:8px; flex-wrap:wrap; font-size:13px; }
 .apto-card.livre { border-color: #27ae60; background: #f0fdf4; }
 .apto-card.sujo { border-color: #e67e22; background: #fffbf5; }
 .apto-card.limpando { border-color: #2e86c1; background: #f0f8ff; }
@@ -697,7 +702,9 @@ tr:last-child td { border-bottom: none; }
             <div class="page-title">Mapa de Apartamentos</div>
             <div class="page-subtitle">Visão em tempo real de todos os andares</div>
           </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;" id="mapa-header-actions"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;" id="mapa-header-actions">
+            <button id="btn-lote-selecionar" class="btn btn-outline btn-sm" onclick="_toggleLoteMode()" style="display:none;">☑ Selecionar aptos</button>
+          </div>
         </div>
         <div id="mapa-hotel-selector"></div>
         <div class="filters" id="mapa-filters">
@@ -714,6 +721,13 @@ tr:last-child td { border-bottom: none; }
           <button class="filter-btn" onclick="filterMapa('manutencao',this)">🔧 Manutenção</button>
           <input class="search-input" placeholder="🔍 Buscar apto..." oninput="searchMapa(this.value)">
           <div id="mapa-filtros-avancados"></div>
+        </div>
+        <div id="lote-bar" style="display:none;">
+          <span id="lote-count" style="font-weight:700;margin-right:4px;">0 selecionados</span>
+          <button class="btn btn-sm" style="background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.4);" onclick="_loteSelectAll()">Selecionar todos</button>
+          <button class="btn btn-sm" style="background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.4);" onclick="_loteClearSelection()">Limpar seleção</button>
+          <button class="btn btn-sm" style="background:#fff;color:#1d4ed8;font-weight:700;" onclick="_abrirModalLote()" id="btn-acoes-lote" disabled>Ações em lote</button>
+          <button class="btn btn-sm" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.5);margin-left:auto;" onclick="_toggleLoteMode()">✕ Cancelar</button>
         </div>
         <div id="mapa-container"></div>
       </div>
@@ -1334,6 +1348,61 @@ tr:last-child td { border-bottom: none; }
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-reprovacao')">Cancelar</button>
       <button class="btn btn-danger" id="btn-confirmar-reprovacao" onclick="reprovarLimpeza()">❌ Confirmar reprovação</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Ações em Lote -->
+<div class="modal-overlay" id="modal-lote-acao">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <div class="modal-title">☑ Ações em lote</div>
+      <button class="btn-close" onclick="closeModal('modal-lote-acao')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="lote-modal-info" style="font-size:13px;font-weight:600;color:var(--primary);margin-bottom:14px;"></p>
+      <div class="form-row single" style="margin-bottom:12px;">
+        <div class="field">
+          <label>O que deseja fazer? *</label>
+          <select id="lote-tipo" onchange="_loteOnTipoChange()">
+            <option value="">Selecione a ação *</option>
+            <option value="somente_status">Somente alterar status</option>
+            <option value="somente_camareira">Somente atribuir camareira</option>
+            <option value="status_e_camareira">Alterar status e atribuir camareira</option>
+          </select>
+        </div>
+      </div>
+      <div id="lote-campo-status" style="display:none;" class="form-row single">
+        <div class="field">
+          <label>Novo status *</label>
+          <select id="lote-status">
+            <option value="">Selecione o status *</option>
+            <option value="sujo">🟠 Sujo</option>
+            <option value="bloqueado">⛔ Bloqueado</option>
+            <option value="livre">✅ Livre</option>
+            <option value="ocupado">🏠 Ocupado</option>
+            <option value="manutencao">🔧 Manutenção</option>
+          </select>
+        </div>
+      </div>
+      <div id="lote-campo-camareira" style="display:none;" class="form-row single">
+        <div class="field">
+          <label>Camareira</label>
+          <select id="lote-camareira">
+            <option value="">Carregando...</option>
+          </select>
+        </div>
+      </div>
+      <div id="lote-campo-obs" style="display:none;" class="form-row single">
+        <div class="field">
+          <label id="lote-obs-label">Motivo / Observação *</label>
+          <textarea id="lote-obs" rows="2" placeholder="Informe o motivo da alteração..."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-lote-acao')">Cancelar</button>
+      <button class="btn btn-primary" onclick="_executarLote()">✓ Confirmar</button>
     </div>
   </div>
 </div>
@@ -2301,6 +2370,11 @@ const _STATUS_LABELS = {
 };
 
 function renderMapa() {
+  const perfil = currentUser?.perfil;
+  const podeSelecionar = perfil && !['camareira','manutencao'].includes(perfil);
+  const btnSel = document.getElementById('btn-lote-selecionar');
+  if (btnSel) btnSel.style.display = podeSelecionar ? '' : 'none';
+
   const andares = [...new Set(aptos.map(a => a.andar))].sort((a,b) => a-b);
   let html = '';
   andares.forEach(andar => {
@@ -2310,18 +2384,171 @@ function renderMapa() {
       <div class="floor-label">🏢 ${andar}º Andar — ${list.length} aptos</div>
       <div class="aptos-grid">`;
     list.forEach(a => {
-      html += `<div class="apto-card ${a.status}" onclick="openAptoDetail('${a.id}')">
-        ${a.prioridade ? '<div class="apto-priority"></div>' : ''}
-        <div class="apto-status-icon">${_STATUS_ICONS[a.status]||'❓'}</div>
-        <div class="apto-num">${a.numero}</div>
-        <div class="apto-tipo">${a.tipo}</div>
-        <span class="badge badge-${a.status}" style="font-size:10px;">${_STATUS_LABELS[a.status]||a.status}</span>
-      </div>`;
+      if (_loteMode) {
+        const bloqueado = _LOTE_STATUS_BLOQUEADOS.has(a.status);
+        const selecionado = _loteSelected.has(a.id);
+        html += `<div class="apto-card ${a.status}${selecionado?' lote-selecionado':''}${bloqueado?' lote-bloqueado':''}"
+          data-id="${a.id}" onclick="_loteToggleApto('${a.id}',this)">
+          ${selecionado ? '<div style="position:absolute;top:4px;left:4px;background:#1d4ed8;color:#fff;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">✓</div>' : ''}
+          ${a.prioridade ? '<div class="apto-priority"></div>' : ''}
+          <div class="apto-status-icon">${_STATUS_ICONS[a.status]||'❓'}</div>
+          <div class="apto-num">${a.numero}</div>
+          <div class="apto-tipo">${a.tipo}</div>
+          <span class="badge badge-${a.status}" style="font-size:10px;">${_STATUS_LABELS[a.status]||a.status}</span>
+        </div>`;
+      } else {
+        html += `<div class="apto-card ${a.status}" data-id="${a.id}" onclick="openAptoDetail('${a.id}')">
+          ${a.prioridade ? '<div class="apto-priority"></div>' : ''}
+          <div class="apto-status-icon">${_STATUS_ICONS[a.status]||'❓'}</div>
+          <div class="apto-num">${a.numero}</div>
+          <div class="apto-tipo">${a.tipo}</div>
+          <span class="badge badge-${a.status}" style="font-size:10px;">${_STATUS_LABELS[a.status]||a.status}</span>
+        </div>`;
+      }
     });
     html += '</div></div>';
   });
   document.getElementById('mapa-container').innerHTML = html || '<p style="color:var(--text3);text-align:center;padding:32px;">Nenhum apartamento encontrado</p>';
   populateTsApto();
+}
+
+// ── SELEÇÃO EM LOTE ──────────────────────────────────────────
+const _LOTE_STATUS_BLOQUEADOS = new Set(['limpando','pausado','conferencia','reprovado']);
+let _loteMode = false;
+let _loteSelected = new Set();
+
+function _toggleLoteMode() {
+  _loteMode = !_loteMode;
+  _loteSelected.clear();
+  document.getElementById('lote-bar').style.display = _loteMode ? 'flex' : 'none';
+  document.getElementById('btn-lote-selecionar').textContent = _loteMode ? '✕ Sair da seleção' : '☑ Selecionar aptos';
+  renderMapa();
+}
+
+function _loteUpdateBar() {
+  const n = _loteSelected.size;
+  document.getElementById('lote-count').textContent = `${n} selecionado${n !== 1 ? 's' : ''}`;
+  const btn = document.getElementById('btn-acoes-lote');
+  if (btn) btn.disabled = n === 0;
+}
+
+function _loteToggleApto(id, el) {
+  const apto = aptos.find(a => a.id === id);
+  if (!apto || _LOTE_STATUS_BLOQUEADOS.has(apto.status)) return;
+  if (_loteSelected.has(id)) { _loteSelected.delete(id); el.classList.remove('lote-selecionado'); }
+  else                        { _loteSelected.add(id);    el.classList.add('lote-selecionado');    }
+  _loteUpdateBar();
+}
+
+function _loteSelectAll() {
+  document.querySelectorAll('.apto-card').forEach(card => {
+    const id = card.dataset.id;
+    if (!id) return;
+    const apto = aptos.find(a => a.id === id);
+    if (!apto || _LOTE_STATUS_BLOQUEADOS.has(apto.status)) return;
+    if (card.style.display === 'none') return;
+    _loteSelected.add(id);
+    card.classList.add('lote-selecionado');
+  });
+  _loteUpdateBar();
+}
+
+function _loteClearSelection() {
+  _loteSelected.clear();
+  document.querySelectorAll('.apto-card.lote-selecionado').forEach(c => c.classList.remove('lote-selecionado'));
+  _loteUpdateBar();
+}
+
+async function _abrirModalLote() {
+  if (_loteSelected.size === 0) { toast('Selecione ao menos um apartamento', 'error'); return; }
+  document.getElementById('lote-modal-info').textContent = `${_loteSelected.size} apartamento${_loteSelected.size !== 1 ? 's' : ''} selecionado${_loteSelected.size !== 1 ? 's' : ''}`;
+  document.getElementById('lote-tipo').value = '';
+  document.getElementById('lote-status').value = '';
+  document.getElementById('lote-obs').value = '';
+  document.getElementById('lote-campo-status').style.display = 'none';
+  document.getElementById('lote-campo-camareira').style.display = 'none';
+  document.getElementById('lote-campo-obs').style.display = 'none';
+
+  // Pré-carrega camareiras
+  const hotelId = currentUser.hotelId || aptos.find(a => a.hotel_id)?.hotel_id;
+  const sel = document.getElementById('lote-camareira');
+  sel.innerHTML = '<option value="">— Não atribuir</option>';
+  if (hotelId) {
+    const { data } = await supabaseClient.from('user_profiles')
+      .select('user_id, nome').eq('perfil','camareira').eq('ativo',true).eq('hotel_id', hotelId).order('nome');
+    (data || []).forEach(u => {
+      const o = document.createElement('option');
+      o.value = u.user_id; o.textContent = u.nome; sel.appendChild(o);
+    });
+  }
+  openModal('modal-lote-acao');
+}
+
+function _loteOnTipoChange() {
+  const tipo = document.getElementById('lote-tipo').value;
+  document.getElementById('lote-campo-status').style.display    = ['somente_status','status_e_camareira'].includes(tipo) ? '' : 'none';
+  document.getElementById('lote-campo-camareira').style.display = ['somente_camareira','status_e_camareira'].includes(tipo) ? '' : 'none';
+  const obsDiv = document.getElementById('lote-campo-obs');
+  const obsLabel = document.getElementById('lote-obs-label');
+  if (tipo === 'somente_camareira') {
+    obsDiv.style.display = '';
+    obsLabel.textContent = 'Observação (opcional)';
+  } else if (tipo) {
+    obsDiv.style.display = '';
+    obsLabel.textContent = 'Motivo / Observação *';
+  } else {
+    obsDiv.style.display = 'none';
+  }
+}
+
+async function _executarLote() {
+  const tipo    = document.getElementById('lote-tipo').value;
+  const status  = document.getElementById('lote-status').value;
+  const camId   = document.getElementById('lote-camareira').value;
+  const camNome = camId ? document.getElementById('lote-camareira').options[document.getElementById('lote-camareira').selectedIndex]?.text : null;
+  const obs     = (document.getElementById('lote-obs')?.value || '').trim();
+
+  if (!tipo) { toast('Selecione o tipo de ação', 'error'); return; }
+  if (['somente_status','status_e_camareira'].includes(tipo) && !status) { toast('Selecione o novo status', 'error'); return; }
+  if (['somente_status','status_e_camareira'].includes(tipo) && !obs)    { toast('Informe o motivo/observação', 'error'); return; }
+
+  const ids = [..._loteSelected];
+  const n   = ids.length;
+  const _STATUS_LABELS_LOCAL = { sujo:'Sujo', bloqueado:'Bloqueado', livre:'Livre', ocupado:'Ocupado', manutencao:'Manutenção' };
+
+  let msg = '';
+  if (tipo === 'somente_status')    msg = `Confirma alterar ${n} apartamento${n>1?'s':''} para "${_STATUS_LABELS_LOCAL[status] || status}"?`;
+  if (tipo === 'somente_camareira') msg = `Confirma atribuir ${n} apartamento${n>1?'s':''} para "${camNome || 'nenhuma camareira'}"?`;
+  if (tipo === 'status_e_camareira') msg = `Confirma alterar ${n} apartamento${n>1?'s':''} para "${_STATUS_LABELS_LOCAL[status] || status}" e atribuir para "${camNome || '—'}"?`;
+
+  if (!confirm(msg)) return;
+  closeModal('modal-lote-acao');
+
+  const obsCompleta = obs ? `[Lote] ${obs} — por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}` : `[Lote] por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
+  let erros = 0;
+  for (const id of ids) {
+    try {
+      if (['somente_status','status_e_camareira'].includes(tipo)) {
+        await mudarStatusApto(id, status, obsCompleta);
+      }
+      if (['somente_camareira','status_e_camareira'].includes(tipo)) {
+        const payload = { maid_id: camId || null };
+        const { error } = await supabaseClient.from('apartments').update(payload).eq('id', id);
+        if (error) erros++;
+        else {
+          const a = aptos.find(x => x.id === id);
+          if (a) { a.camareira_id = camId || null; a._maid_nome = camNome || null; }
+        }
+      }
+    } catch(e) { erros++; }
+  }
+
+  if (erros) toast(`Concluído com ${erros} erro(s)`, 'warning');
+  else toast(`${n} apartamento${n>1?'s':''} atualizado${n>1?'s':''}!`, 'success');
+
+  _loteSelected.clear();
+  _loteUpdateBar();
+  renderMapa();
 }
 
 function filterMapa(status, btn) {
