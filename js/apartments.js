@@ -273,8 +273,8 @@ async function openAptoForm(id = null) {
   document.getElementById('ca-andar').value  = '1';
   document.getElementById('ca-leitos').value = '2';
   document.getElementById('ca-status').value = 'livre';
-  _populateAptoTipoSelect();
-  _populateAptoCatSelect();
+  await _populateAptoTipoSelect();
+  await _populateAptoCatSelect();
 
   // Seletor de hotel — visível apenas para admin_global
   const hotelWrap = document.getElementById('ca-hotel-wrap');
@@ -297,8 +297,8 @@ async function openAptoForm(id = null) {
       document.getElementById('ca-numero').value = a.numero;
       document.getElementById('ca-andar').value  = a.andar;
       document.getElementById('ca-leitos').value = a.leitos;
-      _populateAptoTipoSelect(a.tipo);
-      _populateAptoCatSelect(a.categoria);
+      await _populateAptoTipoSelect(a.tipo);
+      await _populateAptoCatSelect(a.categoria);
       document.getElementById('ca-status').value = a.status;
       document.getElementById('ca-obs').value    = a.obs || '';
       _selectedCamId = a.camareira_id || null;
@@ -489,9 +489,9 @@ async function openGerarLoteModal() {
   document.getElementById('gl-leitos').value        = '2';
   document.getElementById('gl-obs').value           = '';
 
-  // Popula tipo/categoria reaproveitando listas configuradas
-  _populateGlTipoSelect();
-  _populateGlCatSelect();
+  // Popula tipo/categoria a partir do banco
+  await _populateGlTipoSelect();
+  await _populateGlCatSelect();
   document.getElementById('gl-status').value = 'livre';
 
   // Camareira
@@ -504,21 +504,23 @@ async function openGerarLoteModal() {
   openModal('modal-gerar-lote');
 }
 
-function _populateGlTipoSelect(selected) {
+async function _populateGlTipoSelect(selected) {
   const sel = document.getElementById('gl-tipo');
   if (!sel) return;
-  const vals = _cfgGet(_TIPOS_KEY, _TIPOS_DEFAULT);
-  sel.innerHTML = vals.map(v =>
-    `<option value="${v}" ${v === (selected || vals[0]) ? 'selected' : ''}>${v}</option>`
+  const itens = await _loadAptoOpcoes('apto_tipos');
+  const ativos = itens.filter(i => i.ativo);
+  sel.innerHTML = ativos.map((v, idx) =>
+    `<option value="${v.nome}" ${v.nome === (selected || ativos[0]?.nome) ? 'selected' : ''}>${v.nome}</option>`
   ).join('');
 }
 
-function _populateGlCatSelect(selected) {
+async function _populateGlCatSelect(selected) {
   const sel = document.getElementById('gl-categoria');
   if (!sel) return;
-  const vals = _cfgGet(_CATS_KEY, _CATS_DEFAULT);
-  sel.innerHTML = vals.map(v =>
-    `<option value="${v}" ${v === (selected || vals[0]) ? 'selected' : ''}>${v}</option>`
+  const itens = await _loadAptoOpcoes('apto_categorias');
+  const ativos = itens.filter(i => i.ativo);
+  sel.innerHTML = ativos.map((v, idx) =>
+    `<option value="${v.nome}" ${v.nome === (selected || ativos[0]?.nome) ? 'selected' : ''}>${v.nome}</option>`
   ).join('');
 }
 
@@ -1112,12 +1114,17 @@ async function renderAppCamareira() {
 
 // ── ADAPTAR abrirChecklistApp para UUIDs ─────────────────────
 
-function abrirChecklistApp(id) {
+async function abrirChecklistApp(id) {
   selectedAptoId = id;
   const apto = aptos.find(a => a.id === id);
   if (!apto) return;
   document.getElementById('checklist-title').textContent = `Limpeza — Apto ${apto.numero}`;
-  checklistState = CHECKLIST_PADRAO.map(item => ({ label: item, done: false }));
+  const hotelId = currentUser?.hotelId;
+  let q = supabaseClient.from('checklist_templates').select('nome').eq('ativo', true).order('ordem');
+  if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
+  const { data } = await q;
+  const itens = data?.length ? data : (typeof CHECKLIST_PADRAO !== 'undefined' ? CHECKLIST_PADRAO.map(n => ({ nome: n })) : []);
+  checklistState = itens.map(item => ({ label: item.nome, done: false }));
   renderChecklist();
   openModal('modal-checklist');
 }
@@ -1558,86 +1565,123 @@ initMapaAdmin = async function() {
 
 // ── CONFIGURAÇÃO: TIPOS E CATEGORIAS DE APARTAMENTO ──────────
 
-const _TIPOS_KEY = 'gov_apto_tipos';
-const _CATS_KEY  = 'gov_apto_cats';
-const _TIPOS_DEFAULT = ['Standard','Superior','Deluxe','Suíte','Master'];
-const _CATS_DEFAULT  = ['Regular','VIP','Acessível','Família'];
+// ── TIPOS E CATEGORIAS DE APARTAMENTO (banco de dados) ───────
 
-function _cfgGet(key, defaults) {
-  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : [...defaults]; } catch { return [...defaults]; }
+async function _loadAptoOpcoes(tabela) {
+  const hotelId = currentUser?.perfil === 'admin_global' ? null : currentUser?.hotelId;
+  let q = supabaseClient.from(tabela).select('id, nome, hotel_id, ativo').order('ordem');
+  if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
+  const { data } = await q;
+  return data || [];
 }
-function _cfgSet(key, arr) { localStorage.setItem(key, JSON.stringify(arr)); }
 
-function _populateAptoTipoSelect(selected) {
+async function _populateAptoTipoSelect(selected) {
   const sel = document.getElementById('ca-tipo');
   if (!sel) return;
-  const vals = _cfgGet(_TIPOS_KEY, _TIPOS_DEFAULT);
-  sel.innerHTML = vals.map(v => `<option value="${v}" ${v === selected ? 'selected' : ''}>${v}</option>`).join('');
+  const itens = await _loadAptoOpcoes('apto_tipos');
+  const ativos = itens.filter(i => i.ativo);
+  sel.innerHTML = ativos.map(i =>
+    `<option value="${i.nome}" ${i.nome === selected ? 'selected' : ''}>${i.nome}</option>`
+  ).join('');
 }
-function _populateAptoCatSelect(selected) {
+
+async function _populateAptoCatSelect(selected) {
   const sel = document.getElementById('ca-categoria');
   if (!sel) return;
-  const vals = _cfgGet(_CATS_KEY, _CATS_DEFAULT);
-  sel.innerHTML = vals.map(v => `<option value="${v}" ${v === selected ? 'selected' : ''}>${v}</option>`).join('');
+  const itens = await _loadAptoOpcoes('apto_categorias');
+  const ativos = itens.filter(i => i.ativo);
+  sel.innerHTML = ativos.map(i =>
+    `<option value="${i.nome}" ${i.nome === selected ? 'selected' : ''}>${i.nome}</option>`
+  ).join('');
 }
 
-function renderConfigAptoTiposCats() {
+async function renderConfigAptoTiposCats() {
+  const [tipos, cats] = await Promise.all([
+    _loadAptoOpcoes('apto_tipos'),
+    _loadAptoOpcoes('apto_categorias'),
+  ]);
   const elT = document.getElementById('config-apto-tipos');
   const elC = document.getElementById('config-apto-cats');
-  if (elT) elT.innerHTML = _renderCfgItems(_TIPOS_KEY, _TIPOS_DEFAULT, 'tipo');
-  if (elC) elC.innerHTML = _renderCfgItems(_CATS_KEY,  _CATS_DEFAULT,  'categoria');
+  if (elT) elT.innerHTML = _renderCfgRows(tipos, 'apto_tipos', 'tipo');
+  if (elC) elC.innerHTML = _renderCfgRows(cats, 'apto_categorias', 'categoria');
 }
 
-function _renderCfgItems(key, defaults, label) {
-  const items = _cfgGet(key, defaults);
-  const rows = items.map((item, i) => `
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-      <span style="flex:1;font-size:13px;padding:6px 10px;background:var(--surface2);border-radius:var(--radius-sm);">${item}</span>
-      <button class="btn btn-ghost btn-xs" onclick="_cfgEdit('${key}',${i})" title="Editar">✏️</button>
-      ${items.length > 1 ? `<button class="btn btn-ghost btn-xs" style="color:var(--danger);" onclick="_cfgRemove('${key}',${i})" title="Excluir">✕</button>` : ''}
+function _renderCfgRows(itens, tabela, label) {
+  const rows = itens.map(item => `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;" id="cfgrow-${tabela}-${item.id}">
+      <span style="font-size:12px;color:var(--text3);">${item.hotel_id ? '🏨' : '🌐'}</span>
+      <span style="flex:1;font-size:13px;padding:6px 10px;background:var(--surface2);border-radius:var(--radius-sm);${!item.ativo?'text-decoration:line-through;color:var(--text3);':''}"
+        id="cfgtext-${tabela}-${item.id}">${item.nome}</span>
+      <div id="cfgedit-${tabela}-${item.id}" style="display:none;flex:1;">
+        <input type="text" id="cfginput-${tabela}-${item.id}" value="${item.nome}"
+          style="width:100%;padding:5px 8px;border:1.5px solid var(--primary-light);border-radius:var(--radius-sm);font-size:13px;"
+          onkeydown="if(event.key==='Enter')_cfgSave('${tabela}',${item.id})">
+      </div>
+      <button class="btn btn-ghost btn-xs" id="cfgbtn-edit-${tabela}-${item.id}"
+        onclick="_cfgStartEdit('${tabela}',${item.id})" title="Editar">✏️</button>
+      <button class="btn btn-ghost btn-xs" id="cfgbtn-save-${tabela}-${item.id}" style="display:none;"
+        onclick="_cfgSave('${tabela}',${item.id})" title="Salvar">💾</button>
+      <button class="btn btn-ghost btn-xs" id="cfgbtn-cancel-${tabela}-${item.id}" style="display:none;"
+        onclick="renderConfigAptoTiposCats()" title="Cancelar">✕</button>
+      <button class="btn btn-ghost btn-xs" onclick="_cfgToggle('${tabela}',${item.id},${item.ativo})"
+        title="${item.ativo?'Inativar':'Ativar'}">${item.ativo?'⏸':'▶'}</button>
+      ${item.hotel_id
+        ? `<button class="btn btn-ghost btn-xs" style="color:var(--danger);"
+            onclick="_cfgDelete('${tabela}',${item.id})" title="Excluir">🗑</button>`
+        : ''}
     </div>`).join('');
   return `${rows}
     <div style="display:flex;gap:8px;margin-top:10px;">
-      <input id="cfg-new-${key}" type="text" placeholder="Novo ${label}..."
+      <input id="cfg-new-${tabela}" type="text" placeholder="Novo ${label}..."
         style="flex:1;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;"
-        onkeydown="if(event.key==='Enter')_cfgAdd('${key}',this)">
-      <button class="btn btn-primary btn-sm" onclick="_cfgAdd('${key}',document.getElementById('cfg-new-${key}'))">+ Adicionar</button>
+        onkeydown="if(event.key==='Enter')_cfgAdd('${tabela}',this)">
+      <button class="btn btn-primary btn-sm" onclick="_cfgAdd('${tabela}',document.getElementById('cfg-new-${tabela}'))">+ Adicionar</button>
     </div>`;
 }
 
-function _cfgAdd(key, inputEl) {
-  const val = (inputEl.value || '').trim();
-  if (!val) { toast('Digite um nome', 'error'); return; }
-  const defaults = key === _TIPOS_KEY ? _TIPOS_DEFAULT : _CATS_DEFAULT;
-  const arr = _cfgGet(key, defaults);
-  if (arr.map(v => v.toLowerCase()).includes(val.toLowerCase())) { toast('Já existe', 'error'); return; }
-  arr.push(val);
-  _cfgSet(key, arr);
-  inputEl.value = '';
-  renderConfigAptoTiposCats();
-  toast('Adicionado!', 'success');
+function _cfgStartEdit(tabela, id) {
+  document.getElementById(`cfgtext-${tabela}-${id}`).style.display    = 'none';
+  document.getElementById(`cfgedit-${tabela}-${id}`).style.display    = 'block';
+  document.getElementById(`cfgbtn-edit-${tabela}-${id}`).style.display   = 'none';
+  document.getElementById(`cfgbtn-save-${tabela}-${id}`).style.display   = '';
+  document.getElementById(`cfgbtn-cancel-${tabela}-${id}`).style.display = '';
+  document.getElementById(`cfginput-${tabela}-${id}`)?.focus();
 }
 
-function _cfgRemove(key, idx) {
-  const defaults = key === _TIPOS_KEY ? _TIPOS_DEFAULT : _CATS_DEFAULT;
-  const arr = _cfgGet(key, defaults);
-  if (arr.length <= 1) return;
-  if (!confirm(`Excluir "${arr[idx]}"?`)) return;
-  arr.splice(idx, 1);
-  _cfgSet(key, arr);
-  renderConfigAptoTiposCats();
-  toast('Removido!', 'success');
-}
-
-function _cfgEdit(key, idx) {
-  const defaults = key === _TIPOS_KEY ? _TIPOS_DEFAULT : _CATS_DEFAULT;
-  const arr = _cfgGet(key, defaults);
-  const novo = prompt('Novo nome:', arr[idx]);
-  if (!novo || !novo.trim() || novo.trim() === arr[idx]) return;
-  arr[idx] = novo.trim();
-  _cfgSet(key, arr);
-  renderConfigAptoTiposCats();
+async function _cfgSave(tabela, id) {
+  const nome = document.getElementById(`cfginput-${tabela}-${id}`)?.value.trim();
+  if (!nome) { toast('Informe o nome', 'error'); return; }
+  const { error } = await supabaseClient.from(tabela).update({ nome }).eq('id', id);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
   toast('Atualizado!', 'success');
+  await renderConfigAptoTiposCats();
+}
+
+async function _cfgAdd(tabela, inputEl) {
+  const nome = (inputEl?.value || '').trim();
+  if (!nome) { toast('Informe o nome', 'error'); return; }
+  const hotel_id = currentUser?.perfil === 'admin_global' ? null : currentUser?.hotelId;
+  const { data: existentes } = await supabaseClient.from(tabela).select('ordem').order('ordem', { ascending: false }).limit(1);
+  const ordem = existentes?.length ? (existentes[0].ordem + 1) : 1;
+  const { error } = await supabaseClient.from(tabela).insert([{ nome, hotel_id, ativo: true, ordem }]);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  if (inputEl) inputEl.value = '';
+  toast('Adicionado!', 'success');
+  await renderConfigAptoTiposCats();
+}
+
+async function _cfgToggle(tabela, id, ativo) {
+  const { error } = await supabaseClient.from(tabela).update({ ativo: !ativo }).eq('id', id);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  await renderConfigAptoTiposCats();
+}
+
+async function _cfgDelete(tabela, id) {
+  if (!confirm('Excluir este item?')) return;
+  const { error } = await supabaseClient.from(tabela).delete().eq('id', id);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  toast('Excluído!', 'success');
+  await renderConfigAptoTiposCats();
 }
 
 // renderConfigAptoTiposCats() chamada diretamente por renderConfig() em index.html
