@@ -728,7 +728,7 @@ tr:last-child td { border-bottom: none; }
           <span id="lote-count" style="font-weight:700;margin-right:4px;">0 selecionados</span>
           <button class="btn btn-sm" style="background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.4);" onclick="_loteSelectAll()">Selecionar todos</button>
           <button class="btn btn-sm" style="background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.4);" onclick="_loteClearSelection()">Limpar seleção</button>
-          <button class="btn btn-sm" style="background:#fff;color:#1d4ed8;font-weight:700;" onclick="_abrirModalLote()" id="btn-acoes-lote" disabled>Ações em lote</button>
+          <button class="btn btn-sm" style="background:#fff;color:#1d4ed8;font-weight:700;" onclick="_abrirModalLote()" id="btn-acoes-lote" disabled>🔄 Alterar Status</button>
           <button class="btn btn-sm" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.5);margin-left:auto;" onclick="_toggleLoteMode()">✕ Cancelar</button>
         </div>
         <div id="mapa-container"></div>
@@ -1339,25 +1339,14 @@ tr:last-child td { border-bottom: none; }
 
 <!-- Modal Ações em Lote -->
 <div class="modal-overlay" id="modal-lote-acao">
-  <div class="modal" style="max-width:480px;">
+  <div class="modal" style="max-width:420px;">
     <div class="modal-header">
-      <div class="modal-title">☑ Ações em lote</div>
+      <div class="modal-title">🔄 Alterar Status em Lote</div>
       <button class="btn-close" onclick="closeModal('modal-lote-acao')">✕</button>
     </div>
     <div class="modal-body">
       <p id="lote-modal-info" style="font-size:13px;font-weight:600;color:var(--primary);margin-bottom:14px;"></p>
       <div class="form-row single" style="margin-bottom:12px;">
-        <div class="field">
-          <label>O que deseja fazer? *</label>
-          <select id="lote-tipo" onchange="_loteOnTipoChange()">
-            <option value="">Selecione a ação *</option>
-            <option value="somente_status">Somente alterar status</option>
-            <option value="somente_camareira">Somente atribuir camareira</option>
-            <option value="status_e_camareira">Alterar status e atribuir camareira</option>
-          </select>
-        </div>
-      </div>
-      <div id="lote-campo-status" style="display:none;" class="form-row single">
         <div class="field">
           <label>Novo status *</label>
           <select id="lote-status">
@@ -1370,17 +1359,12 @@ tr:last-child td { border-bottom: none; }
           </select>
         </div>
       </div>
-      <div id="lote-campo-camareira" style="display:none;" class="form-row single">
-        <div class="field">
-          <label>Camareira *</label>
-          <select id="lote-camareira">
-            <option value="">Carregando...</option>
-          </select>
-        </div>
+      <div style="background:#fef9c3;border:1px solid #fde047;border-radius:var(--radius-sm);padding:8px 10px;font-size:11px;color:#713f12;margin-bottom:12px;">
+        ℹ️ Status do fluxo de limpeza (Em limpeza, Pausado, Aguard. conf., Limpo, Reprovado) não estão disponíveis aqui.
       </div>
-      <div id="lote-campo-obs" style="display:none;" class="form-row single">
+      <div class="form-row single">
         <div class="field">
-          <label id="lote-obs-label">Motivo / Observação *</label>
+          <label>Motivo / Observação *</label>
           <textarea id="lote-obs" rows="2" placeholder="Informe o motivo da alteração..."></textarea>
         </div>
       </div>
@@ -2401,92 +2385,37 @@ function _loteClearSelection() {
   _loteUpdateBar();
 }
 
-async function _abrirModalLote() {
+function _abrirModalLote() {
   if (_loteSelected.size === 0) { toast('Selecione ao menos um apartamento', 'error'); return; }
-  document.getElementById('lote-modal-info').textContent = `${_loteSelected.size} apartamento${_loteSelected.size !== 1 ? 's' : ''} selecionado${_loteSelected.size !== 1 ? 's' : ''}`;
-  document.getElementById('lote-tipo').value = '';
+  const n = _loteSelected.size;
+  document.getElementById('lote-modal-info').textContent = `${n} apartamento${n !== 1 ? 's' : ''} selecionado${n !== 1 ? 's' : ''}`;
   document.getElementById('lote-status').value = '';
   document.getElementById('lote-obs').value = '';
-  document.getElementById('lote-campo-status').style.display = 'none';
-  document.getElementById('lote-campo-camareira').style.display = 'none';
-  document.getElementById('lote-campo-obs').style.display = 'none';
-
-  // Pré-carrega camareiras
-  const hotelId = currentUser.hotelId || aptos.find(a => a.hotel_id)?.hotel_id;
-  const sel = document.getElementById('lote-camareira');
-  sel.innerHTML = '<option value="">— Não atribuir</option>';
-  if (hotelId) {
-    const { data } = await supabaseClient.from('user_profiles')
-      .select('user_id, nome').eq('perfil','camareira').eq('ativo',true).eq('hotel_id', hotelId).order('nome');
-    (data || []).forEach(u => {
-      const o = document.createElement('option');
-      o.value = u.user_id; o.textContent = u.nome; sel.appendChild(o);
-    });
-  }
   openModal('modal-lote-acao');
-}
-
-function _loteOnTipoChange() {
-  const tipo = document.getElementById('lote-tipo').value;
-  document.getElementById('lote-campo-status').style.display    = ['somente_status','status_e_camareira'].includes(tipo) ? '' : 'none';
-  document.getElementById('lote-campo-camareira').style.display = ['somente_camareira','status_e_camareira'].includes(tipo) ? '' : 'none';
-  const obsDiv = document.getElementById('lote-campo-obs');
-  const obsLabel = document.getElementById('lote-obs-label');
-  if (tipo === 'somente_camareira') {
-    obsDiv.style.display = '';
-    obsLabel.textContent = 'Observação (opcional)';
-  } else if (tipo) {
-    obsDiv.style.display = '';
-    obsLabel.textContent = 'Motivo / Observação *';
-  } else {
-    obsDiv.style.display = 'none';
-  }
 }
 
 async function _executarLote() {
   if (['camareira','manutencao'].includes(currentUser?.perfil)) {
     toast('Sem permissão para executar ações em lote', 'error'); return;
   }
-  const tipo    = document.getElementById('lote-tipo').value;
-  const status  = document.getElementById('lote-status').value;
-  const camId   = document.getElementById('lote-camareira').value;
-  const camNome = camId ? document.getElementById('lote-camareira').options[document.getElementById('lote-camareira').selectedIndex]?.text : null;
-  const obs     = (document.getElementById('lote-obs')?.value || '').trim();
+  const status = document.getElementById('lote-status').value;
+  const obs    = (document.getElementById('lote-obs')?.value || '').trim();
 
-  if (!tipo) { toast('Selecione o tipo de ação', 'error'); return; }
-  if (['somente_status','status_e_camareira'].includes(tipo) && !status) { toast('Selecione o novo status', 'error'); return; }
-  if (['somente_status','status_e_camareira'].includes(tipo) && !obs)    { toast('Informe o motivo/observação', 'error'); return; }
-  if (['somente_camareira','status_e_camareira'].includes(tipo) && !camId) { toast('Selecione uma camareira', 'error'); return; }
+  if (!status) { toast('Selecione o novo status', 'error'); return; }
+  if (!obs)    { toast('Informe o motivo da alteração', 'error'); return; }
 
   const ids = [..._loteSelected];
   const n   = ids.length;
-  const _STATUS_LABELS_LOCAL = { sujo:'Sujo', bloqueado:'Bloqueado', livre:'Livre', ocupado:'Ocupado', manutencao:'Manutenção' };
+  const _LABELS = { sujo:'Sujo', bloqueado:'Bloqueado', livre:'Livre', ocupado:'Ocupado', manutencao:'Manutenção' };
 
-  let msg = '';
-  if (tipo === 'somente_status')    msg = `Confirma alterar ${n} apartamento${n>1?'s':''} para "${_STATUS_LABELS_LOCAL[status] || status}"?`;
-  if (tipo === 'somente_camareira') msg = `Confirma atribuir ${n} apartamento${n>1?'s':''} para "${camNome || 'nenhuma camareira'}"?`;
-  if (tipo === 'status_e_camareira') msg = `Confirma alterar ${n} apartamento${n>1?'s':''} para "${_STATUS_LABELS_LOCAL[status] || status}" e atribuir para "${camNome || '—'}"?`;
-
-  if (!confirm(msg)) return;
+  if (!confirm(`Confirma alterar ${n} apartamento${n>1?'s':''} para "${_LABELS[status] || status}"?`)) return;
   closeModal('modal-lote-acao');
 
-  const obsCompleta = obs ? `[Lote] ${obs} — por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}` : `[Lote] por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
+  const obsCompleta = `[Lote] ${obs} — por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
   let erros = 0;
   for (const id of ids) {
-    try {
-      if (['somente_status','status_e_camareira'].includes(tipo)) {
-        await mudarStatusApto(id, status, obsCompleta);
-      }
-      if (['somente_camareira','status_e_camareira'].includes(tipo)) {
-        const payload = { maid_id: camId || null };
-        const { error } = await supabaseClient.from('apartments').update(payload).eq('id', id);
-        if (error) erros++;
-        else {
-          const a = aptos.find(x => x.id === id);
-          if (a) { a.camareira_id = camId || null; a._maid_nome = camNome || null; }
-        }
-      }
-    } catch(e) { erros++; }
+    try { await mudarStatusApto(id, status, obsCompleta); }
+    catch(e) { erros++; }
   }
 
   if (erros) toast(`Concluído com ${erros} erro(s)`, 'warning');
