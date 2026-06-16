@@ -1365,8 +1365,8 @@ tr:last-child td { border-bottom: none; }
       </div>
       <div class="form-row single">
         <div class="field">
-          <label>Motivo / Observação *</label>
-          <textarea id="lote-obs" rows="2" placeholder="Informe o motivo da alteração..."></textarea>
+          <label>Motivo / Observação</label>
+          <textarea id="lote-obs" rows="2" placeholder="Observação (opcional)..."></textarea>
         </div>
       </div>
     </div>
@@ -2396,7 +2396,7 @@ async function _executarLote() {
   const obs    = (document.getElementById('lote-obs')?.value || '').trim();
 
   if (!status) { toast('Selecione o novo status', 'error'); return; }
-  if (!obs)    { toast('Informe o motivo da alteração', 'error'); return; }
+
 
   const ids = [..._loteSelected];
   const n   = ids.length;
@@ -2405,7 +2405,7 @@ async function _executarLote() {
   if (!confirm(`Confirma alterar ${n} apartamento${n>1?'s':''} para "${_LABELS[status] || status}"?`)) return;
   closeModal('modal-lote-acao');
 
-  const obsCompleta = `[Lote] ${obs} — por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
+  const obsCompleta = obs ? `[Lote] ${obs} — por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}` : `[Lote] por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
   let erros = 0;
   for (const id of ids) {
     try { await mudarStatusApto(id, status, obsCompleta); }
