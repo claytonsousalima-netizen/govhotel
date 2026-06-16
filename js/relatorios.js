@@ -421,7 +421,7 @@ function _relAbaResumo(el) {
     <div class="stats-grid" style="margin-bottom:16px;">${cards}</div>
     <div class="card">
       <div class="card-title" style="margin-bottom:10px;">Apartamentos (${aptos.length})</div>
-      ${_relTable(['Apto','Andar','Status','Camareira','Chamados','Retrabalhos'], rows)}
+      ${_relTable(['Apto','Andar','Status','Camareira','Chamados','Retrabalhos'], rows, 9999)}
     </div>`;
 }
 
