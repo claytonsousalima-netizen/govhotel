@@ -1096,6 +1096,9 @@ async function renderAppCamareira() {
               <span class="badge badge-${a.status}">${labelStatus[a.status]||a.status}</span>
               ${meuApto ? '<span style="font-size:10px;background:#dbeafe;color:#1d4ed8;padding:2px 7px;border-radius:10px;font-weight:700;">👤 Atribuído a mim</span>' : ''}
             </div>
+            <div style="margin-top:8px;">
+              <button class="btn btn-ghost btn-xs" onclick="event.stopPropagation();openAptoDetail('${a.id}')" style="font-size:11px;padding:3px 8px;">👁 Ver detalhes</button>
+            </div>
           </div>
           <div style="text-align:right;">
             <div style="font-size:28px;">${icons[a.status]||'❓'}</div>
