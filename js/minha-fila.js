@@ -281,7 +281,7 @@ function _mfRenderGestor(el) {
           <div>
             <div style="font-size:22px;font-weight:800;line-height:1;">${a.numero}</div>
             <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} · ${a.andar}º andar</div>
-            ${cam ? `<div style="font-size:11px;color:var(--text3);margin-top:3px;">🧹 ${cam.nome.split(' ')[0]}</div>` : ''}
+            ${cam ? `<div style="font-size:11px;color:var(--text3);margin-top:3px;">🧹 ${cam.nome}</div>` : ''}
           </div>
           <span class="badge badge-conferencia" style="flex-shrink:0;">Aguard. conf.</span>
         </div>
@@ -316,7 +316,7 @@ function _mfRenderGestor(el) {
           <div>
             <div style="font-size:22px;font-weight:800;line-height:1;">${a.numero}</div>
             <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} · ${a.andar}º andar</div>
-            ${cam ? `<div style="font-size:11px;color:var(--text3);margin-top:3px;">🧹 ${cam.nome.split(' ')[0]}</div>` : ''}
+            ${cam ? `<div style="font-size:11px;color:var(--text3);margin-top:3px;">🧹 ${cam.nome}</div>` : ''}
           </div>
           <span class="badge badge-reprovado" style="flex-shrink:0;">Reprovado</span>
         </div>
@@ -405,7 +405,7 @@ function _mfRenderGestor(el) {
           <div>
             <div style="font-size:22px;font-weight:800;line-height:1;">${a.numero}</div>
             <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} · ${a.andar}º andar</div>
-            ${cam ? `<div style="font-size:11px;color:var(--text3);margin-top:3px;">🧹 ${cam.nome.split(' ')[0]}</div>` : ''}
+            ${cam ? `<div style="font-size:11px;color:var(--text3);margin-top:3px;">🧹 ${cam.nome}</div>` : ''}
           </div>
           <span class="badge badge-limpando" style="flex-shrink:0;">Limpando</span>
         </div>
@@ -435,7 +435,7 @@ function _mfRenderGestor(el) {
           <div>
             <div style="font-size:22px;font-weight:800;line-height:1;">${a.numero}</div>
             <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} · ${a.andar}º andar</div>
-            ${cam ? `<div style="font-size:11px;color:var(--text3);margin-top:3px;">🧹 ${cam.nome.split(' ')[0]}</div>` : ''}
+            ${cam ? `<div style="font-size:11px;color:var(--text3);margin-top:3px;">🧹 ${cam.nome}</div>` : ''}
             ${a.obs ? `<div style="font-size:11px;color:var(--text3);margin-top:3px;font-style:italic;">${a.obs}</div>` : ''}
           </div>
           <span class="badge badge-pausado" style="flex-shrink:0;">Pausado</span>

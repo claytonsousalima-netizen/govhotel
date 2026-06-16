@@ -228,7 +228,7 @@ function renderCadastroTableDb(filter = '') {
         <td>${a.leitos} leito${a.leitos !== 1 ? 's' : ''}</td>
         <td><span class="badge badge-${a.status}">${a.status}</span></td>
         <td>${cam
-          ? `<div style="font-size:12px;font-weight:600;">${cam.nome.split(' ')[0]}</div>`
+          ? `<div style="font-size:12px;font-weight:600;">${cam.nome}</div>`
           : '<span style="color:var(--text3);font-size:12px;">—</span>'
         }</td>
         <td>
@@ -1544,7 +1544,7 @@ function _renderFiltrosBar(containerId) {
             onchange="_onFiltroCamareira(this.value)" title="Filtrar por camareira responsável">
       <option value="">👤 Todas as camareiras</option>
       ${camLista.map(c =>
-        `<option value="${c.id}" ${_aptoFiltros.camareira === c.id ? 'selected' : ''}>${c.nome.split(' ')[0]}</option>`
+        `<option value="${c.id}" ${_aptoFiltros.camareira === c.id ? 'selected' : ''}>${c.nome}</option>`
       ).join('')}
     </select>` : ''}
     ${tipos.length > 1 ? `
@@ -1662,7 +1662,7 @@ function renderMapa() {
           <div class="apto-tipo">${a.tipo}</div>
           <span class="badge badge-${a.status}" style="font-size:10px;">${lbl}</span>
           ${_camNome
-            ? `<div style="font-size:9px;color:var(--text2);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">👤 ${_camNome.split(' ')[0]}</div>`
+            ? `<div style="font-size:9px;color:var(--text2);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">👤 ${_camNome}</div>`
             : '<div style="font-size:9px;color:var(--danger);font-weight:700;margin-top:3px;">Sem responsável</div>'}
           ${_tempo ? `<div style="font-size:9px;color:var(--text3);margin-top:2px;">${_tempo}</div>` : ''}
         </div>`;
@@ -1752,7 +1752,7 @@ function renderAptoKanban() {
             ${temChamado ? '<span style="font-size:10px;color:var(--danger);" title="Chamado aberto">📋</span>' : ''}
           </div>
           <div class="kanban-detail">${a.tipo} · ${a.andar}º andar</div>
-          ${cam ? `<div style="font-size:11px;color:var(--text3);margin-top:4px;">👤 ${cam.nome.split(' ')[0]}</div>` : ''}
+          ${cam ? `<div style="font-size:11px;color:var(--text3);margin-top:4px;">👤 ${cam.nome}</div>` : ''}
           ${a.prioridade ? '<div style="font-size:10px;font-weight:700;color:var(--danger);margin-top:2px;">⚠️ PRIORIDADE</div>' : ''}
         </div>`;
       }).join('') || `<div style="font-size:12px;color:var(--text3);text-align:center;padding:12px;">—</div>`}
