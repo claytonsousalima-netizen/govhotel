@@ -460,8 +460,14 @@ async function atualizarStatusChamado(id, novoStatus) {
   const c = _chamadosCache.find(x => x.id === id);
   if (!c) return;
 
+  const _statusConclusao = ['resolvido','concluido','cancelado'];
+  const _updatePayload = { status: novoStatus };
+  if (_statusConclusao.includes(novoStatus)) {
+    _updatePayload.resolved_at = new Date().toISOString();
+    _updatePayload.resolved_by = currentUser.id;
+  }
   const { error } = await supabaseClient
-    .from('work_orders').update({ status: novoStatus }).eq('id', id);
+    .from('work_orders').update(_updatePayload).eq('id', id);
   if (error) { toast('Erro: ' + error.message, 'error'); return; }
 
   const prevLabel  = _GOV_STATUS[c.status]?.label  || c.status;

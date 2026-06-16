@@ -1270,6 +1270,19 @@ async function abrirChecklistApp(id) {
 async function concluirChecklist() {
   const done = checklistState.filter(i => i.done).length;
   if (done < checklistState.length * 0.8) { toast('Complete pelo menos 80% dos itens', 'error'); return; }
+
+  // Persiste respostas por apartamento (fire-and-forget — não bloqueia o fluxo)
+  const obsGeral   = (document.getElementById('checklist-obs')?.value || '').trim();
+  const respostas  = checklistState.map(i => ({ item: i.label, resposta: i.done ? 'conforme' : 'nao_conforme' }));
+  supabaseClient.from('limpeza_checklists').insert({
+    apartment_id: selectedAptoId,
+    hotel_id:     currentUser.hotelId,
+    usuario_id:   currentUser.id,
+    tipo_limpeza: 'saida',
+    respostas,
+    obs_geral:    obsGeral || null,
+  }).then(({ error }) => { if (error) console.warn('Checklist não salvo:', error.message); });
+
   closeModal('modal-checklist');
   const obs = `Limpeza em andamento — checklist iniciado por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
   await mudarStatusApto(selectedAptoId, 'limpando', obs);
