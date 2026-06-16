@@ -4,7 +4,7 @@
 // ================================================================
 
 let _relHotelId = null;
-let _relAba     = 'executivo';
+let _relAba     = 'resumo';
 let _relData    = null;
 // { aptos, chamados, retrabalhos, equipe, history, checklists, userNames, aptoById }
 let _relFiltros = { dtIni:'', dtFim:'', andar:'', camareira:'', status:'', apto:'', tipo:'', prioridade:'' };
