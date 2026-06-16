@@ -270,7 +270,6 @@ async function openAptoForm(id = null) {
     const el = document.getElementById(fId);
     if (el) el.value = '';
   });
-  document.getElementById('ca-andar').value  = '1';
   document.getElementById('ca-leitos').value = '2';
   document.getElementById('ca-status').value = 'livre';
   await _populateAptoTipoSelect();
@@ -295,7 +294,6 @@ async function openAptoForm(id = null) {
     const a = aptos.find(x => x.id === id);
     if (a) {
       document.getElementById('ca-numero').value = a.numero;
-      document.getElementById('ca-andar').value  = a.andar;
       document.getElementById('ca-leitos').value = a.leitos;
       await _populateAptoTipoSelect(a.tipo);
       await _populateAptoCatSelect(a.categoria);
@@ -306,6 +304,8 @@ async function openAptoForm(id = null) {
     }
   }
 
+  const _savedAndar = isEdit ? (aptos.find(x => x.id === id)?.andar || 1) : 1;
+  await _populateAndarSelect(_formHotelId, _savedAndar);
   await _popularCamareiraSelect(_selectedCamId, _formHotelId);
 
   openModal('modal-cadastro-apto');
@@ -489,9 +489,10 @@ async function openGerarLoteModal() {
   document.getElementById('gl-leitos').value        = '2';
   document.getElementById('gl-obs').value           = '';
 
-  // Popula tipo/categoria a partir do banco
+  // Popula tipo/categoria e max andares a partir do banco
   await _populateGlTipoSelect();
   await _populateGlCatSelect();
+  await _populateGlAndarMax(_loteHotelId || currentUser.hotelId);
   document.getElementById('gl-status').value = 'livre';
 
   // Camareira
@@ -522,6 +523,46 @@ async function _populateGlCatSelect(selected) {
   sel.innerHTML = ativos.map((v, idx) =>
     `<option value="${v.nome}" ${v.nome === (selected || ativos[0]?.nome) ? 'selected' : ''}>${v.nome}</option>`
   ).join('');
+}
+
+async function _populateAndarSelect(hotelId, selected) {
+  const sel = document.getElementById('ca-andar');
+  if (!sel) return;
+  let maxAndares = 12;
+  if (hotelId) {
+    const { data } = await supabaseClient.from('hotel_config')
+      .select('valor').eq('hotel_id', hotelId).eq('chave', 'max_andares').single();
+    if (data) maxAndares = parseInt(data.valor) || 12;
+  }
+  const val = selected || 1;
+  sel.innerHTML = Array.from({ length: maxAndares }, (_, i) => i + 1)
+    .map(n => `<option value="${n}" ${n === Number(val) ? 'selected' : ''}>${n}º</option>`)
+    .join('');
+}
+
+async function _populateGlAndarMax(hotelId) {
+  const inp = document.getElementById('gl-andar-ini');
+  if (!inp) return;
+  let maxAndares = 12;
+  if (hotelId) {
+    const { data } = await supabaseClient.from('hotel_config')
+      .select('valor').eq('hotel_id', hotelId).eq('chave', 'max_andares').single();
+    if (data) maxAndares = parseInt(data.valor) || 12;
+  }
+  inp.max = maxAndares;
+}
+
+async function _populateTipoLimpezaSelect() {
+  const sel = document.getElementById('cl-tipo-limpeza');
+  if (!sel) return;
+  const hotelId = currentUser?.hotelId;
+  let q = supabaseClient.from('tipos_limpeza').select('id, nome').eq('ativo', true).order('ordem');
+  if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
+  const { data } = await q;
+  const tipos = data?.length ? data : [
+    { nome: 'Saída (checkout)' }, { nome: 'Permanência' }, { nome: 'Pós-manutenção' }
+  ];
+  sel.innerHTML = tipos.map(t => `<option value="${t.nome}">${t.nome}</option>`).join('');
 }
 
 async function _popularGlCamareiraSelect(selectedId, hotelId) {
@@ -911,11 +952,10 @@ async function abrirChecklistLimpeza() {
   const titulo = document.getElementById('cl-apto-titulo');
   if (titulo) titulo.textContent = `✅ Checklist — Apto ${apto.numero}`;
 
-  const tipoEl = document.getElementById('cl-tipo-limpeza');
-  if (tipoEl) tipoEl.value = 'saida';
-
   const obsGeralEl = document.getElementById('cl-obs-geral');
   if (obsGeralEl) obsGeralEl.value = '';
+
+  await _populateTipoLimpezaSelect();
 
   // Carrega itens do banco
   const hotelId = currentUser?.hotelId;

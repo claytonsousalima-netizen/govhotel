@@ -10,6 +10,8 @@ async function renderConfigPage() {
   await Promise.all([
     renderConfigTurnos(),
     renderConfigTipos(),
+    renderConfigAndares(),
+    renderConfigTiposLimpeza(),
     renderConfigSolicitantes(),
     renderConfigMotivos(),
     renderConfigChecklist(),
@@ -542,6 +544,140 @@ async function _excluirMotivo(id) {
   if (error) { toast('Erro: ' + error.message, 'error'); return; }
   toast('Motivo excluído!', 'success');
   await renderConfigMotivos();
+}
+
+// ── ANDARES ───────────────────────────────────────────────────
+async function renderConfigAndares() {
+  const el = document.getElementById('config-andares');
+  if (!el) return;
+  const hotelId = currentUser.hotelId;
+  if (!hotelId) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--text3);">Selecione um hotel para configurar.</div>';
+    return;
+  }
+  const { data } = await supabaseClient.from('hotel_config')
+    .select('valor').eq('hotel_id', hotelId).eq('chave', 'max_andares').single();
+  const atual = data?.valor || '12';
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <label style="font-size:13px;">Máximo de andares:</label>
+      <input type="number" id="cfg-max-andares" value="${atual}" min="1" max="99"
+        style="width:80px;padding:6px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-weight:700;">
+      <button class="btn btn-primary btn-sm" onclick="_salvarMaxAndares()">Salvar</button>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-top:8px;">Andares de 1º a ${atual}º aparecerão no cadastro de apartamentos.</div>`;
+}
+
+async function _salvarMaxAndares() {
+  const val = parseInt(document.getElementById('cfg-max-andares')?.value);
+  if (!val || val < 1 || val > 99) { toast('Valor inválido (1–99)', 'error'); return; }
+  const hotelId = currentUser.hotelId;
+  if (!hotelId) return;
+  const { error } = await supabaseClient.from('hotel_config')
+    .upsert({ hotel_id: hotelId, chave: 'max_andares', valor: String(val) }, { onConflict: 'hotel_id,chave' });
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  toast('Número de andares salvo!', 'success');
+  await renderConfigAndares();
+}
+
+// ── TIPOS DE LIMPEZA ──────────────────────────────────────────
+let _tiposLimpezaCache = [];
+
+async function renderConfigTiposLimpeza() {
+  const el = document.getElementById('config-tipos-limpeza');
+  if (!el) return;
+  const hotelId = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
+  let query = supabaseClient.from('tipos_limpeza').select('*').order('ordem');
+  if (hotelId) query = query.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
+  const { data, error } = await query;
+  if (error) { el.innerHTML = `<div style="color:var(--danger);font-size:12px;">Erro: ${error.message}</div>`; return; }
+  _tiposLimpezaCache = data || [];
+  el.innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+      <input type="text" id="new-tipo-limpeza-nome" placeholder="Novo tipo de limpeza..."
+        style="flex:1;min-width:180px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;"
+        onkeydown="if(event.key==='Enter') _adicionarTipoLimpeza()">
+      <button class="btn btn-primary btn-sm" onclick="_adicionarTipoLimpeza()">+ Adicionar</button>
+    </div>
+    <div id="tipos-limpeza-lista">
+      ${_tiposLimpezaCache.map(t => _renderTipoLimpezaRow(t)).join('')}
+    </div>`;
+}
+
+function _renderTipoLimpezaRow(t) {
+  return `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);gap:8px;" id="tl-row-${t.id}">
+      <div style="display:flex;align-items:center;gap:8px;flex:1;">
+        <span style="font-size:12px;color:var(--text3);">${t.hotel_id ? '🏨' : '🌐'}</span>
+        <span style="font-size:13px;${!t.ativo ? 'text-decoration:line-through;color:var(--text3);' : ''}"
+          id="tl-text-${t.id}">${t.nome}</span>
+        ${!t.ativo ? '<span class="badge badge-bloqueado" style="font-size:10px;">Inativo</span>' : ''}
+      </div>
+      <div id="tl-edit-${t.id}" style="display:none;flex:1;">
+        <input type="text" id="tl-input-${t.id}" value="${t.nome}"
+          style="width:100%;padding:5px 8px;border:1.5px solid var(--primary-light);border-radius:var(--radius-sm);font-size:13px;"
+          onkeydown="if(event.key==='Enter') _salvarTipoLimpeza(${t.id})">
+      </div>
+      <div style="display:flex;gap:4px;flex-shrink:0;">
+        <button class="btn btn-ghost btn-xs" id="tl-btn-edit-${t.id}"
+          onclick="_editarTipoLimpeza(${t.id})" title="Editar">✏️</button>
+        <button class="btn btn-ghost btn-xs" id="tl-btn-save-${t.id}" style="display:none;"
+          onclick="_salvarTipoLimpeza(${t.id})" title="Salvar">💾</button>
+        <button class="btn btn-ghost btn-xs" id="tl-btn-cancel-${t.id}" style="display:none;"
+          onclick="renderConfigTiposLimpeza()" title="Cancelar">✕</button>
+        <button class="btn btn-ghost btn-xs" onclick="_toggleTipoLimpeza(${t.id},${t.ativo})"
+          title="${t.ativo ? 'Inativar' : 'Ativar'}">${t.ativo ? '⏸' : '▶'}</button>
+        ${t.hotel_id
+          ? `<button class="btn btn-ghost btn-xs" style="color:var(--danger);"
+              onclick="_excluirTipoLimpeza(${t.id})" title="Excluir">🗑</button>`
+          : ''}
+      </div>
+    </div>`;
+}
+
+function _editarTipoLimpeza(id) {
+  document.getElementById(`tl-text-${id}`).closest('div').style.display  = 'none';
+  document.getElementById(`tl-edit-${id}`).style.display    = 'block';
+  document.getElementById(`tl-btn-edit-${id}`).style.display   = 'none';
+  document.getElementById(`tl-btn-save-${id}`).style.display   = '';
+  document.getElementById(`tl-btn-cancel-${id}`).style.display = '';
+  document.getElementById(`tl-input-${id}`)?.focus();
+}
+
+async function _salvarTipoLimpeza(id) {
+  const nome = document.getElementById(`tl-input-${id}`)?.value.trim();
+  if (!nome) { toast('Informe o nome', 'error'); return; }
+  const { error } = await supabaseClient.from('tipos_limpeza').update({ nome }).eq('id', id);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  toast('Tipo atualizado!', 'success');
+  await renderConfigTiposLimpeza();
+}
+
+async function _adicionarTipoLimpeza() {
+  const nome = document.getElementById('new-tipo-limpeza-nome')?.value.trim();
+  if (!nome) { toast('Informe o nome do tipo', 'error'); return; }
+  const hotel_id = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
+  const ordem    = (_tiposLimpezaCache.length || 0) + 1;
+  const { error } = await supabaseClient.from('tipos_limpeza').insert([{ nome, hotel_id, ativo: true, ordem }]);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  const input = document.getElementById('new-tipo-limpeza-nome');
+  if (input) input.value = '';
+  toast('Tipo adicionado!', 'success');
+  await renderConfigTiposLimpeza();
+}
+
+async function _toggleTipoLimpeza(id, ativo) {
+  const { error } = await supabaseClient.from('tipos_limpeza').update({ ativo: !ativo }).eq('id', id);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  await renderConfigTiposLimpeza();
+}
+
+async function _excluirTipoLimpeza(id) {
+  if (!confirm('Excluir este tipo de limpeza?')) return;
+  const { error } = await supabaseClient.from('tipos_limpeza').delete().eq('id', id);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  toast('Tipo excluído!', 'success');
+  await renderConfigTiposLimpeza();
 }
 
 // ── CHECKLIST DE CONFERÊNCIA ──────────────────────────────────
