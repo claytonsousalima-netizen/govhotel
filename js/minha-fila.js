@@ -83,42 +83,31 @@ async function _mfSelecionarHotel(hotelId) {
 function _mfRenderCamareira(el) {
   const nome = currentUser.nome?.split(' ')[0] || 'Camareira';
 
-  // Aptos que a camareira trabalha: reprovado > pausado > limpando > sujo
-  const fila = aptos.filter(a =>
-    ['sujo','limpando','pausado','reprovado'].includes(a.status)
-  );
-
   const grupos = [
-    { key:'reprovado', label:'Re-limpeza necessária', icon:'❌', color:'#e74c3c', badge:'badge-reprovado' },
-    { key:'pausado',   label:'Pausados — retomar',    icon:'⏸', color:'#f39c12', badge:'badge-pausado'   },
-    { key:'limpando',  label:'Em andamento',           icon:'🧹', color:'#2e86c1', badge:'badge-limpando'  },
-    { key:'sujo',      label:'Para limpar',            icon:'🟠', color:'#e67e22', badge:'badge-sujo'      },
+    { key:'reprovado',   label:'Reprovados',              icon:'❌', color:'#e74c3c', badge:'badge-reprovado'   },
+    { key:'pausado',     label:'Pausados',                icon:'⏸', color:'#f39c12', badge:'badge-pausado'     },
+    { key:'limpando',    label:'Em limpeza',              icon:'🧹', color:'#2e86c1', badge:'badge-limpando'    },
+    { key:'sujo',        label:'Para limpar',             icon:'🟠', color:'#e67e22', badge:'badge-sujo'        },
+    { key:'conferencia', label:'Aguardando conferência',  icon:'🔍', color:'#8e44ad', badge:'badge-conferencia' },
+    { key:'limpo',       label:'Limpos',                  icon:'✨', color:'#1abc9c', badge:'badge-limpo'       },
+    { key:'livre',       label:'Livres',                  icon:'✅', color:'#27ae60', badge:'badge-livre'       },
+    { key:'ocupado',     label:'Ocupados',                icon:'🏠', color:'#7f8c8d', badge:'badge-ocupado'     },
+    { key:'bloqueado',   label:'Bloqueados',              icon:'🔒', color:'#c0392b', badge:'badge-bloqueado'   },
+    { key:'manutencao',  label:'Manutenção',              icon:'🔧', color:'#95a5a6', badge:'badge-manutencao'  },
   ];
 
   let html = `
     <div style="background:linear-gradient(135deg,var(--primary),var(--primary-dark,#1a3a6e));
                 color:white;padding:18px 20px;border-radius:var(--radius);margin-bottom:20px;">
-      <div style="font-size:12px;opacity:0.75;margin-bottom:2px;">Boa operação,</div>
+      <div style="font-size:12px;opacity:0.75;margin-bottom:2px;">Olá,</div>
       <div style="font-size:22px;font-weight:800;letter-spacing:-0.5px;">${nome}</div>
-      <div style="font-size:13px;opacity:0.85;margin-top:6px;">
-        ${fila.length
-          ? `${fila.length} apartamento${fila.length !== 1 ? 's' : ''} na sua fila`
-          : '✅ Nenhum apartamento pendente'}
-      </div>
+      <div style="font-size:13px;opacity:0.85;margin-top:6px;">${aptos.length} apartamento${aptos.length !== 1 ? 's' : ''} no hotel</div>
     </div>`;
-
-  if (!fila.length) {
-    html += `<div class="card" style="text-align:center;padding:40px;">
-      <div style="font-size:48px;margin-bottom:12px;">🎉</div>
-      <div style="font-weight:700;font-size:16px;margin-bottom:6px;">Fila zerada!</div>
-      <div style="font-size:13px;color:var(--text3);">Todos os apartamentos foram tratados.</div>
-    </div>`;
-    el.innerHTML = html;
-    return;
-  }
 
   grupos.forEach(g => {
-    const lista = fila.filter(a => a.status === g.key);
+    const lista = [...aptos.filter(a => a.status === g.key)].sort((a, b) =>
+      (a.camareira_id === currentUser.id ? 0 : 1) - (b.camareira_id === currentUser.id ? 0 : 1)
+    );
     if (!lista.length) return;
 
     html += `<div style="margin-bottom:22px;">
@@ -130,26 +119,15 @@ function _mfRenderCamareira(el) {
                      padding:2px 8px;border-radius:10px;margin-left:auto;">${lista.length}</span>
       </div>`;
 
-    // Ordenar: atribuídos a mim primeiro
-    const listaOrdenada = [...lista].sort((a, b) => {
-      const aMeu = a.camareira_id === currentUser.id ? 0 : 1;
-      const bMeu = b.camareira_id === currentUser.id ? 0 : 1;
-      return aMeu - bMeu;
-    });
-
-    listaOrdenada.forEach(a => {
+    lista.forEach(a => {
       const meuApto = a.camareira_id === currentUser.id;
       const borderColor = meuApto ? '#1d4ed8' : (a.prioridade ? 'var(--danger)' : g.color);
-      const extraStyle  = meuApto
-        ? 'background:linear-gradient(135deg,#eff6ff 0%,#fff 60%);box-shadow:0 2px 12px rgba(29,78,216,0.12);'
-        : '';
+      const extraStyle  = meuApto ? 'background:linear-gradient(135deg,#eff6ff 0%,#fff 60%);box-shadow:0 2px 12px rgba(29,78,216,0.12);' : '';
       html += `
       <div class="card" style="margin-bottom:10px;border-left:4px solid ${borderColor};padding:14px 16px;${extraStyle}">
-        ${meuApto ? `
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;
+        ${meuApto ? `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;
                     background:#dbeafe;color:#1d4ed8;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;">
-          📌 Atribuído a mim
-        </div>` : ''}
+          📌 Atribuído a mim</div>` : ''}
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px;">
           <div>
             <div style="font-size:22px;font-weight:800;color:${meuApto ? '#1d4ed8' : 'var(--text)'};line-height:1;">${a.numero}</div>
@@ -157,12 +135,10 @@ function _mfRenderCamareira(el) {
               ${a.tipo} &nbsp;·&nbsp; ${a.andar}º andar &nbsp;·&nbsp; ${a.leitos} leito${a.leitos !== 1 ? 's' : ''}
             </div>
             ${a.prioridade ? `<div style="font-size:11px;font-weight:700;color:var(--danger);margin-top:4px;">⚠️ PRIORIDADE</div>` : ''}
-            ${a.obs        ? `<div style="font-size:11px;color:var(--text3);margin-top:4px;font-style:italic;">${a.obs}</div>` : ''}
           </div>
           <span class="badge ${g.badge}" style="flex-shrink:0;">${_STATUS_LABELS?.[a.status] || a.status}</span>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          ${_mfBtnsCamareira(a)}
           <button class="btn btn-ghost btn-sm" onclick="openAptoDetail('${a.id}')">👁 Ver detalhes</button>
         </div>
       </div>`;
