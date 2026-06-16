@@ -1276,7 +1276,7 @@ function _garantirBotoesMapa() {
     btnAlt.id = 'btn-alterar-status-header';
     btnAlt.className = 'btn btn-outline btn-sm';
     btnAlt.textContent = '🔄 Alterar Status';
-    btnAlt.onclick = () => openModal('modal-trocar-status');
+    btnAlt.onclick = () => _loteMode ? _abrirModalLote() : openModal('modal-trocar-status');
     container.appendChild(btnAlt);
 
     const btnLote = document.createElement('button');
