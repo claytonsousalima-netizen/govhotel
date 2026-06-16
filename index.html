@@ -704,8 +704,8 @@ tr:last-child td { border-bottom: none; }
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;" id="mapa-header-actions">
             <button id="btn-cadastrar-apto-mapa" class="btn btn-ghost btn-sm" onclick="openPage('cadastro-apto')">⊕ Cadastrar Apto</button>
-            <button id="btn-alterar-status-header" class="btn btn-outline btn-sm" onclick="openModal('modal-trocar-status')" style="display:none;">🔄 Alterar Status</button>
-            <button id="btn-lote-selecionar" class="btn btn-primary btn-sm" onclick="_toggleLoteMode()" style="display:none;">☑ Selecionar em lote</button>
+            <button id="btn-alterar-status-header" class="btn btn-outline btn-sm" onclick="openModal('modal-trocar-status')">🔄 Alterar Status</button>
+            <button id="btn-lote-selecionar" class="btn btn-primary btn-sm" onclick="_toggleLoteMode()">☑ Selecionar em lote</button>
           </div>
         </div>
         <div id="mapa-hotel-selector"></div>
@@ -2089,10 +2089,11 @@ function applyProfileRestrictions() {
   // Camareira e Manutenção não vêem botão "+ Novo" na topbar
   document.getElementById('btn-nova-acao').style.display = isOperacional ? 'none' : '';
 
-  // Mapa: botão Cadastrar Apto visível apenas para não-operacionais
-  // (btn-alterar-status-header e btn-lote-selecionar são controlados por renderMapa)
-  const btnCadastrarApto = document.getElementById('btn-cadastrar-apto-mapa');
-  if (btnCadastrarApto) btnCadastrarApto.style.display = isOperacional ? 'none' : '';
+  // Mapa: ocultar botões de ação para perfis operacionais
+  ['btn-cadastrar-apto-mapa','btn-alterar-status-header','btn-lote-selecionar'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = isOperacional ? 'none' : '';
+  });
 
   // Manutenção não pode abrir novo chamado
   const btnChamado = document.getElementById('btn-novo-chamado');

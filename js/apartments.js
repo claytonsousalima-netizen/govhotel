@@ -1495,13 +1495,6 @@ function _reaplicarFiltros() {
 
 // ── OVERRIDE: renderMapa (com filtros) ───────────────────────
 function renderMapa() {
-  const perfil = currentUser?.perfil;
-  const podeSelecionar = perfil && !['camareira','manutencao'].includes(perfil);
-  const btnSel = document.getElementById('btn-lote-selecionar');
-  if (btnSel) btnSel.style.display = podeSelecionar ? '' : 'none';
-  const btnAlt = document.getElementById('btn-alterar-status-header');
-  if (btnAlt) btnAlt.style.display = podeSelecionar ? '' : 'none';
-
   const lista   = _filtrarAptos(aptos);
   const andares = [...new Set(lista.map(a => a.andar))].sort((a, b) => a - b);
   let html = '';
