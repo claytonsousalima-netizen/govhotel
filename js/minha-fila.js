@@ -39,6 +39,8 @@ async function renderMinhaFila() {
   const perfil = currentUser.perfil;
   if (perfil === 'camareira') {
     _mfRenderCamareira(el);
+  } else if (perfil === 'manutencao') {
+    _mfRenderManutencao(el);
   } else {
     _mfRenderGestor(el);
   }
@@ -191,6 +193,21 @@ function _mfBtnsCamareira(a) {
   }
 }
 
+// ── MANUTENÇÃO: redirecionamento simples ──────────────────────
+function _mfRenderManutencao(el) {
+  const chamados = (typeof aptos !== 'undefined' ? aptos : []).filter(a => a.status === 'manutencao');
+  el.innerHTML = `
+    <div class="card" style="text-align:center;padding:32px 20px;">
+      <div style="font-size:40px;margin-bottom:12px;">🔧</div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:6px;">Olá, ${currentUser.nome?.split(' ')[0] || 'Manutenção'}!</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:18px;">
+        Sua fila de trabalho está nos <strong>Chamados</strong>.<br>
+        Apartamentos em manutenção: <strong>${chamados.length}</strong>
+      </div>
+      <button class="btn btn-primary" onclick="openPage('chamados')">🔧 Ver meus chamados</button>
+    </div>`;
+}
+
 // ── GESTOR / SUPERVISORA / ADMIN: fila de supervisão ─────────
 
 function _mfRenderGestor(el) {
@@ -331,6 +348,36 @@ function _mfRenderGestor(el) {
     });
   }
   html += `</div>`;
+
+  // ── Sujos sem camareira ──
+  const sujossSemCam = sujos.filter(a => !a.camareira_id);
+  if (sujossSemCam.length) {
+    html += `<div id="mf-sec-sem-camareira" style="margin-bottom:24px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;
+                  padding-bottom:8px;border-bottom:2px solid var(--danger);">
+        <span style="font-size:16px;">👤</span>
+        <span style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;">Sujos sem camareira</span>
+        <span style="background:var(--danger);color:#fff;font-size:10px;font-weight:700;
+                     padding:2px 8px;border-radius:10px;margin-left:auto;">${sujossSemCam.length}</span>
+      </div>`;
+    sujossSemCam.forEach(a => {
+      html += `
+      <div class="card" style="margin-bottom:10px;border-left:4px solid var(--danger);padding:14px 16px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+          <div>
+            <div style="font-size:22px;font-weight:800;line-height:1;">${a.numero}</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} · ${a.andar}º andar</div>
+            <div style="font-size:11px;color:var(--danger);font-weight:700;margin-top:3px;">Sem responsável</div>
+          </div>
+          <span class="badge badge-sujo" style="flex-shrink:0;">Sujo</span>
+        </div>
+        <div style="margin-top:10px;">
+          <button class="btn btn-ghost btn-sm" onclick="openAptoDetail('${a.id}')">👁 Ver detalhes</button>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
 
   // ── Para limpar (Sujos) ──
   if (sujos.length) {

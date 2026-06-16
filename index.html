@@ -719,6 +719,7 @@ tr:last-child td { border-bottom: none; }
           <button class="filter-btn" onclick="filterMapa('livre',this)">✅ Livre</button>
           <button class="filter-btn" onclick="filterMapa('ocupado',this)">🏠 Ocupado</button>
           <button class="filter-btn" onclick="filterMapa('manutencao',this)">🔧 Manutenção</button>
+          <button class="filter-btn" id="filter-sem-camareira" onclick="_filtrarSemCamareira(this)">👤 Sem camareira</button>
           <input class="search-input" placeholder="🔍 Buscar apto..." oninput="searchMapa(this.value)">
           <div id="mapa-filtros-avancados"></div>
         </div>
@@ -999,7 +1000,7 @@ tr:last-child td { border-bottom: none; }
           <!-- Checklist de Conferência -->
           <div class="card" style="grid-column:1/-1;">
             <div class="card-title" style="margin-bottom:6px;">📋 Checklist de Conferência</div>
-            <div style="font-size:11px;color:var(--text3);margin-bottom:12px;">Itens avaliados pela camareira ao enviar o apto para conferência. <strong>*</strong> = obrigatório. 🌐 = padrão · 🏨 = deste hotel</div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:12px;">Itens avaliados pela supervisora, governanta ou gestor antes de aprovar ou reprovar a limpeza do apartamento. <strong>*</strong> = obrigatório. 🌐 = padrão · 🏨 = deste hotel</div>
             <div id="config-conferencia-checklist"></div>
           </div>
 
@@ -1444,13 +1445,13 @@ tr:last-child td { border-bottom: none; }
       <div class="form-row">
         <div class="field"><label>Apartamento</label><select id="ts-apto"><option value="">Selecionar...</option></select></div>
         <div class="field"><label>Novo status</label>
-          <select id="ts-status">
+          <select id="ts-status" onchange="_onTsStatusChange(this.value)">
             <option value="sujo">🟠 Sujo</option>
-            <option value="limpando">🔵 Em limpeza</option>
-            <option value="pausado">🟡 Pausado</option>
-            <option value="conferencia">🟣 Aguard. conferência</option>
-            <option value="limpo">🟢 Limpo</option>
-            <option value="reprovado">🔴 Reprovado</option>
+            <option value="limpando">🔵 Em limpeza ⚠</option>
+            <option value="pausado">🟡 Pausado ⚠</option>
+            <option value="conferencia">🟣 Aguard. conferência ⚠</option>
+            <option value="limpo">🟢 Limpo ⚠</option>
+            <option value="reprovado">🔴 Reprovado ⚠</option>
             <option value="bloqueado">⛔ Bloqueado</option>
             <option value="livre">✅ Livre</option>
             <option value="ocupado">🏠 Ocupado</option>
@@ -1458,8 +1459,11 @@ tr:last-child td { border-bottom: none; }
           </select>
         </div>
       </div>
-      <div class="form-row single">
-        <div class="field"><label>Observação</label><textarea id="ts-obs" placeholder="Observação (opcional)..."></textarea></div>
+      <div id="ts-aviso-sensivel" style="display:none;background:#fef9c3;border:1px solid #fde047;border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;color:#713f12;margin-top:8px;">
+        ⚠️ Este status normalmente deve ser definido pelo fluxo de limpeza/conferência. A alteração manual exige motivo obrigatório.
+      </div>
+      <div class="form-row single" style="margin-top:8px;">
+        <div class="field"><label id="ts-obs-label">Observação</label><textarea id="ts-obs" placeholder="Observação (opcional)..."></textarea></div>
       </div>
     </div>
     <div class="modal-footer">
@@ -2414,12 +2418,16 @@ function renderMapa() {
           <span class="badge badge-${a.status}" style="font-size:10px;">${_STATUS_LABELS[a.status]||a.status}</span>
         </div>`;
       } else {
+        const _tempo = typeof _tempoStatus === 'function' ? _tempoStatus(a.status_at) : '';
+        const _semR  = !a.camareira_id;
         html += `<div class="apto-card ${a.status}" data-id="${a.id}" onclick="openAptoDetail('${a.id}')">
           ${a.prioridade ? '<div class="apto-priority"></div>' : ''}
           <div class="apto-status-icon">${_STATUS_ICONS[a.status]||'❓'}</div>
           <div class="apto-num">${a.numero}</div>
           <div class="apto-tipo">${a.tipo}</div>
           <span class="badge badge-${a.status}" style="font-size:10px;">${_STATUS_LABELS[a.status]||a.status}</span>
+          ${_semR ? '<div style="font-size:9px;color:var(--danger);font-weight:700;margin-top:3px;">Sem responsável</div>' : ''}
+          ${_tempo ? `<div style="font-size:9px;color:var(--text3);margin-top:2px;">${_tempo}</div>` : ''}
         </div>`;
       }
     });
@@ -2427,6 +2435,26 @@ function renderMapa() {
   });
   document.getElementById('mapa-container').innerHTML = html || '<p style="color:var(--text3);text-align:center;padding:32px;">Nenhum apartamento encontrado</p>';
   populateTsApto();
+}
+
+// ── FILTRO SEM CAMAREIRA ─────────────────────────────────────
+function _filtrarSemCamareira(btn) {
+  if (typeof _aptoFiltros === 'undefined') return;
+  _aptoFiltros.semCamareira = !_aptoFiltros.semCamareira;
+  document.querySelectorAll('#mapa-filters .filter-btn').forEach(b => b.classList.remove('active'));
+  if (_aptoFiltros.semCamareira) btn.classList.add('active');
+  if (typeof _reaplicarFiltros === 'function') _reaplicarFiltros();
+  else renderMapa();
+}
+
+// ── MODAL TROCAR STATUS: aviso status sensível ────────────────
+const _TS_STATUS_SENSIVEIS = new Set(['limpando','pausado','conferencia','limpo','reprovado']);
+function _onTsStatusChange(val) {
+  const aviso  = document.getElementById('ts-aviso-sensivel');
+  const label  = document.getElementById('ts-obs-label');
+  const sensivel = _TS_STATUS_SENSIVEIS.has(val);
+  if (aviso)  aviso.style.display  = sensivel ? '' : 'none';
+  if (label)  label.textContent    = sensivel ? 'Motivo obrigatório *' : 'Observação';
 }
 
 // ── SELEÇÃO EM LOTE ──────────────────────────────────────────
@@ -2519,6 +2547,9 @@ function _loteOnTipoChange() {
 }
 
 async function _executarLote() {
+  if (['camareira','manutencao'].includes(currentUser?.perfil)) {
+    toast('Sem permissão para executar ações em lote', 'error'); return;
+  }
   const tipo    = document.getElementById('lote-tipo').value;
   const status  = document.getElementById('lote-status').value;
   const camId   = document.getElementById('lote-camareira').value;
@@ -3171,8 +3202,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 <script src="js/permissions.js?v=20260616a"></script>
 <script src="js/chamados.js?v=20260616a"></script>
 <script src="js/config.js?v=20260616e"></script>
-<script src="js/dashboard.js?v=20260615c"></script>
+<script src="js/dashboard.js?v=20260616a"></script>
 <script src="js/relatorios.js?v=20260613p"></script>
-<script src="js/minha-fila.js?v=20260616c"></script>
+<script src="js/minha-fila.js?v=20260616d"></script>
 </body>
 </html>

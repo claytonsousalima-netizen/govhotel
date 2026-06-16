@@ -79,7 +79,7 @@ async function _carregarDashboard(hotelId) {
     aptosRes, chamadosRes, equipeRes,
     govAbertosRes, govAtrasadosRes, retrabalhoRes,
   ] = await Promise.all([
-    supabaseClient.from('apartments').select('id, status').eq('hotel_id', hotelId).eq('ativo', true),
+    supabaseClient.from('apartments').select('id, status, maid_id').eq('hotel_id', hotelId).eq('ativo', true),
     supabaseClient.from('work_orders').select('id, status, tipo, prioridade, departamento, created_at, apartments(numero)')
       .eq('hotel_id', hotelId).order('created_at', { ascending: false }).limit(50),
     supabaseClient.from('user_profiles').select('id').eq('hotel_id', hotelId)
@@ -106,6 +106,7 @@ async function _carregarDashboard(hotelId) {
   const total      = aptosArr.length;
   const livre      = aptosArr.filter(a => a.status === 'livre').length;
   const sujo       = aptosArr.filter(a => a.status === 'sujo').length;
+  const sujoSemCam = aptosArr.filter(a => a.status === 'sujo' && !a.maid_id).length;
   const limpando   = aptosArr.filter(a => a.status === 'limpando').length;
   const pausado    = aptosArr.filter(a => a.status === 'pausado').length;
   const conferencia= aptosArr.filter(a => a.status === 'conferencia').length;
@@ -219,6 +220,7 @@ async function _carregarDashboard(hotelId) {
         <div class="card-title" style="margin-bottom:14px;">Governança — Indicadores do Dia</div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;">
           ${_govCard('Sujos',          sujo,       '#e67e22', 'aguardando limpeza')}
+          ${sujoSemCam > 0 ? _govCard('Sujos sem cam.', sujoSemCam, '#c0392b', 'sem responsável') : ''}
           ${_govCard('Em limpeza',     limpando,   '#2e86c1', 'em andamento')}
           ${_govCard('Pausados',       pausado,    '#f39c12', 'limpeza interrompida')}
           ${_govCard('Ag. conferência',conferencia,'#8e44ad', 'aguardando vistoria')}
