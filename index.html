@@ -1409,7 +1409,7 @@ tr:last-child td { border-bottom: none; }
       </div>
       <div id="lote-campo-camareira" style="display:none;" class="form-row single">
         <div class="field">
-          <label>Camareira</label>
+          <label>Camareira *</label>
           <select id="lote-camareira">
             <option value="">Carregando...</option>
           </select>
@@ -2542,6 +2542,7 @@ async function _executarLote() {
   if (!tipo) { toast('Selecione o tipo de ação', 'error'); return; }
   if (['somente_status','status_e_camareira'].includes(tipo) && !status) { toast('Selecione o novo status', 'error'); return; }
   if (['somente_status','status_e_camareira'].includes(tipo) && !obs)    { toast('Informe o motivo/observação', 'error'); return; }
+  if (['somente_camareira','status_e_camareira'].includes(tipo) && !camId) { toast('Selecione uma camareira', 'error'); return; }
 
   const ids = [..._loteSelected];
   const n   = ids.length;
