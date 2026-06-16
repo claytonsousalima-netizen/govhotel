@@ -851,21 +851,34 @@ async function iniciarLimpeza() {
   await mudarStatusApto(selectedAptoId, 'limpando', obs);
 }
 
-function abrirModalPausa(id) {
+async function abrirModalPausa(id) {
   selectedAptoId = id;
-  const el = document.getElementById('pausa-motivo');
-  if (el) el.value = '';
+  const sel = document.getElementById('pausa-motivo');
+  const obsEl = document.getElementById('pausa-obs');
+  if (obsEl) obsEl.value = '';
   closeModal('modal-apto-detail');
+
+  if (sel) {
+    sel.innerHTML = '<option value="">Carregando...</option>';
+    const hotelId = currentUser.hotelId;
+    let q = supabaseClient.from('motivos_pausa').select('id, nome').eq('ativo', true).order('ordem');
+    if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
+    const { data } = await q;
+    sel.innerHTML = '<option value="">Selecione o motivo *</option>' +
+      (data || []).map(m => `<option value="${m.nome}">${m.nome}</option>`).join('');
+  }
+
   openModal('modal-pausar-limpeza');
-  if (el) el.focus();
+  if (sel) sel.focus();
 }
 
 async function pausarLimpeza() {
-  const motivo = (document.getElementById('pausa-motivo')?.value || '').trim();
-  if (!motivo) { toast('Informe o motivo da pausa', 'error'); return; }
+  const motivo = document.getElementById('pausa-motivo')?.value || '';
+  const obs    = (document.getElementById('pausa-obs')?.value || '').trim();
+  if (!motivo) { toast('Selecione o motivo da pausa', 'error'); return; }
   closeModal('modal-pausar-limpeza');
-  const obs = `Pausado por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}: ${motivo}`;
-  await mudarStatusApto(selectedAptoId, 'pausado', obs);
+  const texto = `Pausado por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}: ${motivo}${obs ? ' — ' + obs : ''}`;
+  await mudarStatusApto(selectedAptoId, 'pausado', texto);
 }
 
 // Redireciona para o checklist antes de concluir
@@ -875,46 +888,47 @@ function concluirLimpeza() {
 
 // ── CONFERÊNCIA DA SUPERVISORA ────────────────────────────────
 
-const _SUP_CHECKLIST_ITENS = [
-  'Banheiro aprovado',
-  'Enxoval correto',
-  'Amenities corretos',
-  'Piso aprovado',
-  'Odor adequado',
-  'Frigobar conferido',
-  'Padrão visual aprovado',
-  'Nenhuma pendência aparente',
-];
+let _supChecklistAtivo = [];
 
 function aprovarLimpeza() {
   abrirChecklistSupervisora();
 }
 
-function abrirChecklistSupervisora() {
+async function abrirChecklistSupervisora() {
   const apto = aptos.find(a => a.id === selectedAptoId);
   const titulo = document.getElementById('sup-cl-titulo');
   if (titulo && apto) titulo.textContent = `🔍 Conferência — Apto ${apto.numero}`;
 
-  const obs = document.getElementById('sup-cl-obs');
-  if (obs) obs.value = '';
+  const obsEl = document.getElementById('sup-cl-obs');
+  if (obsEl) obsEl.value = '';
+
+  const hotelId = apto?.hotel_id || currentUser.hotelId;
+  let q = supabaseClient.from('supervisora_checklist_items').select('*').eq('ativo', true).order('ordem');
+  if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
+  const { data } = await q;
+  _supChecklistAtivo = data || [];
 
   const container = document.getElementById('sup-cl-items');
   if (container) {
-    container.innerHTML = _SUP_CHECKLIST_ITENS.map((item, i) => `
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
-        <span style="font-size:14px;font-weight:500;">${item}</span>
-        <div style="display:flex;gap:6px;">
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;">
-            <input type="radio" name="sup-cl-${i}" value="ok" style="accent-color:var(--success);"> Conforme
-          </label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;">
-            <input type="radio" name="sup-cl-${i}" value="nao"> Não conforme
-          </label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;">
-            <input type="radio" name="sup-cl-${i}" value="na"> N/A
-          </label>
-        </div>
-      </div>`).join('');
+    if (!_supChecklistAtivo.length) {
+      container.innerHTML = '<p style="font-size:13px;color:var(--text3);">Nenhum item configurado. Adicione itens em Configurações → Checklist da Supervisora.</p>';
+    } else {
+      container.innerHTML = _supChecklistAtivo.map((item, i) => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+          <span style="font-size:14px;font-weight:500;">${item.nome}${item.obrigatorio ? '<span style="color:var(--danger);margin-left:3px;">*</span>' : ''}</span>
+          <div style="display:flex;gap:6px;">
+            <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;">
+              <input type="radio" name="sup-cl-${i}" value="ok" style="accent-color:var(--success);"> Conforme
+            </label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;">
+              <input type="radio" name="sup-cl-${i}" value="nao"> Não conforme
+            </label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;">
+              <input type="radio" name="sup-cl-${i}" value="na"> N/A
+            </label>
+          </div>
+        </div>`).join('');
+    }
   }
 
   closeModal('modal-apto-detail');
@@ -924,12 +938,12 @@ function abrirChecklistSupervisora() {
 async function confirmarChecklistSupervisora(decisao) {
   const respostas = {};
   let incompleto = false;
-  _SUP_CHECKLIST_ITENS.forEach((item, i) => {
+  _supChecklistAtivo.forEach((item, i) => {
     const sel = document.querySelector(`input[name="sup-cl-${i}"]:checked`);
-    if (!sel) { incompleto = true; return; }
-    respostas[item] = sel.value;
+    if (!sel && item.obrigatorio) { incompleto = true; return; }
+    if (sel) respostas[item.nome] = sel.value;
   });
-  if (incompleto) { toast('Avalie todos os itens antes de continuar', 'error'); return; }
+  if (incompleto) { toast('Avalie todos os itens obrigatórios antes de continuar', 'error'); return; }
 
   const obs = (document.getElementById('sup-cl-obs')?.value || '').trim();
 

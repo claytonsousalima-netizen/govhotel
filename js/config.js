@@ -16,6 +16,10 @@ async function renderConfigPage() {
     renderConfigMotivos(),
     renderConfigChecklist(),
     renderConfigConferenciaChecklist(),
+    renderConfigMotivosPausa(),
+    renderConfigMotivosCancel(),
+    renderConfigSupervisoraChecklist(),
+    renderConfigCargos(),
   ]);
 }
 
@@ -788,6 +792,328 @@ async function _excluirConfCl(id) {
   if (error) { toast('Erro: ' + error.message, 'error'); return; }
   toast('Item excluído!', 'success');
   await renderConfigConferenciaChecklist();
+}
+
+// ── MOTIVOS DE PAUSA ─────────────────────────────────────────
+let _motivosPausaCache = [];
+
+async function renderConfigMotivosPausa() {
+  const el = document.getElementById('config-motivos-pausa');
+  if (!el) return;
+  const hotelId = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
+  let q = supabaseClient.from('motivos_pausa').select('*').order('ordem');
+  if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
+  const { data, error } = await q;
+  if (error) { el.innerHTML = `<div style="color:var(--danger);font-size:12px;">Erro: ${error.message}</div>`; return; }
+  _motivosPausaCache = data || [];
+  el.innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+      <input type="text" id="new-mpaus-nome" placeholder="Novo motivo de pausa..."
+        style="flex:1;min-width:180px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;"
+        onkeydown="if(event.key==='Enter') _addMotivosPausa()">
+      <button class="btn btn-primary btn-sm" onclick="_addMotivosPausa()">+ Adicionar</button>
+    </div>
+    <div id="mpaus-lista">${_motivosPausaCache.map(m => _rowMotivosPausa(m)).join('')}</div>`;
+}
+
+function _rowMotivosPausa(m) {
+  return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);gap:8px;" id="mpaus-row-${m.id}">
+    <div style="display:flex;align-items:center;gap:8px;flex:1;">
+      <span style="font-size:12px;color:var(--text3);">${m.hotel_id?'🏨':'🌐'}</span>
+      <span style="font-size:13px;${!m.ativo?'text-decoration:line-through;color:var(--text3);':''}" id="mpaus-text-${m.id}">${m.nome}</span>
+      ${!m.ativo?'<span class="badge badge-bloqueado" style="font-size:10px;">Inativo</span>':''}
+    </div>
+    <div id="mpaus-edit-${m.id}" style="display:none;flex:1;">
+      <input type="text" id="mpaus-input-${m.id}" value="${m.nome}"
+        style="width:100%;padding:5px 8px;border:1.5px solid var(--primary-light);border-radius:var(--radius-sm);font-size:13px;"
+        onkeydown="if(event.key==='Enter') _saveMotivosPausa('${m.id}')">
+    </div>
+    <div style="display:flex;gap:4px;flex-shrink:0;">
+      <button class="btn btn-ghost btn-xs" id="mpaus-btn-edit-${m.id}" onclick="_editMotivosPausa('${m.id}')" title="Editar">✏️</button>
+      <button class="btn btn-ghost btn-xs" id="mpaus-btn-save-${m.id}" style="display:none;" onclick="_saveMotivosPausa('${m.id}')" title="Salvar">💾</button>
+      <button class="btn btn-ghost btn-xs" id="mpaus-btn-cancel-${m.id}" style="display:none;" onclick="renderConfigMotivosPausa()" title="Cancelar">✕</button>
+      <button class="btn btn-ghost btn-xs" onclick="_toggleMotivosPausa('${m.id}',${m.ativo})" title="${m.ativo?'Inativar':'Ativar'}">${m.ativo?'⏸':'▶'}</button>
+      ${m.hotel_id?`<button class="btn btn-ghost btn-xs" style="color:var(--danger);" onclick="_delMotivosPausa('${m.id}')" title="Excluir">🗑</button>`:''}
+    </div>
+  </div>`;
+}
+function _editMotivosPausa(id) {
+  document.getElementById(`mpaus-text-${id}`).parentElement.style.display = 'none';
+  document.getElementById(`mpaus-edit-${id}`).style.display = 'block';
+  document.getElementById(`mpaus-btn-edit-${id}`).style.display = 'none';
+  document.getElementById(`mpaus-btn-save-${id}`).style.display = '';
+  document.getElementById(`mpaus-btn-cancel-${id}`).style.display = '';
+  document.getElementById(`mpaus-input-${id}`)?.focus();
+}
+async function _saveMotivosPausa(id) {
+  const nome = document.getElementById(`mpaus-input-${id}`)?.value.trim();
+  if (!nome) { toast('Informe o motivo', 'error'); return; }
+  const { error } = await supabaseClient.from('motivos_pausa').update({ nome }).eq('id', id);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  toast('Salvo!', 'success'); await renderConfigMotivosPausa();
+}
+async function _addMotivosPausa() {
+  const input = document.getElementById('new-mpaus-nome');
+  const nome  = input?.value.trim();
+  if (!nome) { toast('Informe o motivo', 'error'); return; }
+  const hotel_id = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
+  const { error } = await supabaseClient.from('motivos_pausa').insert([{ nome, hotel_id, ativo: true, ordem: (_motivosPausaCache.length || 0) + 1 }]);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  if (input) input.value = '';
+  toast('Adicionado!', 'success'); await renderConfigMotivosPausa();
+}
+async function _toggleMotivosPausa(id, ativo) {
+  await supabaseClient.from('motivos_pausa').update({ ativo: !ativo }).eq('id', id);
+  await renderConfigMotivosPausa();
+}
+async function _delMotivosPausa(id) {
+  if (!confirm('Excluir este motivo de pausa?')) return;
+  await supabaseClient.from('motivos_pausa').delete().eq('id', id);
+  toast('Excluído!', 'success'); await renderConfigMotivosPausa();
+}
+
+// ── MOTIVOS DE CANCELAMENTO ──────────────────────────────────
+let _motivosCancelCache = [];
+
+async function renderConfigMotivosCancel() {
+  const el = document.getElementById('config-motivos-cancelamento');
+  if (!el) return;
+  const hotelId = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
+  let q = supabaseClient.from('motivos_cancelamento').select('*').order('ordem');
+  if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
+  const { data, error } = await q;
+  if (error) { el.innerHTML = `<div style="color:var(--danger);font-size:12px;">Erro: ${error.message}</div>`; return; }
+  _motivosCancelCache = data || [];
+  el.innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+      <input type="text" id="new-mcanc-nome" placeholder="Novo motivo de cancelamento..."
+        style="flex:1;min-width:180px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;"
+        onkeydown="if(event.key==='Enter') _addMotivosCancel()">
+      <button class="btn btn-primary btn-sm" onclick="_addMotivosCancel()">+ Adicionar</button>
+    </div>
+    <div id="mcanc-lista">${_motivosCancelCache.map(m => _rowMotivosCancel(m)).join('')}</div>`;
+}
+
+function _rowMotivosCancel(m) {
+  return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);gap:8px;" id="mcanc-row-${m.id}">
+    <div style="display:flex;align-items:center;gap:8px;flex:1;">
+      <span style="font-size:12px;color:var(--text3);">${m.hotel_id?'🏨':'🌐'}</span>
+      <span style="font-size:13px;${!m.ativo?'text-decoration:line-through;color:var(--text3);':''}" id="mcanc-text-${m.id}">${m.nome}</span>
+      ${!m.ativo?'<span class="badge badge-bloqueado" style="font-size:10px;">Inativo</span>':''}
+    </div>
+    <div id="mcanc-edit-${m.id}" style="display:none;flex:1;">
+      <input type="text" id="mcanc-input-${m.id}" value="${m.nome}"
+        style="width:100%;padding:5px 8px;border:1.5px solid var(--primary-light);border-radius:var(--radius-sm);font-size:13px;"
+        onkeydown="if(event.key==='Enter') _saveMotivosCancel('${m.id}')">
+    </div>
+    <div style="display:flex;gap:4px;flex-shrink:0;">
+      <button class="btn btn-ghost btn-xs" id="mcanc-btn-edit-${m.id}" onclick="_editMotivosCancel('${m.id}')" title="Editar">✏️</button>
+      <button class="btn btn-ghost btn-xs" id="mcanc-btn-save-${m.id}" style="display:none;" onclick="_saveMotivosCancel('${m.id}')" title="Salvar">💾</button>
+      <button class="btn btn-ghost btn-xs" id="mcanc-btn-cancel-${m.id}" style="display:none;" onclick="renderConfigMotivosCancel()" title="Cancelar">✕</button>
+      <button class="btn btn-ghost btn-xs" onclick="_toggleMotivosCancel('${m.id}',${m.ativo})" title="${m.ativo?'Inativar':'Ativar'}">${m.ativo?'⏸':'▶'}</button>
+      ${m.hotel_id?`<button class="btn btn-ghost btn-xs" style="color:var(--danger);" onclick="_delMotivosCancel('${m.id}')" title="Excluir">🗑</button>`:''}
+    </div>
+  </div>`;
+}
+function _editMotivosCancel(id) {
+  document.getElementById(`mcanc-text-${id}`).parentElement.style.display = 'none';
+  document.getElementById(`mcanc-edit-${id}`).style.display = 'block';
+  document.getElementById(`mcanc-btn-edit-${id}`).style.display = 'none';
+  document.getElementById(`mcanc-btn-save-${id}`).style.display = '';
+  document.getElementById(`mcanc-btn-cancel-${id}`).style.display = '';
+  document.getElementById(`mcanc-input-${id}`)?.focus();
+}
+async function _saveMotivosCancel(id) {
+  const nome = document.getElementById(`mcanc-input-${id}`)?.value.trim();
+  if (!nome) { toast('Informe o motivo', 'error'); return; }
+  const { error } = await supabaseClient.from('motivos_cancelamento').update({ nome }).eq('id', id);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  toast('Salvo!', 'success'); await renderConfigMotivosCancel();
+}
+async function _addMotivosCancel() {
+  const input = document.getElementById('new-mcanc-nome');
+  const nome  = input?.value.trim();
+  if (!nome) { toast('Informe o motivo', 'error'); return; }
+  const hotel_id = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
+  const { error } = await supabaseClient.from('motivos_cancelamento').insert([{ nome, hotel_id, ativo: true, ordem: (_motivosCancelCache.length || 0) + 1 }]);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  if (input) input.value = '';
+  toast('Adicionado!', 'success'); await renderConfigMotivosCancel();
+}
+async function _toggleMotivosCancel(id, ativo) {
+  await supabaseClient.from('motivos_cancelamento').update({ ativo: !ativo }).eq('id', id);
+  await renderConfigMotivosCancel();
+}
+async function _delMotivosCancel(id) {
+  if (!confirm('Excluir este motivo de cancelamento?')) return;
+  await supabaseClient.from('motivos_cancelamento').delete().eq('id', id);
+  toast('Excluído!', 'success'); await renderConfigMotivosCancel();
+}
+
+// ── CHECKLIST DA SUPERVISORA ─────────────────────────────────
+let _supClCache = [];
+
+async function renderConfigSupervisoraChecklist() {
+  const el = document.getElementById('config-supervisora-checklist');
+  if (!el) return;
+  const hotelId = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
+  let q = supabaseClient.from('supervisora_checklist_items').select('*').order('ordem');
+  if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
+  const { data, error } = await q;
+  if (error) { el.innerHTML = `<div style="color:var(--danger);font-size:12px;">Erro: ${error.message}</div>`; return; }
+  _supClCache = data || [];
+  el.innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:flex-end;">
+      <input type="text" id="new-supcl-nome" placeholder="Novo item de conferência..."
+        style="flex:1;min-width:180px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;"
+        onkeydown="if(event.key==='Enter') _addSupCl()">
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap;">
+        <input type="checkbox" id="new-supcl-obrig" checked> Obrigatório
+      </label>
+      <button class="btn btn-primary btn-sm" onclick="_addSupCl()">+ Adicionar</button>
+    </div>
+    <div id="supcl-lista">${_supClCache.map(m => _rowSupCl(m)).join('')}</div>`;
+}
+
+function _rowSupCl(m) {
+  return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);gap:8px;" id="supcl-row-${m.id}">
+    <div style="display:flex;align-items:center;gap:6px;flex:1;">
+      <span style="font-size:12px;color:var(--text3);">${m.hotel_id?'🏨':'🌐'}</span>
+      <span style="font-size:13px;${!m.ativo?'text-decoration:line-through;color:var(--text3);':''}" id="supcl-text-${m.id}">${m.nome}</span>
+      ${m.obrigatorio?'<span style="color:var(--danger);font-size:11px;font-weight:700;">*</span>':''}
+      ${!m.ativo?'<span class="badge badge-bloqueado" style="font-size:10px;">Inativo</span>':''}
+    </div>
+    <div id="supcl-edit-${m.id}" style="display:none;flex:1;gap:8px;align-items:center;">
+      <input type="text" id="supcl-input-${m.id}" value="${m.nome}"
+        style="flex:1;padding:5px 8px;border:1.5px solid var(--primary-light);border-radius:var(--radius-sm);font-size:13px;"
+        onkeydown="if(event.key==='Enter') _saveSupCl('${m.id}')">
+      <label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;">
+        <input type="checkbox" id="supcl-obrig-${m.id}" ${m.obrigatorio?'checked':''}> Obrig.
+      </label>
+    </div>
+    <div style="display:flex;gap:4px;flex-shrink:0;">
+      <button class="btn btn-ghost btn-xs" id="supcl-btn-edit-${m.id}" onclick="_editSupCl('${m.id}')" title="Editar">✏️</button>
+      <button class="btn btn-ghost btn-xs" id="supcl-btn-save-${m.id}" style="display:none;" onclick="_saveSupCl('${m.id}')" title="Salvar">💾</button>
+      <button class="btn btn-ghost btn-xs" id="supcl-btn-cancel-${m.id}" style="display:none;" onclick="renderConfigSupervisoraChecklist()" title="Cancelar">✕</button>
+      <button class="btn btn-ghost btn-xs" onclick="_toggleSupCl('${m.id}',${m.ativo})" title="${m.ativo?'Inativar':'Ativar'}">${m.ativo?'⏸':'▶'}</button>
+      ${m.hotel_id?`<button class="btn btn-ghost btn-xs" style="color:var(--danger);" onclick="_delSupCl('${m.id}')" title="Excluir">🗑</button>`:''}
+    </div>
+  </div>`;
+}
+function _editSupCl(id) {
+  document.getElementById(`supcl-text-${id}`).closest('div').style.display = 'none';
+  const editDiv = document.getElementById(`supcl-edit-${id}`);
+  editDiv.style.display = 'flex';
+  document.getElementById(`supcl-btn-edit-${id}`).style.display = 'none';
+  document.getElementById(`supcl-btn-save-${id}`).style.display = '';
+  document.getElementById(`supcl-btn-cancel-${id}`).style.display = '';
+  document.getElementById(`supcl-input-${id}`)?.focus();
+}
+async function _saveSupCl(id) {
+  const nome = document.getElementById(`supcl-input-${id}`)?.value.trim();
+  const obrigatorio = document.getElementById(`supcl-obrig-${id}`)?.checked ?? true;
+  if (!nome) { toast('Informe o nome', 'error'); return; }
+  const { error } = await supabaseClient.from('supervisora_checklist_items').update({ nome, obrigatorio }).eq('id', id);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  toast('Salvo!', 'success'); await renderConfigSupervisoraChecklist();
+}
+async function _addSupCl() {
+  const nome = document.getElementById('new-supcl-nome')?.value.trim();
+  const obrigatorio = document.getElementById('new-supcl-obrig')?.checked ?? true;
+  if (!nome) { toast('Informe o nome do item', 'error'); return; }
+  const hotel_id = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
+  const { error } = await supabaseClient.from('supervisora_checklist_items').insert([{ nome, obrigatorio, hotel_id, ativo: true, ordem: (_supClCache.length || 0) + 1 }]);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  const input = document.getElementById('new-supcl-nome');
+  if (input) input.value = '';
+  toast('Adicionado!', 'success'); await renderConfigSupervisoraChecklist();
+}
+async function _toggleSupCl(id, ativo) {
+  await supabaseClient.from('supervisora_checklist_items').update({ ativo: !ativo }).eq('id', id);
+  await renderConfigSupervisoraChecklist();
+}
+async function _delSupCl(id) {
+  if (!confirm('Excluir este item do checklist da supervisora?')) return;
+  await supabaseClient.from('supervisora_checklist_items').delete().eq('id', id);
+  toast('Excluído!', 'success'); await renderConfigSupervisoraChecklist();
+}
+
+// ── CARGOS DA EQUIPE ─────────────────────────────────────────
+let _cargosCache = [];
+
+async function renderConfigCargos() {
+  const el = document.getElementById('config-cargos-equipe');
+  if (!el) return;
+  const hotelId = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
+  let q = supabaseClient.from('cargos_equipe').select('*').order('ordem');
+  if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
+  const { data, error } = await q;
+  if (error) { el.innerHTML = `<div style="color:var(--danger);font-size:12px;">Erro: ${error.message}</div>`; return; }
+  _cargosCache = data || [];
+  el.innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+      <input type="text" id="new-cargo-nome" placeholder="Novo cargo..."
+        style="flex:1;min-width:180px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;"
+        onkeydown="if(event.key==='Enter') _addCargo()">
+      <button class="btn btn-primary btn-sm" onclick="_addCargo()">+ Adicionar</button>
+    </div>
+    <div id="cargos-lista">${_cargosCache.map(m => _rowCargo(m)).join('')}</div>`;
+}
+
+function _rowCargo(m) {
+  return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);gap:8px;" id="cargo-row-${m.id}">
+    <div style="display:flex;align-items:center;gap:8px;flex:1;">
+      <span style="font-size:12px;color:var(--text3);">${m.hotel_id?'🏨':'🌐'}</span>
+      <span style="font-size:13px;${!m.ativo?'text-decoration:line-through;color:var(--text3);':''}" id="cargo-text-${m.id}">${m.nome}</span>
+      ${!m.ativo?'<span class="badge badge-bloqueado" style="font-size:10px;">Inativo</span>':''}
+    </div>
+    <div id="cargo-edit-${m.id}" style="display:none;flex:1;">
+      <input type="text" id="cargo-input-${m.id}" value="${m.nome}"
+        style="width:100%;padding:5px 8px;border:1.5px solid var(--primary-light);border-radius:var(--radius-sm);font-size:13px;"
+        onkeydown="if(event.key==='Enter') _saveCargo('${m.id}')">
+    </div>
+    <div style="display:flex;gap:4px;flex-shrink:0;">
+      <button class="btn btn-ghost btn-xs" id="cargo-btn-edit-${m.id}" onclick="_editCargo('${m.id}')" title="Editar">✏️</button>
+      <button class="btn btn-ghost btn-xs" id="cargo-btn-save-${m.id}" style="display:none;" onclick="_saveCargo('${m.id}')" title="Salvar">💾</button>
+      <button class="btn btn-ghost btn-xs" id="cargo-btn-cancel-${m.id}" style="display:none;" onclick="renderConfigCargos()" title="Cancelar">✕</button>
+      <button class="btn btn-ghost btn-xs" onclick="_toggleCargo('${m.id}',${m.ativo})" title="${m.ativo?'Inativar':'Ativar'}">${m.ativo?'⏸':'▶'}</button>
+      ${m.hotel_id?`<button class="btn btn-ghost btn-xs" style="color:var(--danger);" onclick="_delCargo('${m.id}')" title="Excluir">🗑</button>`:''}
+    </div>
+  </div>`;
+}
+function _editCargo(id) {
+  document.getElementById(`cargo-text-${id}`).parentElement.style.display = 'none';
+  document.getElementById(`cargo-edit-${id}`).style.display = 'block';
+  document.getElementById(`cargo-btn-edit-${id}`).style.display = 'none';
+  document.getElementById(`cargo-btn-save-${id}`).style.display = '';
+  document.getElementById(`cargo-btn-cancel-${id}`).style.display = '';
+  document.getElementById(`cargo-input-${id}`)?.focus();
+}
+async function _saveCargo(id) {
+  const nome = document.getElementById(`cargo-input-${id}`)?.value.trim();
+  if (!nome) { toast('Informe o cargo', 'error'); return; }
+  const { error } = await supabaseClient.from('cargos_equipe').update({ nome }).eq('id', id);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  toast('Salvo!', 'success'); await renderConfigCargos();
+}
+async function _addCargo() {
+  const input = document.getElementById('new-cargo-nome');
+  const nome  = input?.value.trim();
+  if (!nome) { toast('Informe o cargo', 'error'); return; }
+  const hotel_id = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
+  const { error } = await supabaseClient.from('cargos_equipe').insert([{ nome, hotel_id, ativo: true, ordem: (_cargosCache.length || 0) + 1 }]);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  if (input) input.value = '';
+  toast('Adicionado!', 'success'); await renderConfigCargos();
+}
+async function _toggleCargo(id, ativo) {
+  await supabaseClient.from('cargos_equipe').update({ ativo: !ativo }).eq('id', id);
+  await renderConfigCargos();
+}
+async function _delCargo(id) {
+  if (!confirm('Excluir este cargo?')) return;
+  await supabaseClient.from('cargos_equipe').delete().eq('id', id);
+  toast('Excluído!', 'success'); await renderConfigCargos();
 }
 
 // Rendering chamado diretamente por renderConfig() em index.html

@@ -510,11 +510,7 @@ function mfAcao(id, acao) {
     if (typeof abrirChecklistApp === 'function') abrirChecklistApp(id);
   }
   if (acao === 'pausar')   abrirModalPausa(id);
-  if (acao === 'cancelar') {
-    document.getElementById('cancelar-motivo').value = '';
-    document.getElementById('cancelar-obs').value = '';
-    openModal('modal-cancelar-limpeza');
-  }
+  if (acao === 'cancelar') { _carregarMotivosCancelModal(); }
   if (acao === 'concluir') concluirLimpeza();
   if (acao === 'aprovar')  aprovarLimpeza();
   if (acao === 'reprovar') abrirModalReprovacao();

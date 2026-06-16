@@ -249,10 +249,11 @@ async function openMaidForm(id = null) {
   ['nm-nome','nm-telefone','nm-email'].forEach(fId => {
     const el = document.getElementById(fId); if (el) el.value = '';
   });
-  document.getElementById('nm-cargo').value  = 'Camareira';
   document.getElementById('nm-andar').value  = '';
-  document.getElementById('nm-turno').value  = 'Manhã (07:00–15:00)';
   document.getElementById('nm-status').value = 'ativo';
+
+  // Carregar cargos e turnos do banco
+  await Promise.all([_popularNmCargo(), _popularNmTurno()]);
 
   // Seletor de hotel — visível apenas para admin_global
   const hotelWrap = document.getElementById('nm-hotel-wrap');
@@ -269,17 +270,46 @@ async function openMaidForm(id = null) {
     const m = equipe.find(x => x.id === id);
     if (m) {
       document.getElementById('nm-nome').value     = m.nome;
-      document.getElementById('nm-cargo').value    = m.cargo;
       document.getElementById('nm-andar').value    = m.andar === 'Todos' ? '' : m.andar;
-      document.getElementById('nm-turno').value    = m.turno;
       document.getElementById('nm-status').value   = m.status;
       document.getElementById('nm-telefone').value = m.telefone || '';
       document.getElementById('nm-email').value    = m.email    || '';
+      // Setar cargo e turno após carregar as opções do banco
+      const cargoSel = document.getElementById('nm-cargo');
+      const turnoSel = document.getElementById('nm-turno');
+      if (cargoSel && m.cargo) cargoSel.value = m.cargo;
+      if (turnoSel && m.turno) turnoSel.value = m.turno;
     }
   }
 
   openModal('modal-novo-membro');
   document.getElementById('nm-nome').focus();
+}
+
+async function _popularNmCargo() {
+  const sel = document.getElementById('nm-cargo');
+  if (!sel) return;
+  const hotelId = currentUser.hotelId;
+  let q = supabaseClient.from('cargos_equipe').select('nome').eq('ativo', true).order('ordem');
+  if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
+  const { data } = await q;
+  const cargos = data || [];
+  sel.innerHTML = cargos.length
+    ? cargos.map(c => `<option value="${c.nome}">${c.nome}</option>`).join('')
+    : '<option value="Camareira">Camareira</option>';
+}
+
+async function _popularNmTurno() {
+  const sel = document.getElementById('nm-turno');
+  if (!sel) return;
+  const hotelId = currentUser.hotelId;
+  let q = supabaseClient.from('turnos').select('nome').eq('ativo', true).order('ordem');
+  if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
+  const { data } = await q;
+  const turnos = data || [];
+  sel.innerHTML = turnos.length
+    ? turnos.map(t => `<option value="${t.nome}">${t.nome}</option>`).join('')
+    : '<option value="">Nenhum turno configurado</option>';
 }
 
 async function _popularCaHotelSelectMaid() {
