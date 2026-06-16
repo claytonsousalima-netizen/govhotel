@@ -1143,90 +1143,123 @@ function setAppCamFiltro(status) {
 async function renderAppCamareira() {
   document.getElementById('app-camareira-nome').textContent = currentUser.nome;
 
-  // Carrega aptos se ainda não carregados
   if (!aptos.length || aptos[0]?.hotel_id !== currentUser.hotelId) {
     _aptoViewHotelId = currentUser.hotelId;
     await syncApartamentos();
   }
 
-  const meus = aptos;
-
-  const aLimpar    = meus.filter(a => a.status === 'sujo').length;
-  const limpando   = meus.filter(a => a.status === 'limpando').length;
-  const concluidos = meus.filter(a => ['livre','conferencia'].includes(a.status)).length;
+  const todos = aptos;
+  const aLimpar    = todos.filter(a => a.status === 'sujo').length;
+  const limpando   = todos.filter(a => a.status === 'limpando').length;
+  const concluidos = todos.filter(a => ['limpo','livre','conferencia'].includes(a.status)).length;
 
   document.getElementById('app-a-limpar').textContent    = aLimpar;
   document.getElementById('app-limpando').textContent    = limpando;
   document.getElementById('app-concluidos').textContent  = concluidos;
-  document.getElementById('app-aptos-count').textContent = `${meus.length} aptos no hotel`;
+  document.getElementById('app-aptos-count').textContent = `${todos.length} aptos no hotel`;
 
-  // Filtros de status
-  const statusPresentes = [...new Set(meus.map(a => a.status))].sort();
-  const labelStatus = {
-    livre:'Livre', sujo:'Sujo', limpando:'Limpando', pausado:'Pausado',
-    conferencia:'Conferência', limpo:'Limpo', reprovado:'Reprovado',
+  const LABEL = {
+    livre:'Livre', sujo:'Sujo', limpando:'Em limpeza', pausado:'Pausado',
+    conferencia:'Aguard. conf.', limpo:'Limpo', reprovado:'Reprovado',
     bloqueado:'Bloqueado', ocupado:'Ocupado', manutencao:'Manutenção'
   };
-  const totalMeusAtrib = meus.filter(a => a.camareira_id === currentUser.id).length;
+
+  const totalMeusAtrib = todos.filter(a => a.camareira_id === currentUser.id).length;
+  const statusPresentes = [...new Set(todos.map(a => a.status))];
+  const ordemStatus = ['reprovado','pausado','limpando','sujo','conferencia','limpo','livre','ocupado','bloqueado','manutencao'];
+  statusPresentes.sort((a,b) => ordemStatus.indexOf(a) - ordemStatus.indexOf(b));
+
   const filtroEl = document.getElementById('app-filtro-status');
   if (filtroEl) {
-    const btnMeus = totalMeusAtrib > 0
-      ? `<button class="btn btn-sm ${_appCamFiltroMeus ? 'btn-primary' : 'btn-ghost'}"
-           onclick="setAppCamFiltro('meus')"
-           style="${_appCamFiltroMeus ? '' : 'border-color:#1d4ed8;color:#1d4ed8;'}">
-           👤 Meus atribuídos (${totalMeusAtrib})
-         </button>`
-      : '';
     filtroEl.innerHTML =
-      `<button class="btn btn-sm ${(!_appCamFiltro && !_appCamFiltroMeus) ? 'btn-primary' : 'btn-ghost'}" onclick="setAppCamFiltro('')">Todos</button>` +
-      btnMeus +
+      `<button class="btn btn-sm ${(!_appCamFiltro && !_appCamFiltroMeus) ? 'btn-primary' : 'btn-ghost'}" onclick="setAppCamFiltro('')">Todos (${todos.length})</button>` +
+      (totalMeusAtrib > 0
+        ? `<button class="btn btn-sm ${_appCamFiltroMeus ? 'btn-primary' : 'btn-ghost'}" onclick="setAppCamFiltro('meus')" style="${_appCamFiltroMeus?'':'border-color:#1d4ed8;color:#1d4ed8;'}">👤 Meus (${totalMeusAtrib})</button>`
+        : '') +
       statusPresentes.map(s =>
-        `<button class="btn btn-sm ${_appCamFiltro===s?'btn-primary':'btn-ghost'}" onclick="setAppCamFiltro('${s}')">${labelStatus[s]||s}</button>`
+        `<button class="btn btn-sm ${_appCamFiltro===s?'btn-primary':'btn-ghost'}" onclick="setAppCamFiltro('${s}')">${LABEL[s]||s} (${todos.filter(a=>a.status===s).length})</button>`
       ).join('');
   }
 
   let exibir;
-  if (_appCamFiltroMeus) {
-    exibir = meus.filter(a => a.camareira_id === currentUser.id);
-  } else if (_appCamFiltro) {
-    exibir = meus.filter(a => a.status === _appCamFiltro);
-  } else {
-    exibir = meus;
-  }
+  if (_appCamFiltroMeus)   exibir = todos.filter(a => a.camareira_id === currentUser.id);
+  else if (_appCamFiltro)  exibir = todos.filter(a => a.status === _appCamFiltro);
+  else                     exibir = todos;
 
-  const icons = {
-    livre:'✅', sujo:'🧺', limpando:'🧹', pausado:'⏸',
-    conferencia:'🔍', limpo:'✨', reprovado:'❌',
-    bloqueado:'🔒', ocupado:'🏠', manutencao:'🔧'
-  };
+  // Agrupa por status na ordem definida
+  const grupos = [
+    { key:'reprovado',  label:'Re-limpeza necessária', icon:'❌', color:'#e74c3c', badge:'badge-reprovado' },
+    { key:'pausado',    label:'Pausados — retomar',     icon:'⏸', color:'#f39c12', badge:'badge-pausado'   },
+    { key:'limpando',   label:'Em andamento',            icon:'🧹', color:'#2e86c1', badge:'badge-limpando'  },
+    { key:'sujo',       label:'Para limpar',             icon:'🟠', color:'#e67e22', badge:'badge-sujo'      },
+    { key:'conferencia',label:'Aguardando conferência',  icon:'🔍', color:'#8e44ad', badge:'badge-conferencia'},
+    { key:'limpo',      label:'Limpos',                  icon:'✨', color:'#27ae60', badge:'badge-limpo'     },
+    { key:'livre',      label:'Livres',                  icon:'✅', color:'#27ae60', badge:'badge-livre'     },
+    { key:'ocupado',    label:'Ocupados',                icon:'🏠', color:'#7f8c8d', badge:'badge-ocupado'   },
+    { key:'bloqueado',  label:'Bloqueados',              icon:'🔒', color:'#c0392b', badge:'badge-bloqueado' },
+    { key:'manutencao', label:'Manutenção',              icon:'🔧', color:'#95a5a6', badge:'badge-manutencao'},
+  ];
 
-  document.getElementById('app-apto-list').innerHTML = exibir.length
-    ? exibir.map(a => {
-        const meuApto = a.camareira_id === currentUser.id;
-        const borderStyle = meuApto
-          ? 'border:2px solid var(--primary);box-shadow:0 0 0 3px rgba(var(--primary-rgb,59,130,246),0.15);'
-          : '';
-        return `
-        <div class="apto-card-app ${a.status}" onclick="abrirChecklistApp('${a.id}')" style="${borderStyle}">
+  let html = '';
+  grupos.forEach(g => {
+    const lista = exibir.filter(a => a.status === g.key);
+    if (!lista.length) return;
+
+    // Atribuídos a mim primeiro
+    lista.sort((a, b) => (a.camareira_id === currentUser.id ? 0 : 1) - (b.camareira_id === currentUser.id ? 0 : 1));
+
+    html += `<div style="margin-bottom:22px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid ${g.color};">
+        <span style="font-size:15px;">${g.icon}</span>
+        <span style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;">${g.label}</span>
+        <span style="background:${g.color};color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:auto;">${lista.length}</span>
+      </div>`;
+
+    lista.forEach(a => {
+      const meuApto = a.camareira_id === currentUser.id;
+      const borderColor = meuApto ? '#1d4ed8' : (a.prioridade ? 'var(--danger)' : g.color);
+      const extraStyle  = meuApto ? 'background:linear-gradient(135deg,#eff6ff 0%,#fff 60%);box-shadow:0 2px 12px rgba(29,78,216,0.12);' : '';
+
+      html += `
+      <div class="card" style="margin-bottom:10px;border-left:4px solid ${borderColor};padding:14px 16px;${extraStyle}">
+        ${meuApto ? `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;background:#dbeafe;color:#1d4ed8;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;">📌 Atribuído a mim</div>` : ''}
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px;">
           <div>
-            <div class="app-apto-num">${a.numero}</div>
-            <div class="app-apto-info">${a.tipo} · ${a.andar}º andar</div>
-            <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;align-items:center;">
-              <span class="badge badge-${a.status}">${labelStatus[a.status]||a.status}</span>
-              ${meuApto ? '<span style="font-size:10px;background:#dbeafe;color:#1d4ed8;padding:2px 7px;border-radius:10px;font-weight:700;">👤 Atribuído a mim</span>' : ''}
-            </div>
-            <div style="margin-top:8px;">
-              <button class="btn btn-ghost btn-xs" onclick="event.stopPropagation();openAptoDetail('${a.id}')" style="font-size:11px;padding:3px 8px;">👁 Ver detalhes</button>
-            </div>
+            <div style="font-size:22px;font-weight:800;color:${meuApto?'#1d4ed8':'var(--text)'};line-height:1;">${a.numero}</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} &nbsp;·&nbsp; ${a.andar}º andar &nbsp;·&nbsp; ${a.leitos} leito${a.leitos!==1?'s':''}</div>
+            ${a.prioridade ? `<div style="font-size:11px;font-weight:700;color:var(--danger);margin-top:4px;">⚠️ PRIORIDADE</div>` : ''}
           </div>
-          <div style="text-align:right;">
-            <div style="font-size:28px;">${icons[a.status]||'❓'}</div>
-            ${a.status==='sujo'?'<div style="font-size:11px;color:var(--warning);font-weight:700;margin-top:4px;">TAP PARA INICIAR</div>':''}
-            ${a.status==='limpando'?'<div style="font-size:11px;color:var(--info);font-weight:700;margin-top:4px;">EM ANDAMENTO</div>':''}
-          </div>
-        </div>`;
-      }).join('')
-    : `<div style="text-align:center;padding:32px;color:var(--text3);font-size:13px;">Nenhum apartamento com este status.</div>`
+          <span class="badge ${g.badge}" style="flex-shrink:0;">${LABEL[a.status]||a.status}</span>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          ${_appCamBtns(a)}
+          <button class="btn btn-ghost btn-sm" onclick="openAptoDetail('${a.id}')">👁 Ver detalhes</button>
+        </div>
+      </div>`;
+    });
+
+    html += `</div>`;
+  });
+
+  document.getElementById('app-apto-list').innerHTML = html ||
+    `<div style="text-align:center;padding:32px;color:var(--text3);font-size:13px;">Nenhum apartamento encontrado.</div>`;
+}
+
+function _appCamBtns(a) {
+  switch (a.status) {
+    case 'sujo':
+    case 'reprovado':
+      return `<button class="btn btn-primary btn-sm" onclick="selectedAptoId='${a.id}';iniciarLimpeza()">▶ Iniciar limpeza</button>`;
+    case 'pausado':
+      return `<button class="btn btn-primary btn-sm" onclick="selectedAptoId='${a.id}';iniciarLimpeza()">▶ Retomar</button>
+              <button class="btn btn-outline btn-sm"  onclick="selectedAptoId='${a.id}';concluirLimpeza()">🔍 Enviar conf.</button>`;
+    case 'limpando':
+      return `<button class="btn btn-warning btn-sm" onclick="abrirModalPausa('${a.id}')">⏸ Pausar</button>
+              <button class="btn btn-danger btn-sm"   onclick="abrirModalCancelarLimpeza('${a.id}')">🚫 Cancelar</button>
+              <button class="btn btn-success btn-sm"  onclick="selectedAptoId='${a.id}';concluirLimpeza()">🔍 Enviar conf.</button>`;
+    default:
+      return '';
+  }
 }
 
 // ── ADAPTAR abrirChecklistApp para UUIDs ─────────────────────
