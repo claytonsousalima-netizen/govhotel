@@ -867,6 +867,9 @@ function alterarStatusRapido(id) {
 async function iniciarLimpeza() {
   const apto = aptos.find(a => a.id === selectedAptoId);
   if (!apto) return;
+  if (!['sujo','pausado','reprovado'].includes(apto.status)) {
+    toast('Limpeza só pode ser iniciada em apartamento Sujo, Pausado ou Reprovado', 'error'); return;
+  }
   const acao = apto.status === 'pausado' ? 'retomada' : 'iniciada';
   const obs  = `Limpeza ${acao} por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
   await mudarStatusApto(selectedAptoId, 'limpando', obs);
@@ -928,6 +931,10 @@ async function abrirModalPausa(id) {
 }
 
 async function pausarLimpeza() {
+  const apto = aptos.find(a => a.id === selectedAptoId);
+  if (!apto || apto.status !== 'limpando') {
+    toast('Pausa só é possível durante limpeza ativa', 'error'); return;
+  }
   const motivo = document.getElementById('pausa-motivo')?.value || '';
   const obs    = (document.getElementById('pausa-obs')?.value || '').trim();
   if (!motivo) { toast('Selecione o motivo da pausa', 'error'); return; }
@@ -1152,6 +1159,9 @@ function _clChange(itemId) {
 async function concluirChecklistLimpeza() {
   const apto = aptos.find(a => a.id === selectedAptoId);
   if (!apto) return;
+  if (apto.status !== 'limpando') {
+    toast('Conclusão só é permitida com apartamento Em limpeza. Retome antes de concluir.', 'error'); return;
+  }
 
   const tipo      = document.getElementById('cl-tipo-limpeza')?.value || 'saida';
   const obsGeral  = document.getElementById('cl-obs-geral')?.value.trim() || null;
