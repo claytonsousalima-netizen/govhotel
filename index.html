@@ -998,13 +998,6 @@ tr:last-child td { border-bottom: none; }
             <div id="config-checklist"></div>
           </div>
 
-          <!-- Checklist de Conferência -->
-          <div class="card" style="grid-column:1/-1;">
-            <div class="card-title" style="margin-bottom:6px;">📋 Checklist de Limpeza (Camareira)</div>
-            <div style="font-size:11px;color:var(--text3);margin-bottom:12px;">Itens avaliados pela camareira ao concluir a limpeza, antes de enviar o apartamento para conferência. <strong>*</strong> = obrigatório. 🌐 = padrão · 🏨 = deste hotel</div>
-            <div id="config-conferencia-checklist"></div>
-          </div>
-
           <!-- Checklist da Supervisora -->
           <div class="card" style="grid-column:1/-1;">
             <div class="card-title" style="margin-bottom:6px;">🔍 Checklist da Supervisora</div>
@@ -1292,36 +1285,6 @@ tr:last-child td { border-bottom: none; }
   </div>
 </div>
 
-<!-- Modal Checklist de Limpeza -->
-<div class="modal-overlay" id="modal-checklist-limpeza">
-  <div class="modal" style="max-width:600px;">
-    <div class="modal-header">
-      <div class="modal-title" id="cl-apto-titulo">✅ Checklist de limpeza</div>
-      <button class="btn-close" onclick="closeModal('modal-checklist-limpeza')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-row" style="margin-bottom:4px;">
-        <div class="field">
-          <label>Tipo de limpeza</label>
-          <select id="cl-tipo-limpeza"></select>
-        </div>
-      </div>
-      <p style="font-size:12px;color:var(--text3);margin:0 0 12px;">
-        Itens marcados com <span style="color:var(--danger);font-weight:700;">*</span> são obrigatórios.
-        "Não conforme" exige observação.
-      </p>
-      <div id="cl-items"></div>
-      <div class="field" style="margin-top:14px;">
-        <label>Observação geral (opcional)</label>
-        <textarea id="cl-obs-geral" rows="2" placeholder="Alguma observação geral sobre a limpeza..."></textarea>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-checklist-limpeza')">Cancelar</button>
-      <button class="btn btn-success" onclick="concluirChecklistLimpeza()">✓ Concluir limpeza</button>
-    </div>
-  </div>
-</div>
 
 <!-- ====== NOTIFICAÇÃO: NOVO CHAMADO ====== -->
 <div id="notif-novo-chamado" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:center;justify-content:center;">
@@ -2811,7 +2774,6 @@ function renderConfig() {
   if (typeof renderConfigAndares === 'function')                renderConfigAndares();
   if (typeof renderConfigTiposLimpeza === 'function')           renderConfigTiposLimpeza();
   if (typeof renderConfigMotivos === 'function')                renderConfigMotivos();
-  if (typeof renderConfigConferenciaChecklist === 'function')   renderConfigConferenciaChecklist();
   if (typeof renderConfigMotivosPausa === 'function')           renderConfigMotivosPausa();
   if (typeof renderConfigMotivosCancel === 'function')          renderConfigMotivosCancel();
   if (typeof renderConfigSupervisoraChecklist === 'function')   renderConfigSupervisoraChecklist();
@@ -3149,7 +3111,7 @@ function closeModal(id) {
   el?.classList.remove('open');
 }
 // Modais que não fecham ao clicar fora (requerem ação explícita do usuário)
-const MODAIS_PROTEGIDOS = ['modal-usuario-form', 'modal-senha', 'modal-cadastro-apto', 'modal-novo-membro', 'modal-novo-chamado', 'modal-checklist', 'modal-checklist-limpeza'];
+const MODAIS_PROTEGIDOS = ['modal-usuario-form', 'modal-senha', 'modal-cadastro-apto', 'modal-novo-membro', 'modal-novo-chamado', 'modal-checklist'];
 document.querySelectorAll('.modal-overlay').forEach(m => {
   m.addEventListener('click', e => {
     if (e.target !== m) return;
