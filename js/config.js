@@ -19,7 +19,7 @@ async function renderConfigPage() {
     renderConfigMotivosPausa(),
     renderConfigMotivosCancel(),
     renderConfigSupervisoraChecklist(),
-    renderConfigCargos(),
+
   ]);
 }
 
@@ -1038,82 +1038,5 @@ async function _delSupCl(id) {
   toast('Excluído!', 'success'); await renderConfigSupervisoraChecklist();
 }
 
-// ── CARGOS DA EQUIPE ─────────────────────────────────────────
-let _cargosCache = [];
-
-async function renderConfigCargos() {
-  const el = document.getElementById('config-cargos-equipe');
-  if (!el) return;
-  const hotelId = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
-  let q = supabaseClient.from('cargos_equipe').select('*').order('ordem');
-  if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
-  const { data, error } = await q;
-  if (error) { el.innerHTML = `<div style="color:var(--danger);font-size:12px;">Erro: ${error.message}</div>`; return; }
-  _cargosCache = data || [];
-  el.innerHTML = `
-    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
-      <input type="text" id="new-cargo-nome" placeholder="Novo cargo..."
-        style="flex:1;min-width:180px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;"
-        onkeydown="if(event.key==='Enter') _addCargo()">
-      <button class="btn btn-primary btn-sm" onclick="_addCargo()">+ Adicionar</button>
-    </div>
-    <div id="cargos-lista">${_cargosCache.map(m => _rowCargo(m)).join('')}</div>`;
-}
-
-function _rowCargo(m) {
-  return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);gap:8px;" id="cargo-row-${m.id}">
-    <div style="display:flex;align-items:center;gap:8px;flex:1;">
-      <span style="font-size:12px;color:var(--text3);">${m.hotel_id?'🏨':'🌐'}</span>
-      <span style="font-size:13px;${!m.ativo?'text-decoration:line-through;color:var(--text3);':''}" id="cargo-text-${m.id}">${m.nome}</span>
-      ${!m.ativo?'<span class="badge badge-bloqueado" style="font-size:10px;">Inativo</span>':''}
-    </div>
-    <div id="cargo-edit-${m.id}" style="display:none;flex:1;">
-      <input type="text" id="cargo-input-${m.id}" value="${m.nome}"
-        style="width:100%;padding:5px 8px;border:1.5px solid var(--primary-light);border-radius:var(--radius-sm);font-size:13px;"
-        onkeydown="if(event.key==='Enter') _saveCargo('${m.id}')">
-    </div>
-    <div style="display:flex;gap:4px;flex-shrink:0;">
-      <button class="btn btn-ghost btn-xs" id="cargo-btn-edit-${m.id}" onclick="_editCargo('${m.id}')" title="Editar">✏️</button>
-      <button class="btn btn-ghost btn-xs" id="cargo-btn-save-${m.id}" style="display:none;" onclick="_saveCargo('${m.id}')" title="Salvar">💾</button>
-      <button class="btn btn-ghost btn-xs" id="cargo-btn-cancel-${m.id}" style="display:none;" onclick="renderConfigCargos()" title="Cancelar">✕</button>
-      <button class="btn btn-ghost btn-xs" onclick="_toggleCargo('${m.id}',${m.ativo})" title="${m.ativo?'Inativar':'Ativar'}">${m.ativo?'⏸':'▶'}</button>
-      ${m.hotel_id?`<button class="btn btn-ghost btn-xs" style="color:var(--danger);" onclick="_delCargo('${m.id}')" title="Excluir">🗑</button>`:''}
-    </div>
-  </div>`;
-}
-function _editCargo(id) {
-  document.getElementById(`cargo-text-${id}`).parentElement.style.display = 'none';
-  document.getElementById(`cargo-edit-${id}`).style.display = 'block';
-  document.getElementById(`cargo-btn-edit-${id}`).style.display = 'none';
-  document.getElementById(`cargo-btn-save-${id}`).style.display = '';
-  document.getElementById(`cargo-btn-cancel-${id}`).style.display = '';
-  document.getElementById(`cargo-input-${id}`)?.focus();
-}
-async function _saveCargo(id) {
-  const nome = document.getElementById(`cargo-input-${id}`)?.value.trim();
-  if (!nome) { toast('Informe o cargo', 'error'); return; }
-  const { error } = await supabaseClient.from('cargos_equipe').update({ nome }).eq('id', id);
-  if (error) { toast('Erro: ' + error.message, 'error'); return; }
-  toast('Salvo!', 'success'); await renderConfigCargos();
-}
-async function _addCargo() {
-  const input = document.getElementById('new-cargo-nome');
-  const nome  = input?.value.trim();
-  if (!nome) { toast('Informe o cargo', 'error'); return; }
-  const hotel_id = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
-  const { error } = await supabaseClient.from('cargos_equipe').insert([{ nome, hotel_id, ativo: true, ordem: (_cargosCache.length || 0) + 1 }]);
-  if (error) { toast('Erro: ' + error.message, 'error'); return; }
-  if (input) input.value = '';
-  toast('Adicionado!', 'success'); await renderConfigCargos();
-}
-async function _toggleCargo(id, ativo) {
-  await supabaseClient.from('cargos_equipe').update({ ativo: !ativo }).eq('id', id);
-  await renderConfigCargos();
-}
-async function _delCargo(id) {
-  if (!confirm('Excluir este cargo?')) return;
-  await supabaseClient.from('cargos_equipe').delete().eq('id', id);
-  toast('Excluído!', 'success'); await renderConfigCargos();
-}
 
 // Rendering chamado diretamente por renderConfig() em index.html

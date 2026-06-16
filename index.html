@@ -857,7 +857,7 @@ tr:last-child td { border-bottom: none; }
         </div>
 
         <div class="filters" style="margin-bottom:16px;">
-          <input class="search-input" placeholder="🔍 Buscar por nome ou cargo..." oninput="searchEquipe(this.value)">
+          <input class="search-input" placeholder="🔍 Buscar por nome..." oninput="searchEquipe(this.value)">
         </div>
 
         <div class="stats-grid" style="grid-template-columns:repeat(4,1fr)">
@@ -870,7 +870,7 @@ tr:last-child td { border-bottom: none; }
           <div class="table-wrap">
             <table>
               <thead>
-                <tr><th>Funcionário</th><th>Cargo</th><th>Andar</th><th>Turno</th><th>Aptos hoje</th><th>Status</th><th>Ações</th></tr>
+                <tr><th>Funcionário</th><th>Andar</th><th>Turno</th><th>Aptos hoje</th><th>Status</th><th>Ações</th></tr>
               </thead>
               <tbody id="equipe-table-body"></tbody>
             </table>
@@ -1026,12 +1026,6 @@ tr:last-child td { border-bottom: none; }
             <div id="config-motivos-cancelamento"></div>
           </div>
 
-          <!-- Cargos da Equipe -->
-          <div class="card">
-            <div class="card-title" style="margin-bottom:6px;">👤 Cargos da Equipe</div>
-            <div style="font-size:11px;color:var(--text3);margin-bottom:12px;">Cargos disponíveis no cadastro de membros da equipe (ex: Camareira, Governanta…). 🌐 = padrão · 🏨 = deste hotel</div>
-            <div id="config-cargos-equipe"></div>
-          </div>
 
         </div>
       </div>
@@ -1906,9 +1900,6 @@ tr:last-child td { border-bottom: none; }
       </div>
       <div class="form-row">
         <div class="field"><label>Nome completo *</label><input type="text" id="nm-nome" placeholder="Nome completo..."></div>
-        <div class="field"><label>Cargo</label>
-          <select id="nm-cargo"><option value="">Carregando...</option></select>
-        </div>
       </div>
       <div class="form-row">
         <div class="field"><label>Telefone</label><input type="text" id="nm-telefone" placeholder="(11) 99999-9999"></div>
@@ -2830,7 +2821,7 @@ function renderConfig() {
   if (typeof renderConfigMotivosPausa === 'function')           renderConfigMotivosPausa();
   if (typeof renderConfigMotivosCancel === 'function')          renderConfigMotivosCancel();
   if (typeof renderConfigSupervisoraChecklist === 'function')   renderConfigSupervisoraChecklist();
-  if (typeof renderConfigCargos === 'function')                 renderConfigCargos();
+
 }
 
 // ============ APP CAMAREIRA ============

@@ -80,12 +80,10 @@ async function _fetchMaids(hotelId) {
 
   if (error) console.error('Erro equipe (user_profiles):', error.message);
 
-  const cargoMap = { camareira: 'Camareira', manutencao: 'Manutenção' };
   equipe = (data || []).map((u, i) => ({
     id:         u.user_id,
     user_id:    u.user_id,
     nome:       u.nome,
-    cargo:      cargoMap[u.perfil] || u.perfil,
     andar:      'Todos',
     turno:      u.turnos?.label || '—',
     status:     'ativo',
@@ -113,8 +111,7 @@ function _renderEquipeTabela(filter = '') {
   if (filter) {
     const q = filter.toLowerCase();
     lista = equipe.filter(e =>
-      e.nome.toLowerCase().includes(q) ||
-      e.cargo.toLowerCase().includes(q)
+      e.nome.toLowerCase().includes(q)
     );
   }
 
@@ -141,7 +138,7 @@ function _renderEquipeTabela(filter = '') {
           </div>
         </div>
       </td>
-      <td>${e.cargo}</td>
+
       <td>${andarLabel}</td>
       <td style="font-size:12px;">${e.turno}</td>
       <td><strong>${e.aptos_hoje}</strong></td>
@@ -216,7 +213,7 @@ async function _atualizarStatsEquipe() {
     : null;
 
   // Aptos/camareira = concluídos / camareiras ativas
-  const camareirasAtivas = equipe.filter(e => e.status === 'ativo' && e.cargo === 'Camareira').length;
+  const camareirasAtivas = equipe.filter(e => e.status === 'ativo').length;
   const aptosPorCamareira = camareirasAtivas > 0
     ? (concluidos.size / camareirasAtivas).toFixed(1)
     : null;
@@ -252,8 +249,7 @@ async function openMaidForm(id = null) {
   document.getElementById('nm-andar').value  = '';
   document.getElementById('nm-status').value = 'ativo';
 
-  // Carregar cargos e turnos do banco
-  await Promise.all([_popularNmCargo(), _popularNmTurno()]);
+  await _popularNmTurno();
 
   // Seletor de hotel — visível apenas para admin_global
   const hotelWrap = document.getElementById('nm-hotel-wrap');
@@ -274,29 +270,13 @@ async function openMaidForm(id = null) {
       document.getElementById('nm-status').value   = m.status;
       document.getElementById('nm-telefone').value = m.telefone || '';
       document.getElementById('nm-email').value    = m.email    || '';
-      // Setar cargo e turno após carregar as opções do banco
-      const cargoSel = document.getElementById('nm-cargo');
       const turnoSel = document.getElementById('nm-turno');
-      if (cargoSel && m.cargo) cargoSel.value = m.cargo;
       if (turnoSel && m.turno) turnoSel.value = m.turno;
     }
   }
 
   openModal('modal-novo-membro');
   document.getElementById('nm-nome').focus();
-}
-
-async function _popularNmCargo() {
-  const sel = document.getElementById('nm-cargo');
-  if (!sel) return;
-  const hotelId = currentUser.hotelId;
-  let q = supabaseClient.from('cargos_equipe').select('nome').eq('ativo', true).order('ordem');
-  if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
-  const { data } = await q;
-  const cargos = data || [];
-  sel.innerHTML = cargos.length
-    ? cargos.map(c => `<option value="${c.nome}">${c.nome}</option>`).join('')
-    : '<option value="Camareira">Camareira</option>';
 }
 
 async function _popularNmTurno() {
