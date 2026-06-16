@@ -1377,6 +1377,34 @@ tr:last-child td { border-bottom: none; }
   </div>
 </div>
 
+<!-- Modal Atribuir Camareira em Lote -->
+<div class="modal-overlay" id="modal-lote-atribuir">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <div class="modal-title">👤 Atribuir Camareira em Lote</div>
+      <button class="btn-close" onclick="closeModal('modal-lote-atribuir')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="lote-atribuir-info" style="font-size:13px;color:var(--text2);margin-bottom:14px;"></p>
+      <div class="form-row single">
+        <div class="field">
+          <label>Camareira responsável</label>
+          <select id="lote-atribuir-camareira">
+            <option value="">— Remover atribuição —</option>
+          </select>
+        </div>
+      </div>
+      <div style="background:#fef9c3;border:1px solid #fde68a;border-radius:6px;padding:10px 12px;font-size:12px;color:#92400e;margin-top:8px;">
+        A atribuição ficará salva no cadastro de cada apartamento selecionado.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-lote-atribuir')">Cancelar</button>
+      <button class="btn btn-primary" onclick="_executarAtribuirLote()">✓ Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Trocar Status -->
 <div class="modal-overlay" id="modal-trocar-status">
   <div class="modal" style="max-width:420px;">
@@ -3030,7 +3058,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <script src="js/hotels.js?v=20260613p"></script>
-<script src="js/apartments.js?v=20260616p"></script>
+<script src="js/apartments.js?v=20260616q"></script>
 <script src="js/maids.js?v=20260616c"></script>
 <script src="js/users.js?v=20260615a"></script>
 <script src="js/permissions.js?v=20260616a"></script>

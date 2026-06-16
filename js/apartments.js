@@ -1306,7 +1306,80 @@ function _garantirBotoesMapa() {
     btnLote.textContent = '☑ Selecionar em lote';
     btnLote.onclick = _toggleLoteMode;
     container.appendChild(btnLote);
+
+    const btnAtrib = document.createElement('button');
+    btnAtrib.id = 'btn-lote-atribuir';
+    btnAtrib.className = 'btn btn-outline btn-sm';
+    btnAtrib.textContent = '👤 Atribuir em lote';
+    btnAtrib.onclick = _abrirModalAtribuirLote;
+    container.appendChild(btnAtrib);
   }
+}
+
+async function _abrirModalAtribuirLote() {
+  if (_loteSelected.size === 0) {
+    toast('Selecione ao menos um apartamento primeiro', 'error');
+    return;
+  }
+  const n = _loteSelected.size;
+  const el = document.getElementById('lote-atribuir-info');
+  if (el) el.textContent = `${n} apartamento${n !== 1 ? 's' : ''} selecionado${n !== 1 ? 's' : ''}`;
+
+  // Carrega camareiras do hotel
+  const hotelId = _aptoViewHotelId || currentUser.hotelId;
+  const { data } = await supabaseClient
+    .from('user_profiles')
+    .select('user_id, nome')
+    .eq('perfil', 'camareira')
+    .eq('ativo', true)
+    .eq('hotel_id', hotelId)
+    .order('nome');
+
+  const sel = document.getElementById('lote-atribuir-camareira');
+  if (sel) {
+    sel.innerHTML = '<option value="">— Remover atribuição —</option>' +
+      (data || []).map(u => `<option value="${u.user_id}">${u.nome}</option>`).join('');
+  }
+
+  openModal('modal-lote-atribuir');
+}
+
+async function _executarAtribuirLote() {
+  const camId  = document.getElementById('lote-atribuir-camareira')?.value || null;
+  const ids    = [..._loteSelected];
+  const n      = ids.length;
+  const camNome = camId
+    ? document.getElementById('lote-atribuir-camareira')?.selectedOptions[0]?.text
+    : 'nenhuma (remover atribuição)';
+
+  if (!confirm(`Atribuir ${n} apartamento${n > 1 ? 's' : ''} para: ${camNome}?`)) return;
+
+  closeModal('modal-lote-atribuir');
+  let erros = 0;
+  for (const id of ids) {
+    const { error } = await supabaseClient
+      .from('apartments')
+      .update({ maid_id: camId })
+      .eq('id', id);
+    if (error) erros++;
+    else {
+      const apto = aptos.find(a => a.id === id);
+      if (apto) {
+        apto.camareira_id = camId;
+        apto._maid_nome   = camId ? camNome : null;
+      }
+    }
+  }
+
+  if (erros) toast(`Concluído com ${erros} erro(s)`, 'warning');
+  else toast(`${n} apartamento${n > 1 ? 's' : ''} atribuído${n > 1 ? 's' : ''}!`, 'success');
+
+  _loteMode = false;
+  _loteSelected.clear();
+  document.getElementById('lote-bar').style.display = 'none';
+  const btnSel = document.getElementById('btn-lote-selecionar');
+  if (btnSel) btnSel.textContent = '☑ Selecionar em lote';
+  renderMapa();
 }
 
 async function initMapaAdmin() {
