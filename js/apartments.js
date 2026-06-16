@@ -890,19 +890,21 @@ async function reprovarLimpeza() {
   await mudarStatusApto(selectedAptoId, 'reprovado', obsHist);
 }
 
-// ── CHECKLIST DE LIMPEZA ──────────────────────────────────────
+// ── CHECKLIST DE CONFERÊNCIA ──────────────────────────────────
 
-const CHECKLIST_LIMPEZA = [
-  { id: 'banheiro',   label: 'Banheiro limpo',                 obrigatorio: true  },
-  { id: 'enxoval',    label: 'Enxoval conferido',              obrigatorio: true  },
-  { id: 'amenities',  label: 'Amenities repostos',             obrigatorio: true  },
-  { id: 'lixeira',    label: 'Lixeira retirada',               obrigatorio: true  },
-  { id: 'piso',       label: 'Piso limpo',                     obrigatorio: true  },
-  { id: 'frigobar',   label: 'Frigobar conferido',             obrigatorio: false },
-  { id: 'manutencao', label: 'Manutenção aparente verificada', obrigatorio: false },
+const CHECKLIST_LIMPEZA_FALLBACK = [
+  { id: 'banheiro',   nome: 'Banheiro limpo',                 obrigatorio: true  },
+  { id: 'enxoval',    nome: 'Enxoval conferido',              obrigatorio: true  },
+  { id: 'amenities',  nome: 'Amenities repostos',             obrigatorio: true  },
+  { id: 'lixeira',    nome: 'Lixeira retirada',               obrigatorio: true  },
+  { id: 'piso',       nome: 'Piso limpo',                     obrigatorio: true  },
+  { id: 'frigobar',   nome: 'Frigobar conferido',             obrigatorio: false },
+  { id: 'manutencao', nome: 'Manutenção aparente verificada', obrigatorio: false },
 ];
 
-function abrirChecklistLimpeza() {
+let _confChecklistAtivo = []; // itens carregados do banco para o modal atual
+
+async function abrirChecklistLimpeza() {
   const apto = aptos.find(a => a.id === selectedAptoId);
   if (!apto) return;
 
@@ -915,6 +917,15 @@ function abrirChecklistLimpeza() {
   const obsGeralEl = document.getElementById('cl-obs-geral');
   if (obsGeralEl) obsGeralEl.value = '';
 
+  // Carrega itens do banco
+  const hotelId = currentUser?.hotelId;
+  let q = supabaseClient.from('conferencia_checklist_items').select('id, nome, obrigatorio').eq('ativo', true).order('ordem');
+  if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
+  const { data } = await q;
+  _confChecklistAtivo = (data && data.length)
+    ? data
+    : CHECKLIST_LIMPEZA_FALLBACK;
+
   _renderChecklistItens();
   closeModal('modal-apto-detail');
   openModal('modal-checklist-limpeza');
@@ -923,11 +934,11 @@ function abrirChecklistLimpeza() {
 function _renderChecklistItens() {
   const container = document.getElementById('cl-items');
   if (!container) return;
-  container.innerHTML = CHECKLIST_LIMPEZA.map(item => `
+  container.innerHTML = _confChecklistAtivo.map(item => `
     <div class="cl-item" id="cl-item-${item.id}">
       <div class="cl-item-header">
         <span class="cl-item-label">
-          ${item.label}${item.obrigatorio ? ' <span style="color:var(--danger);">*</span>' : ''}
+          ${item.nome}${item.obrigatorio ? ' <span style="color:var(--danger);">*</span>' : ''}
         </span>
         <div class="cl-opcoes">
           <input class="cl-radio-btn" type="radio" id="cl-${item.id}-c"  name="cl-${item.id}" value="conforme"     onchange="_clChange('${item.id}')">
@@ -962,7 +973,7 @@ async function concluirChecklistLimpeza() {
   const respostas = [];
   const erros     = [];
 
-  for (const item of CHECKLIST_LIMPEZA) {
+  for (const item of _confChecklistAtivo) {
     const val = document.querySelector(`input[name="cl-${item.id}"]:checked`)?.value || null;
     const obs = document.getElementById(`cl-obs-${item.id}`)?.value.trim() || null;
 
@@ -971,13 +982,12 @@ async function concluirChecklistLimpeza() {
       continue;
     }
     if (val === 'nao_conforme' && !obs) {
-      toast(`"${item.label}": descreva o problema encontrado`, 'error');
+      toast(`"${item.nome}": descreva o problema encontrado`, 'error');
       document.getElementById(`cl-obs-${item.id}`)?.focus();
-      // Marca itens sem resposta antes de retornar
       erros.forEach(id => document.getElementById(`cl-item-${id}`)?.classList.add('cl-pendente'));
       return;
     }
-    if (val) respostas.push({ item: item.label, resultado: val, obs });
+    if (val) respostas.push({ item: item.nome, resultado: val, obs });
   }
 
   if (erros.length) {

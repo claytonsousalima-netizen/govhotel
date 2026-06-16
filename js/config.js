@@ -13,6 +13,7 @@ async function renderConfigPage() {
     renderConfigSolicitantes(),
     renderConfigMotivos(),
     renderConfigChecklist(),
+    renderConfigConferenciaChecklist(),
   ]);
 }
 
@@ -541,6 +542,116 @@ async function _excluirMotivo(id) {
   if (error) { toast('Erro: ' + error.message, 'error'); return; }
   toast('Motivo excluído!', 'success');
   await renderConfigMotivos();
+}
+
+// ── CHECKLIST DE CONFERÊNCIA ──────────────────────────────────
+let _confChecklistCache = [];
+
+async function renderConfigConferenciaChecklist() {
+  const el = document.getElementById('config-conferencia-checklist');
+  if (!el) return;
+  const hotelId = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
+  let query = supabaseClient.from('conferencia_checklist_items').select('*').order('ordem');
+  if (hotelId) query = query.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
+  const { data, error } = await query;
+  if (error) { el.innerHTML = `<div style="color:var(--danger);font-size:12px;">Erro: ${error.message}</div>`; return; }
+  _confChecklistCache = data || [];
+  el.innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:flex-end;">
+      <input type="text" id="new-conf-cl-nome" placeholder="Novo item de conferência..."
+        style="flex:1;min-width:180px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;"
+        onkeydown="if(event.key==='Enter') _adicionarConfCl()">
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap;">
+        <input type="checkbox" id="new-conf-cl-obrig" checked> Obrigatório
+      </label>
+      <button class="btn btn-primary btn-sm" onclick="_adicionarConfCl()">+ Adicionar</button>
+    </div>
+    <div id="conf-cl-lista">
+      ${_confChecklistCache.map(m => _renderConfClRow(m)).join('')}
+    </div>`;
+}
+
+function _renderConfClRow(m) {
+  return `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);gap:8px;" id="conf-cl-row-${m.id}">
+      <div style="display:flex;align-items:center;gap:6px;flex:1;">
+        <span style="font-size:12px;color:var(--text3);">${m.hotel_id ? '🏨' : '🌐'}</span>
+        <span style="font-size:13px;${!m.ativo ? 'text-decoration:line-through;color:var(--text3);' : ''}"
+          id="conf-cl-text-${m.id}">${m.nome}</span>
+        ${m.obrigatorio ? '<span style="color:var(--danger);font-size:11px;font-weight:700;">*</span>' : ''}
+        ${!m.ativo ? '<span class="badge badge-bloqueado" style="font-size:10px;">Inativo</span>' : ''}
+      </div>
+      <div id="conf-cl-edit-${m.id}" style="display:none;flex:1;display:none;gap:8px;align-items:center;">
+        <input type="text" id="conf-cl-input-${m.id}" value="${m.nome}"
+          style="flex:1;padding:5px 8px;border:1.5px solid var(--primary-light);border-radius:var(--radius-sm);font-size:13px;"
+          onkeydown="if(event.key==='Enter') _salvarConfCl(${m.id})">
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;">
+          <input type="checkbox" id="conf-cl-obrig-${m.id}" ${m.obrigatorio ? 'checked' : ''}> Obrig.
+        </label>
+      </div>
+      <div style="display:flex;gap:4px;flex-shrink:0;">
+        <button class="btn btn-ghost btn-xs" id="conf-cl-btn-edit-${m.id}"
+          onclick="_editarConfCl(${m.id})" title="Editar">✏️</button>
+        <button class="btn btn-ghost btn-xs" id="conf-cl-btn-save-${m.id}" style="display:none;"
+          onclick="_salvarConfCl(${m.id})" title="Salvar">💾</button>
+        <button class="btn btn-ghost btn-xs" id="conf-cl-btn-cancel-${m.id}" style="display:none;"
+          onclick="renderConfigConferenciaChecklist()" title="Cancelar">✕</button>
+        <button class="btn btn-ghost btn-xs" onclick="_toggleConfCl(${m.id},${m.ativo})"
+          title="${m.ativo ? 'Inativar' : 'Ativar'}">${m.ativo ? '⏸' : '▶'}</button>
+        ${m.hotel_id
+          ? `<button class="btn btn-ghost btn-xs" style="color:var(--danger);"
+              onclick="_excluirConfCl(${m.id})" title="Excluir">🗑</button>`
+          : ''}
+      </div>
+    </div>`;
+}
+
+function _editarConfCl(id) {
+  document.getElementById(`conf-cl-text-${id}`).closest('div').style.display  = 'none';
+  const editDiv = document.getElementById(`conf-cl-edit-${id}`);
+  editDiv.style.display = 'flex';
+  document.getElementById(`conf-cl-btn-edit-${id}`).style.display   = 'none';
+  document.getElementById(`conf-cl-btn-save-${id}`).style.display   = '';
+  document.getElementById(`conf-cl-btn-cancel-${id}`).style.display = '';
+  document.getElementById(`conf-cl-input-${id}`)?.focus();
+}
+
+async function _salvarConfCl(id) {
+  const nome     = document.getElementById(`conf-cl-input-${id}`)?.value.trim();
+  const obrigatorio = document.getElementById(`conf-cl-obrig-${id}`)?.checked ?? true;
+  if (!nome) { toast('Informe o nome', 'error'); return; }
+  const { error } = await supabaseClient.from('conferencia_checklist_items').update({ nome, obrigatorio }).eq('id', id);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  toast('Item atualizado!', 'success');
+  await renderConfigConferenciaChecklist();
+}
+
+async function _adicionarConfCl() {
+  const nome = document.getElementById('new-conf-cl-nome')?.value.trim();
+  const obrigatorio = document.getElementById('new-conf-cl-obrig')?.checked ?? true;
+  if (!nome) { toast('Informe o nome do item', 'error'); return; }
+  const hotel_id = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
+  const ordem    = (_confChecklistCache.length || 0) + 1;
+  const { error } = await supabaseClient.from('conferencia_checklist_items').insert([{ nome, obrigatorio, hotel_id, ativo: true, ordem }]);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  const input = document.getElementById('new-conf-cl-nome');
+  if (input) input.value = '';
+  toast('Item adicionado!', 'success');
+  await renderConfigConferenciaChecklist();
+}
+
+async function _toggleConfCl(id, ativo) {
+  const { error } = await supabaseClient.from('conferencia_checklist_items').update({ ativo: !ativo }).eq('id', id);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  await renderConfigConferenciaChecklist();
+}
+
+async function _excluirConfCl(id) {
+  if (!confirm('Excluir este item do checklist de conferência?')) return;
+  const { error } = await supabaseClient.from('conferencia_checklist_items').delete().eq('id', id);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  toast('Item excluído!', 'success');
+  await renderConfigConferenciaChecklist();
 }
 
 // Rendering chamado diretamente por renderConfig() em index.html
