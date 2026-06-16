@@ -52,6 +52,7 @@ async function syncApartamentos() {
     hotel_id:     a.hotel_id,
     ativo:        a.ativo !== false,
     _maid_nome:   _camNamesExtra[a.maid_id] || null,
+    status_at:    a.updated_at  || null,
     avId:         (i % 6) + 1,
   }));
 
@@ -820,16 +821,28 @@ window.mudarStatusApto = async function mudarStatusApto(id, novoStatus, obs) {
   }
 };
 
+const _TS_SENSIVEIS_APT = new Set(['limpando','pausado','conferencia','limpo','reprovado']);
+const _TS_PODE_SENSIVEL = new Set(['admin_global','admin_hotel','gestor','supervisora','governanta']);
+
 async function salvarTrocarStatus() {
   const aptoNum    = document.getElementById('ts-apto').value;
   const novoStatus = document.getElementById('ts-status').value;
   const obs        = document.getElementById('ts-obs')?.value?.trim() || null;
   if (!aptoNum)    { toast('Selecione um apartamento', 'error'); return; }
   if (!novoStatus) { toast('Selecione o novo status', 'error'); return; }
+
+  if (_TS_SENSIVEIS_APT.has(novoStatus)) {
+    if (!_TS_PODE_SENSIVEL.has(currentUser?.perfil)) {
+      toast('Este status só pode ser alterado pelo fluxo de limpeza/conferência', 'error'); return;
+    }
+    if (!obs) { toast('Informe o motivo para alterar este status sensível', 'error'); return; }
+    if (!confirm(`Atenção: este status normalmente é definido pelo fluxo de limpeza. Confirma alterar manualmente?`)) return;
+  }
+
   const apto = aptos.find(a => a.numero === aptoNum);
   if (!apto) { toast('Apartamento não encontrado', 'error'); return; }
   closeModal('modal-trocar-status');
-  await window.mudarStatusApto(apto.id, novoStatus, obs);
+  await window.mudarStatusApto(apto.id, novoStatus, obs || `Status alterado manualmente por ${currentUser.nome}`);
 }
 
 function alterarStatusRapido(id) {
@@ -1358,11 +1371,12 @@ async function selecionarHotelMapa(hotelId) {
 
 // Estado dos filtros (compartilhado entre mapa e kanban)
 const _aptoFiltros = {
-  status:     'todos',
-  andar:      '',
-  camareira:  '',
-  tipo:       '',
-  comChamado: false,
+  status:       'todos',
+  andar:        '',
+  camareira:    '',
+  tipo:         '',
+  comChamado:   false,
+  semCamareira: false,
 };
 
 // Set de apartment_ids com chamados abertos (carregado sob demanda)
@@ -1372,12 +1386,22 @@ const _aptosComChamadoAberto = new Set();
 function _filtrarAptos(lista) {
   return lista.filter(a => {
     if (_aptoFiltros.status !== 'todos' && a.status !== _aptoFiltros.status) return false;
-    if (_aptoFiltros.andar     && String(a.andar)       !== String(_aptoFiltros.andar))   return false;
-    if (_aptoFiltros.camareira && a.camareira_id        !== _aptoFiltros.camareira)        return false;
-    if (_aptoFiltros.tipo      && a.tipo                !== _aptoFiltros.tipo)             return false;
-    if (_aptoFiltros.comChamado && !_aptosComChamadoAberto.has(a.id))                      return false;
+    if (_aptoFiltros.andar     && String(a.andar)  !== String(_aptoFiltros.andar))  return false;
+    if (_aptoFiltros.camareira && a.camareira_id   !== _aptoFiltros.camareira)      return false;
+    if (_aptoFiltros.tipo      && a.tipo            !== _aptoFiltros.tipo)           return false;
+    if (_aptoFiltros.comChamado && !_aptosComChamadoAberto.has(a.id))               return false;
+    if (_aptoFiltros.semCamareira && a.camareira_id)                                return false;
     return true;
   });
+}
+
+function _tempoStatus(dateStr) {
+  if (!dateStr) return '';
+  const mins = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000);
+  if (mins < 2) return '';
+  if (mins < 60) return `há ${mins}min`;
+  const h = Math.floor(mins / 60), m = mins % 60;
+  return m > 0 ? `há ${h}h${m}` : `há ${h}h`;
 }
 
 // ── CARREGAR APTOS COM CHAMADOS ABERTOS ──────────────────────
