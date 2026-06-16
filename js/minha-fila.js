@@ -280,22 +280,17 @@ function _mfRenderGestor(el) {
     </div>`;
 
   // ── Aguardando conferência ──
-  html += `<div id="mf-sec-conferencia" style="margin-bottom:24px;">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;
-                padding-bottom:8px;border-bottom:2px solid #8e44ad;">
-      <span style="font-size:16px;">🔍</span>
-      <span style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;">
-        Aguardando conferência
-      </span>
-      <span style="background:#8e44ad;color:#fff;font-size:10px;font-weight:700;
-                   padding:2px 8px;border-radius:10px;margin-left:auto;">${conferencia.length}</span>
-    </div>`;
-
-  if (!conferencia.length) {
-    html += `<div class="card" style="text-align:center;padding:24px;color:var(--text3);font-size:13px;">
-      ✅ Nenhum apartamento aguardando conferência.
-    </div>`;
-  } else {
+  if (conferencia.length) {
+    html += `<div id="mf-sec-conferencia" style="margin-bottom:24px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;
+                  padding-bottom:8px;border-bottom:2px solid #8e44ad;">
+        <span style="font-size:16px;">🔍</span>
+        <span style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;">
+          Aguardando conferência
+        </span>
+        <span style="background:#8e44ad;color:#fff;font-size:10px;font-weight:700;
+                     padding:2px 8px;border-radius:10px;margin-left:auto;">${conferencia.length}</span>
+      </div>`;
     conferencia.forEach(a => {
       const cam = equipe.find(e => e.id === a.camareira_id);
       html += `
@@ -316,26 +311,21 @@ function _mfRenderGestor(el) {
         </div>
       </div>`;
     });
+    html += `</div>`;
   }
-  html += `</div>`;
 
   // ── Reprovados ──
-  html += `<div id="mf-sec-reprovados" style="margin-bottom:24px;">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;
-                padding-bottom:8px;border-bottom:2px solid var(--danger);">
-      <span style="font-size:16px;">❌</span>
-      <span style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;">
-        Reprovados — aguardando re-limpeza
-      </span>
-      <span style="background:var(--danger);color:#fff;font-size:10px;font-weight:700;
-                   padding:2px 8px;border-radius:10px;margin-left:auto;">${reprovados.length}</span>
-    </div>`;
-
-  if (!reprovados.length) {
-    html += `<div class="card" style="text-align:center;padding:20px;color:var(--text3);font-size:13px;">
-      ✅ Nenhum apartamento reprovado no momento.
-    </div>`;
-  } else {
+  if (reprovados.length) {
+    html += `<div id="mf-sec-reprovados" style="margin-bottom:24px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;
+                  padding-bottom:8px;border-bottom:2px solid var(--danger);">
+        <span style="font-size:16px;">❌</span>
+        <span style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;">
+          Reprovados — aguardando re-limpeza
+        </span>
+        <span style="background:var(--danger);color:#fff;font-size:10px;font-weight:700;
+                     padding:2px 8px;border-radius:10px;margin-left:auto;">${reprovados.length}</span>
+      </div>`;
     reprovados.forEach(a => {
       const cam = equipe.find(e => e.id === a.camareira_id);
       html += `
@@ -353,8 +343,8 @@ function _mfRenderGestor(el) {
         </div>
       </div>`;
     });
+    html += `</div>`;
   }
-  html += `</div>`;
 
   // ── Sujos sem camareira ──
   const sujossSemCam = sujos.filter(a => !a.camareira_id);
