@@ -1258,33 +1258,33 @@ async function concluirChecklist() {
 
 function _garantirBotoesMapa() {
   const isOperacional = ['camareira','manutencao'].includes(currentUser?.perfil);
-  if (isOperacional) return;
-
   const container = document.getElementById('mapa-header-actions');
   if (!container) return;
 
-  // Garante btn-alterar-status-header
-  if (!document.getElementById('btn-alterar-status-header')) {
-    const btn = document.createElement('button');
-    btn.id = 'btn-alterar-status-header';
-    btn.className = 'btn btn-outline btn-sm';
-    btn.textContent = '🔄 Alterar Status';
-    btn.onclick = () => openModal('modal-trocar-status');
-    container.appendChild(btn);
-  } else {
-    document.getElementById('btn-alterar-status-header').style.display = '';
-  }
+  // Reconstrói o container para eliminar duplicatas de versões antigas do index.html
+  container.innerHTML = '';
 
-  // Garante btn-lote-selecionar
-  if (!document.getElementById('btn-lote-selecionar')) {
-    const btn = document.createElement('button');
-    btn.id = 'btn-lote-selecionar';
-    btn.className = 'btn btn-primary btn-sm';
-    btn.textContent = '☑ Selecionar em lote';
-    btn.onclick = _toggleLoteMode;
-    container.appendChild(btn);
-  } else {
-    document.getElementById('btn-lote-selecionar').style.display = '';
+  if (!isOperacional) {
+    const btnCad = document.createElement('button');
+    btnCad.id = 'btn-cadastrar-apto-mapa';
+    btnCad.className = 'btn btn-ghost btn-sm';
+    btnCad.textContent = '⊕ Cadastrar Apto';
+    btnCad.onclick = () => openPage('cadastro-apto');
+    container.appendChild(btnCad);
+
+    const btnAlt = document.createElement('button');
+    btnAlt.id = 'btn-alterar-status-header';
+    btnAlt.className = 'btn btn-outline btn-sm';
+    btnAlt.textContent = '🔄 Alterar Status';
+    btnAlt.onclick = () => openModal('modal-trocar-status');
+    container.appendChild(btnAlt);
+
+    const btnLote = document.createElement('button');
+    btnLote.id = 'btn-lote-selecionar';
+    btnLote.className = 'btn btn-primary btn-sm';
+    btnLote.textContent = '☑ Selecionar em lote';
+    btnLote.onclick = _toggleLoteMode;
+    container.appendChild(btnLote);
   }
 }
 
