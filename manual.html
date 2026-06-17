@@ -151,6 +151,8 @@
   <a href="#mod-chamados">Chamados</a>
   <a href="#mod-minha-fila">Minha Fila</a>
   <a href="#mod-equipe">Equipe</a>
+  <a href="#mod-usuarios">Usuários</a>
+  <a href="#mod-cadastro-apto">Cadastro de Apartamentos</a>
   <a href="#mod-relatorios">Relatórios & Analytics</a>
   <a href="#mod-rel-executivo" style="padding-left:24px;font-size:12px;">↳ Painel Executivo</a>
   <a href="#mod-rel-gargalos" style="padding-left:24px;font-size:12px;">↳ Gargalos</a>
@@ -1048,6 +1050,74 @@
         </tbody>
       </table>
       <p style="font-size:12px;color:var(--text3);margin-top:4px;">Calculados com base no histórico de status do dia (meia-noite até agora) e resetados automaticamente a cada novo dia.</p>
+    </div>
+  </section>
+
+  <!-- ══ MÓDULO USUÁRIOS ══════════════════════════════════════ -->
+  <section id="mod-usuarios" class="section">
+    <div class="section-title">👤 Módulo: Usuários</div>
+    <p style="color:var(--text2);margin-bottom:16px;"><em>Disponível para: Admin Global, Admin Hotel</em></p>
+
+    <div class="info-box purple">
+      <strong>Seletor de hotel (Admin Global):</strong> No topo da tela aparece o seletor <strong>🏨 Hotel</strong>. Selecione o hotel para ver e gerenciar os usuários daquele hotel. Enquanto nenhum hotel estiver selecionado, a lista fica vazia. Admin Hotel vê automaticamente apenas os usuários do seu hotel — sem seletor.
+    </div>
+
+    <div class="card">
+      <h4>Perfis disponíveis</h4>
+      <table>
+        <thead><tr><th>Perfil</th><th>Pode ser criado por</th><th>Acesso</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Admin Global</strong></td><td>Somente Admin Global</td><td>Todos os hotéis, todas as telas</td></tr>
+          <tr><td><strong>Admin Hotel</strong></td><td>Admin Global ou Admin Hotel</td><td>Um hotel, todas as telas exceto Hotéis</td></tr>
+          <tr><td><strong>Gestor</strong></td><td>Admin Global ou Admin Hotel</td><td>Dashboard, Mapa, Kanban, Chamados, Equipe, Relatórios, Minha Fila</td></tr>
+          <tr><td><strong>Supervisora</strong></td><td>Admin Global ou Admin Hotel</td><td>Mapa, Kanban, Chamados, Equipe, Minha Fila</td></tr>
+          <tr><td><strong>Camareira</strong></td><td>Admin Global ou Admin Hotel</td><td>Meus Aptos, Mapa, Chamados, Minha Fila</td></tr>
+          <tr><td><strong>Manutenção</strong></td><td>Admin Global ou Admin Hotel</td><td>Mapa, Chamados, Minha Fila</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <ul class="steps">
+      <li><div class="step-num">1</div><div class="step-body">No menu lateral, clique em <strong>Usuários</strong>. Se for Admin Global, selecione o hotel no seletor no topo.</div></li>
+      <li><div class="step-num">2</div><div class="step-body">Para <strong>criar</strong>: clique em <strong>+ Novo Usuário</strong>, preencha nome, e-mail (login), perfil, hotel vinculado e senha temporária. Marque <strong>"Forçar troca de senha no primeiro acesso"</strong> se desejar que o usuário defina uma nova senha ao entrar.</div></li>
+      <li><div class="step-num">3</div><div class="step-body">Para <strong>editar</strong>: clique no nome do usuário na lista e altere os dados desejados.</div></li>
+      <li><div class="step-num">4</div><div class="step-body">Para <strong>desativar</strong>: abra o usuário → desmarque o toggle <strong>Ativo</strong> → Salvar. O acesso é revogado imediatamente.</div></li>
+      <li><div class="step-num">5</div><div class="step-body">Para <strong>redefinir senha</strong>: abra o usuário → clique em <strong>Redefinir senha</strong> → informe a nova senha temporária.</div></li>
+    </ul>
+
+    <div class="info-box amber">
+      <strong>Isolamento por hotel:</strong> Admin Hotel só vê e cria usuários do seu hotel. Não consegue visualizar nem criar usuários com perfil Admin Global.
+    </div>
+  </section>
+
+  <!-- ══ MÓDULO CADASTRO APTO ══════════════════════════════════ -->
+  <section id="mod-cadastro-apto" class="section">
+    <div class="section-title">🛏 Módulo: Cadastro de Apartamentos</div>
+    <p style="color:var(--text2);margin-bottom:16px;"><em>Disponível para: Admin Global, Admin Hotel</em></p>
+
+    <div class="info-box blue">
+      <strong>Exclusivo para Admin:</strong> Gestor, Supervisora, Camareira e Manutenção não têm acesso a este módulo. O botão <strong>⊕ Cadastrar Apto</strong> também não aparece no Mapa para esses perfis.
+    </div>
+
+    <div class="info-box purple">
+      <strong>Seletor de hotel (Admin Global):</strong> No topo da tela aparece o seletor <strong>🏨 Hotel</strong>. Selecione o hotel para ver e gerenciar os apartamentos daquele hotel. Admin Hotel vê automaticamente apenas os apartamentos do seu hotel — sem seletor.
+    </div>
+
+    <ul class="steps">
+      <li><div class="step-num">1</div><div class="step-body">No menu lateral, clique em <strong>Cadastro Apto</strong>. Se for Admin Global, selecione o hotel no seletor no topo.</div></li>
+      <li><div class="step-num">2</div><div class="step-body">Para <strong>adicionar</strong>: clique em <strong>+ Cadastrar Apto</strong>, preencha número, andar, tipo e categoria, depois clique <strong>Salvar</strong>.</div></li>
+      <li><div class="step-num">3</div><div class="step-body">Para <strong>gerar em lote</strong>: clique em <strong>⚡ Gerar em lote</strong> e configure o padrão de numeração e andar. Ideal para cadastrar todos os apartamentos de um andar de uma vez.</div></li>
+      <li><div class="step-num">4</div><div class="step-body">Para <strong>editar</strong>: clique no apartamento na tabela e altere os dados cadastrais (número, andar, tipo, categoria).</div></li>
+      <li><div class="step-num">5</div><div class="step-body">Para <strong>excluir</strong>: clique no ícone de exclusão 🗑 no card do apartamento e confirme. A exclusão é permanente e remove o histórico vinculado.</div></li>
+    </ul>
+
+    <div class="card">
+      <h4>Tipos e Categorias de Apartamento</h4>
+      <p style="font-size:13px;color:var(--text2);">Os tipos (ex.: Standard, Luxo, Suíte) e categorias (ex.: Casal, Solteiro, Família) disponíveis no formulário de cadastro são configurados em <strong>Config → Tipos de Apartamento</strong> e <strong>Config → Categorias de Apartamento</strong>. Somente itens ativos aparecem no seletor.</p>
+    </div>
+
+    <div class="info-box amber">
+      <strong>Andares disponíveis:</strong> Os andares exibidos no formulário de cadastro são controlados por <strong>Config → Andares</strong>. Configure o número máximo de andares do hotel antes de cadastrar apartamentos.
     </div>
   </section>
 
