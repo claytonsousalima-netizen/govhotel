@@ -904,8 +904,9 @@ async function iniciarLimpeza() {
   const acao = apto.status === 'pausado' ? 'retomada' : 'iniciada';
   const obs  = `Limpeza ${acao} por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
   await mudarStatusApto(selectedAptoId, 'limpando', obs);
-  // Camareira e admins preenchem checklist ao iniciar; gestor/supervisora seguem fluxo direto
-  if (['camareira','admin_global','admin_hotel'].includes(currentUser?.perfil)) {
+  // Perfis operacionais preenchem checklist ao iniciar; manutenção segue fluxo direto
+  const _PERFIS_CHECKLIST_LIMPEZA = ['camareira','admin_global','admin_hotel','gestor','supervisora','governanta'];
+  if (_PERFIS_CHECKLIST_LIMPEZA.includes(currentUser?.perfil)) {
     await abrirChecklistApp(selectedAptoId);
   }
 }
@@ -984,7 +985,8 @@ async function concluirLimpeza() {
   if (apto.status !== 'limpando') {
     toast('Conclusão só é permitida com apartamento Em limpeza. Retome antes de concluir.', 'error'); return;
   }
-  if (['camareira','admin_global','admin_hotel'].includes(currentUser?.perfil)) {
+  const _PERFIS_CHECKLIST_LIMPEZA = ['camareira','admin_global','admin_hotel','gestor','supervisora','governanta'];
+  if (_PERFIS_CHECKLIST_LIMPEZA.includes(currentUser?.perfil)) {
     // Re-abre checklist caso o modal tenha sido fechado sem concluir
     _checklistOrigemStatus = 'limpando';
     await abrirChecklistApp(selectedAptoId);
