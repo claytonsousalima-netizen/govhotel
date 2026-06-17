@@ -782,6 +782,8 @@ function renderChamados() {
 
 // ── RENDER KANBAN ─────────────────────────────────────────────
 function renderKanban() {
+  // Não sobrescreve o board quando o kanban está em modo limpeza
+  if (currentPage === 'kanban' && typeof _kanbanModo !== 'undefined' && _kanbanModo !== 'chamados') return;
   const showHotel = currentUser.perfil === 'admin_global';
   const cols = [
     { key:'aberto',     label:'Aberto',       color:'var(--danger)'  },

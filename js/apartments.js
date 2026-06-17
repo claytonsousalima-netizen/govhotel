@@ -1555,6 +1555,35 @@ async function selecionarHotelMapa(hotelId) {
 // FILTROS OPERACIONAIS — Mapa e Kanban de Limpeza
 // ================================================================
 
+// Modo do kanban: 'limpeza' | 'chamados'
+let _kanbanModo = 'limpeza';
+
+async function setKanbanModo(modo) {
+  _kanbanModo = modo;
+  const btnL = document.getElementById('btn-kanban-limpeza');
+  const btnC = document.getElementById('btn-kanban-chamados');
+  if (btnL) btnL.className = 'btn btn-sm ' + (modo === 'limpeza'  ? 'btn-primary' : 'btn-ghost');
+  if (btnC) btnC.className = 'btn btn-sm ' + (modo === 'chamados' ? 'btn-primary' : 'btn-ghost');
+  const title    = document.getElementById('kanban-page-title');
+  const subtitle = document.getElementById('kanban-page-subtitle');
+  const filtrosStatus = document.getElementById('kanban-filtros-status');
+  const filtrosAptos  = document.getElementById('kanban-filtros-aptos');
+  if (modo === 'limpeza') {
+    if (title)    title.textContent    = 'Kanban de Limpeza';
+    if (subtitle) subtitle.textContent = 'Fluxo visual de andamento das limpezas';
+    if (filtrosStatus) filtrosStatus.style.display = '';
+    if (filtrosAptos)  filtrosAptos.style.display  = '';
+    renderAptoKanban();
+  } else {
+    if (title)    title.textContent    = 'Kanban de Chamados';
+    if (subtitle) subtitle.textContent = 'Acompanhamento dos chamados por status';
+    if (filtrosStatus) filtrosStatus.style.display = 'none';
+    if (filtrosAptos)  filtrosAptos.style.display  = 'none';
+    if (typeof _fetchChamados === 'function') await _fetchChamados();
+    if (typeof renderKanban   === 'function') renderKanban();
+  }
+}
+
 // Estado dos filtros (compartilhado entre mapa e kanban)
 const _aptoFiltros = {
   status:       'todos',
@@ -1816,7 +1845,9 @@ function renderAptoKanban() {
   if (!board) return;
 
   const lista = _filtrarAptos(aptos);
-  const cols  = [
+  // Quando filtro "Com chamados" está ativo, inclui todos os statuses
+  // (chamados abertos existem em aptos ocupados, livres, bloqueados, etc.)
+  const colsLimpeza = [
     { key:'sujo',        label:'Sujo',          color:'#e67e22' },
     { key:'limpando',    label:'Em limpeza',     color:'#2e86c1' },
     { key:'pausado',     label:'Pausado',        color:'#f39c12' },
@@ -1825,6 +1856,13 @@ function renderAptoKanban() {
     { key:'reprovado',   label:'Reprovado',      color:'#e74c3c' },
     { key:'manutencao',  label:'Manutenção',     color:'#f1c40f' },
   ];
+  const colsTodos = [
+    ...colsLimpeza,
+    { key:'livre',      label:'Livre',      color:'#27ae60' },
+    { key:'ocupado',    label:'Ocupado',    color:'#7f8c8d' },
+    { key:'bloqueado',  label:'Bloqueado',  color:'#c0392b' },
+  ];
+  const cols = _aptoFiltros.comChamado ? colsTodos : colsLimpeza;
 
   // Se há filtro de status ativo, mostrar apenas coluna relevante
   const colsFiltradas = _aptoFiltros.status !== 'todos'
