@@ -127,7 +127,7 @@
 <nav class="sidebar">
   <div class="sidebar-logo">
     <h1>🏨 Gov Estancorp</h1>
-    <p>Manual de Uso — v2026.06.6</p>
+    <p>Manual de Uso — v2026.06.7</p>
   </div>
 
   <div class="sidebar-section">Introdução</div>
@@ -147,7 +147,7 @@
   <div class="sidebar-section">Módulos</div>
   <a href="#mod-dashboard">Dashboard</a>
   <a href="#mod-mapa">Mapa de Apartamentos</a>
-  <a href="#mod-kanban">Kanban de Limpeza</a>
+  <a href="#mod-kanban">Kanban (Limpeza / Chamados)</a>
   <a href="#mod-chamados">Chamados</a>
   <a href="#mod-minha-fila">Minha Fila</a>
   <a href="#mod-equipe">Equipe</a>
@@ -173,7 +173,7 @@
 
   <div class="page-title">Manual de Uso — Gov Estancorp</div>
   <div class="page-subtitle">
-    Sistema de Governança Hoteleira · Todos os perfis de acesso · Versão 2026.06.6
+    Sistema de Governança Hoteleira · Todos os perfis de acesso · Versão 2026.06.7
   </div>
 
   <!-- ══ VISÃO GERAL ════════════════════════════════════════ -->
@@ -213,7 +213,7 @@
       <thead><tr><th>Status</th><th>Significado</th><th>Próxima ação esperada</th></tr></thead>
       <tbody>
         <tr><td><span class="badge b-sujo">Sujo</span></td><td>Apartamento precisa de limpeza</td><td>Perfil operacional inicia limpeza — checklist abre imediatamente</td></tr>
-        <tr><td><span class="badge b-limpando">Limpando</span></td><td>Checklist de limpeza sendo preenchido</td><td>Quem iniciou conclui checklist (→ Conferência), pausa ou cancela. Status transitório — revertido para Sujo automaticamente se inativo por mais de 2h.</td></tr>
+        <tr><td><span class="badge b-limpando">Limpando</span></td><td>Checklist de limpeza sendo preenchido</td><td>Quem iniciou conclui checklist (→ Conferência), pausa ou cancela. Status transitório — revertido para Sujo automaticamente se inativo por mais de 1h.</td></tr>
         <tr><td><span class="badge b-pausado">Pausado</span></td><td>Limpeza interrompida temporariamente</td><td>Quem pausou retoma → limpando + checklist reabre</td></tr>
         <tr><td><span class="badge b-conferencia">Conferência</span></td><td>Aguardando vistoria</td><td>Supervisora, Gestor, Governanta ou Admin abre checklist de conferência, aprova ou reprova</td></tr>
         <tr><td><span class="badge b-limpo">Limpo</span></td><td>Aprovado na conferência</td><td>Admin/Gestor libera para check-in → <span class="badge b-livre">Livre</span></td></tr>
@@ -618,15 +618,16 @@
     </div>
 
     <div class="section">
-      <div class="section-title">📌 Minha Fila (tela principal)</div>
+      <div class="section-title">📌 Minha Fila (tela principal) <span class="novidade-badge">Atualizado</span></div>
       <div class="info-box blue">Ao fazer login, a camareira é direcionada automaticamente para <strong>Minha Fila</strong>.</div>
       <ul class="steps">
-        <li><div class="step-num">1</div><div class="step-body">A fila é ordenada por urgência: <span class="badge b-reprovado">Reprovados</span> → <span class="badge b-pausado">Pausados</span> → <span class="badge b-limpando">Em andamento</span> → <span class="badge b-sujo">Sujos</span>.</div></li>
-        <li><div class="step-num">2</div><div class="step-body">Dentro de cada grupo, apartamentos <strong>atribuídos diretamente a você</strong> aparecem primeiro com banner azul <strong>📌 Atribuído a mim</strong>.</div></li>
-        <li><div class="step-num">3</div><div class="step-body">Para <strong>iniciar</strong>: clique em <strong>▶ Iniciar limpeza</strong>. O apto vai para <span class="badge b-limpando">Em andamento</span> e o <strong>checklist de limpeza abre automaticamente</strong>. Marque os itens (mínimo 80%) enquanto limpa.</div></li>
-        <li><div class="step-num">4</div><div class="step-body">Ao concluir o checklist, clique em <strong>✓ Concluir limpeza</strong>. As respostas são salvas e o apto vai direto para <span class="badge b-conferencia">Ag. Conferência</span>. Se precisar cancelar a limpeza, clique em <strong>🚫 Cancelar limpeza</strong> — o apto retorna ao status de origem.</div></li>
+        <li><div class="step-num">1</div><div class="step-body">A fila é organizada por <strong>prioridade de atribuição</strong> em 4 seções: <strong>(1) Minha atribuição</strong> (aptos atribuídos a mim em qualquer status operacional) → <strong>(2) Reprovados disponíveis</strong> (sem camareira definida) → <strong>(3) Sujos sem responsável</strong> (nenhuma camareira atribuída) → <strong>(4) Demais</strong> (pausados e em conferência não atribuídos a mim).</div></li>
+        <li><div class="step-num">2</div><div class="step-body">Todos os cards exibem o <strong>nome da camareira responsável</strong> pelo apartamento, ou o texto <span style="color:#dc2626;font-weight:700;">👤 Sem responsável</span> em vermelho quando não há atribuição. Isso vale para todos os status.</div></li>
+        <li><div class="step-num">3</div><div class="step-body">Para <strong>iniciar</strong>: clique em <strong>▶ Iniciar limpeza</strong>. O apto vai para <span class="badge b-limpando">Em andamento</span> e o <strong>checklist de limpeza abre automaticamente</strong>. No topo do checklist, selecione o <strong>tipo de limpeza</strong> (Saída/checkout · Permanência · Pós-manutenção). Marque os itens (mínimo 80%) enquanto limpa.</div></li>
+        <li><div class="step-num">4</div><div class="step-body">Ao concluir o checklist, clique em <strong>✓ Concluir limpeza</strong>. O tipo de limpeza selecionado e as respostas são salvos e o apto vai direto para <span class="badge b-conferencia">Ag. Conferência</span>. Se precisar cancelar, clique em <strong>🚫 Cancelar limpeza</strong> — o apto retorna ao status de origem.</div></li>
         <li><div class="step-num">5</div><div class="step-body">Aguarde a supervisora aprovar ou reprovar. Se <span class="badge b-reprovado">Reprovado</span>: veja o motivo, clique em <strong>▶ Re-limpar</strong> → apto volta para <span class="badge b-limpando">Em andamento</span>, checklist abre novamente e o ciclo recomeça.</div></li>
       </ul>
+      <div class="info-box amber"><strong>Nota:</strong> Aptos com status <em>Em andamento (limpando)</em> não aparecem na fila — esse é um estado transitório que só existe enquanto o checklist está aberto. Ao fechar o app ou a tela, o apto retorna para <span class="badge b-sujo">Sujo</span> automaticamente após 1h sem atividade.</div>
     </div>
 
     <div class="section">
@@ -829,15 +830,33 @@
   </section>
 
   <section id="mod-kanban" class="section">
-    <div class="section-title">📋 Módulo: Kanban de Limpeza</div>
+    <div class="section-title">📋 Módulo: Kanban <span class="novidade-badge">Atualizado</span></div>
     <p style="color:var(--text2);margin-bottom:16px;"><em>Disponível para: Admin Global, Admin Hotel, Gestor, Supervisora</em></p>
-    <ul class="steps">
-      <li><div class="step-num">1</div><div class="step-body">Os apartamentos são exibidos em colunas por status de limpeza: Sujo · Em limpeza · Pausado · Ag. Conferência · Limpo · Reprovado.</div></li>
-      <li><div class="step-num">2</div><div class="step-body">Use os filtros de <strong>Andar</strong> e <strong>Camareira</strong> para refinar a visualização.</div></li>
-      <li><div class="step-num">3</div><div class="step-body">Clique em qualquer card para ver detalhes e alterar o status diretamente.</div></li>
-    </ul>
+
     <div class="info-box blue">
-      <strong>Mapa vs. Kanban:</strong> O Mapa organiza por andar (visão espacial). O Kanban organiza por status de limpeza (visão de fluxo). Use o Kanban para acompanhar o andamento operacional geral.
+      O Kanban agora tem dois modos de visualização alternáveis pelos botões no topo da página: <strong>🧹 Limpeza</strong> e <strong>📋 Chamados</strong>.
+    </div>
+
+    <div class="card">
+      <h4>🧹 Modo Limpeza (padrão)</h4>
+      <ul class="steps" style="margin-top:8px;">
+        <li><div class="step-num">1</div><div class="step-body">Os apartamentos são exibidos em colunas por status de limpeza: Sujo · Em limpeza · Pausado · Ag. Conferência · Limpo · Reprovado · Manutenção.</div></li>
+        <li><div class="step-num">2</div><div class="step-body">Use os filtros de <strong>Andar</strong> e <strong>Camareira</strong> para refinar a visualização.</div></li>
+        <li><div class="step-num">3</div><div class="step-body">Use o filtro <strong>Com chamados</strong> para destacar apenas os aptos que têm chamados abertos — nesse modo, colunas adicionais (Livre, Ocupado, Bloqueado) também são exibidas para não omitir aptos com chamados nesses status.</div></li>
+        <li><div class="step-num">4</div><div class="step-body">Clique em qualquer card para ver detalhes e alterar o status diretamente.</div></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h4>📋 Modo Chamados</h4>
+      <ul class="steps" style="margin-top:8px;">
+        <li><div class="step-num">1</div><div class="step-body">Clique no botão <strong>📋 Chamados</strong> no topo. Os filtros de limpeza ficam ocultos e o board exibe os chamados organizados por status (Aberto · Em análise · Em andamento · Pausado · Resolvido · Cancelado).</div></li>
+        <li><div class="step-num">2</div><div class="step-body">Para voltar ao fluxo de apartamentos, clique em <strong>🧹 Limpeza</strong>. Os dois modos são independentes — a alternância não interfere nos dados.</div></li>
+      </ul>
+    </div>
+
+    <div class="info-box blue">
+      <strong>Mapa vs. Kanban:</strong> O Mapa organiza por andar (visão espacial). O Kanban organiza por status de fluxo (limpeza ou chamados). Use o Kanban para acompanhar o andamento operacional geral.
     </div>
   </section>
 
@@ -936,8 +955,16 @@
         <tbody>
           <tr>
             <td><strong>Camareira</strong></td>
-            <td>Fila pessoal ordenada: Reprovados → Pausados → Em limpeza → Sujos<br>Botões: Iniciar · Pausar · Retomar · Enviar conf.</td>
-            <td>✅ Abre ao iniciar / retomar / re-limpar</td>
+            <td>
+              Fila por prioridade em 4 seções:<br>
+              <strong>(1)</strong> Minha atribuição (qualquer status) →
+              <strong>(2)</strong> Reprovados disponíveis →
+              <strong>(3)</strong> Sujos sem responsável →
+              <strong>(4)</strong> Demais pausados/conferência<br>
+              Todos os cards exibem nome da camareira ou "Sem responsável".<br>
+              Botões: Iniciar · Pausar · Retomar · Re-limpar
+            </td>
+            <td>✅ Abre ao iniciar / retomar / re-limpar<br>Seletor de <strong>tipo de limpeza</strong> no topo do checklist</td>
           </tr>
           <tr>
             <td><strong>Admin Global / Admin Hotel</strong></td>
@@ -973,8 +1000,8 @@
     </div>
 
     <div class="card">
-      <h4>🔄 Recuperação automática de limpeza abandonada <span class="novidade-badge">Novo</span></h4>
-      <p style="font-size:13px;color:var(--text2);">Ao fazer login, o sistema verifica automaticamente se existem apartamentos em status <span class="badge b-limpando">Limpando</span> sem processo ativo (inativo há mais de 2 horas). Esses aptos são revertidos automaticamente para <span class="badge b-sujo">Sujo</span> com registro no histórico, evitando que o status fique preso indefinidamente. Um aviso em tela informa quantos aptos foram revertidos.</p>
+      <h4>🔄 Recuperação automática de limpeza abandonada <span class="novidade-badge">Atualizado</span></h4>
+      <p style="font-size:13px;color:var(--text2);">Ao fazer login, o sistema verifica automaticamente se existem apartamentos em status <span class="badge b-limpando">Limpando</span> sem processo ativo (inativo há mais de <strong>1 hora</strong>). Esses aptos são revertidos automaticamente para <span class="badge b-sujo">Sujo</span> com registro no histórico, evitando que o status fique preso indefinidamente. Um aviso em tela informa quantos aptos foram revertidos.</p>
     </div>
   </section>
 
@@ -1128,6 +1155,19 @@
           <tr><td><strong>Taxa Aprovação / Retrabalho</strong></td><td>% de sessões aprovadas e com retrabalho</td></tr>
         </tbody>
       </table>
+      <div class="card" style="margin-top:12px;">
+        <h4>Comparativo por Tipo de Limpeza vs. Meta <span class="novidade-badge">Novo</span></h4>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:8px;">Tabela adicional que cruza cada camareira com os tipos de limpeza realizados no período, comparando o tempo médio efetivo com a meta configurada em <strong>Config → Parâmetros de Limpeza</strong>.</p>
+        <table style="margin-bottom:0;">
+          <thead><tr><th>Coluna</th><th>O que mostra</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Qtd. Saída / Qtd. Perm.</strong></td><td>Quantidade de limpezas de cada tipo realizadas pela camareira</td></tr>
+            <tr><td><strong>T.Médio Saída</strong></td><td>Tempo médio de limpeza de saída — ✅ verde se ≤ meta configurada, ⚠️ vermelho se acima</td></tr>
+            <tr><td><strong>T.Médio Perm.</strong></td><td>Tempo médio de limpeza de permanência — mesma lógica ✅/⚠️</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:12px;color:var(--text3);margin-top:8px;">O tipo de limpeza é capturado no momento em que a camareira conclui o checklist. Limpezas sem tipo registrado não aparecem nessa tabela. Card no topo da aba exibe as metas atuais configuradas.</p>
+      </div>
     </div>
 
     <!-- Aba Qualidade -->
@@ -1220,7 +1260,7 @@
     </div>
 
     <div class="info-box green">
-      <strong>Fontes de dados:</strong> Os relatórios usam 7 tabelas do Supabase carregadas em paralelo: <code>apartments</code>, <code>work_orders</code>, <code>pendencias_retrabalho</code>, <code>user_profiles</code>, <code>apartment_status_history</code>, <code>conferencia_supervisora_checklists</code> e <code>limpeza_checklists</code>. O cálculo de sessões de limpeza é derivado do histórico — não há tabela dedicada de sessões.
+      <strong>Fontes de dados:</strong> Os relatórios usam 8 tabelas do Supabase carregadas em paralelo: <code>apartments</code>, <code>work_orders</code>, <code>pendencias_retrabalho</code>, <code>user_profiles</code>, <code>apartment_status_history</code>, <code>conferencia_supervisora_checklists</code>, <code>limpeza_checklists</code> e <code>hotel_config</code> (para metas de tempo). O cálculo de sessões de limpeza é derivado do histórico — não há tabela dedicada de sessões.
     </div>
   </section>
 
@@ -1263,8 +1303,9 @@
     </div>
 
     <div class="card">
-      <h4>✅ Checklist de Limpeza (Camareira)</h4>
+      <h4>✅ Checklist de Limpeza (Camareira) <span class="novidade-badge">Atualizado</span></h4>
       <p style="font-size:13px;color:var(--text2);">Itens que a camareira preenche ao <strong>iniciar</strong> a limpeza — o checklist abre automaticamente quando ela clica em "Iniciar limpeza", "Retomar" ou "Re-limpar". A limpeza só é enviada para conferência com ≥ 80% dos itens marcados.</p>
+      <p style="font-size:13px;color:var(--text2);margin-top:8px;">No topo do checklist a camareira seleciona o <strong>tipo de limpeza</strong> (ex.: Saída/checkout · Permanência · Pós-manutenção). O tipo é salvo junto com as respostas e usado nos relatórios de produtividade para comparação com as metas de tempo configuradas.</p>
     </div>
 
     <div class="card">
@@ -1284,8 +1325,21 @@
     </div>
 
     <div class="card">
-      <h4>🧹 Tipos de Limpeza <span class="novidade-badge">Novo</span></h4>
-      <p style="font-size:13px;color:var(--text2);">Gerencie os tipos de limpeza disponíveis (ex.: Diária, Saída, Permanência, Profunda). Usados no checklist e no histórico de limpeza para categorizar o serviço realizado.</p>
+      <h4>🧹 Tipos de Limpeza <span class="novidade-badge">Atualizado</span></h4>
+      <p style="font-size:13px;color:var(--text2);">Gerencie os tipos de limpeza disponíveis (ex.: Saída/checkout, Permanência, Pós-manutenção). Ao abrir o checklist de limpeza, a camareira escolhe o tipo antes de marcar os itens. O tipo selecionado é salvo no histórico e alimenta o relatório de produtividade por tipo vs. meta de tempo.</p>
+    </div>
+
+    <div class="card">
+      <h4>⏱ Parâmetros de Limpeza <span class="novidade-badge">Novo</span></h4>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:8px;">Define os tempos-meta de limpeza por tipo, usados para avaliar a produtividade da equipe no relatório de <strong>Produtividade por Camareira</strong>.</p>
+      <table style="margin-bottom:0;">
+        <thead><tr><th>Parâmetro</th><th>Descrição</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Tempo padrão — Saída (min)</strong></td><td>Meta de tempo para limpeza de saída/checkout (ex.: 45 min)</td></tr>
+          <tr><td><strong>Tempo padrão — Permanência (min)</strong></td><td>Meta de tempo para limpeza de permanência (ex.: 25 min)</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:12px;color:var(--text3);margin-top:8px;">Clique em <strong>Salvar parâmetros</strong> após alterar. Os valores são persistidos por hotel na tabela <code>hotel_config</code>. O relatório usa esses valores para indicar ✅ (dentro da meta) ou ⚠️ (acima da meta) por camareira e tipo de limpeza.</p>
     </div>
 
     <div class="card">
@@ -1399,10 +1453,25 @@
       <h4>A tela de Minha Fila da manutenção está diferente das outras. É correto?</h4>
       <p>Sim. Para o perfil Manutenção, a Minha Fila exibe apenas um painel de boas-vindas com o total de aptos em manutenção e um atalho para <strong>Chamados</strong> — que é onde fica o fluxo de trabalho completo (assumir, andamento, conclusão).</p>
     </div>
+
+    <div class="card">
+      <h4>Como a camareira informa o tipo de limpeza?</h4>
+      <p>No momento em que o checklist abre (ao iniciar, retomar ou re-limpar), aparecem botões no topo: <strong>Saída (checkout)</strong>, <strong>Permanência</strong> e <strong>Pós-manutenção</strong> (ou os tipos configurados em <strong>Config → Tipos de Limpeza</strong>). O primeiro tipo já vem selecionado por padrão. A camareira toca no tipo correto antes de marcar os itens. Ao concluir, o tipo é salvo junto com o checklist.</p>
+    </div>
+
+    <div class="card">
+      <h4>Como configurar os tempos-meta de limpeza?</h4>
+      <p>Acesse <strong>Config</strong> → seção <strong>⏱ Parâmetros de Limpeza</strong>. Informe o tempo padrão em minutos para limpeza de <em>Saída</em> e para limpeza de <em>Permanência</em> e clique em <strong>Salvar parâmetros</strong>. Os valores são usados no relatório de <strong>Produtividade</strong> para indicar ✅ (dentro da meta) ou ⚠️ (acima da meta) por camareira e tipo.</p>
+    </div>
+
+    <div class="card">
+      <h4>O Kanban mudou de limpeza para chamados sozinho. O que aconteceu?</h4>
+      <p>A partir desta versão o Kanban tem dois modos: <strong>🧹 Limpeza</strong> e <strong>📋 Chamados</strong>, alternados pelos botões no topo. Os modos são isolados — um não interfere no outro. Se você estava em Limpeza e o board exibiu chamados, verifique se o botão <em>Chamados</em> foi clicado acidentalmente.</p>
+    </div>
   </section>
 
   <div style="text-align:center;padding:32px 0;color:var(--text3);font-size:12px;border-top:1px solid var(--border);">
-    Gov Estancorp · Manual de Uso · Versão 2026.06.6 · Sistema de Governança Hoteleira
+    Gov Estancorp · Manual de Uso · Versão 2026.06.7 · Sistema de Governança Hoteleira
   </div>
 
 </main>
