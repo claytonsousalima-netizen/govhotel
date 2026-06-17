@@ -1414,13 +1414,17 @@ function _garantirBotoesMapa() {
   // Reconstrói o container para eliminar duplicatas de versões antigas do index.html
   container.innerHTML = '';
 
+  const isAdmin = ['admin_global','admin_hotel'].includes(currentUser?.perfil);
+
   if (!isOperacional) {
-    const btnCad = document.createElement('button');
-    btnCad.id = 'btn-cadastrar-apto-mapa';
-    btnCad.className = 'btn btn-ghost btn-sm';
-    btnCad.textContent = '⊕ Cadastrar Apto';
-    btnCad.onclick = () => openPage('cadastro-apto');
-    container.appendChild(btnCad);
+    if (isAdmin) {
+      const btnCad = document.createElement('button');
+      btnCad.id = 'btn-cadastrar-apto-mapa';
+      btnCad.className = 'btn btn-ghost btn-sm';
+      btnCad.textContent = '⊕ Cadastrar Apto';
+      btnCad.onclick = () => openPage('cadastro-apto');
+      container.appendChild(btnCad);
+    }
 
     const btnAlt = document.createElement('button');
     btnAlt.id = 'btn-alterar-status-header';
