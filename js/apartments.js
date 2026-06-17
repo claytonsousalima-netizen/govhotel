@@ -7,6 +7,7 @@
 let _editingAptoId  = null;
 let _aptoViewHotelId = null; // hotel selecionado na visualização (admin_global)
 let _checklistOrigemStatus = null; // status anterior ao abrir o checklist de limpeza (para cancelar reverter)
+let _limpandoOrfaosVerificado = false; // garante que a limpeza de órfãos roda só uma vez por sessão
 
 // ── SINCRONIZAR COM SUPABASE ──────────────────────────────────
 
@@ -62,6 +63,34 @@ async function syncApartamentos() {
 
   // Atualiza badge do menu (confCount depende de aptos frescos)
   if (typeof buildSidebar === 'function') buildSidebar();
+
+  // Na primeira carga da sessão, reverte apts em limpando órfãos (sem processo ativo)
+  if (!_limpandoOrfaosVerificado) {
+    _limpandoOrfaosVerificado = true;
+    await _limparLimpandoOrfaos();
+  }
+}
+
+// Reverte para sujo qualquer apt em limpando cujo processo foi abandonado:
+// status_at > 2h e nenhum checklist ativo neste cliente para ele.
+async function _limparLimpandoOrfaos() {
+  const LIMITE_MS = 2 * 60 * 60 * 1000; // 2 horas
+  const agora = Date.now();
+  const orfaos = aptos.filter(a => {
+    if (a.status !== 'limpando') return false;
+    // Preserva o apto que está com checklist aberto agora neste cliente
+    if (a.id === selectedAptoId && _checklistOrigemStatus !== null) return false;
+    const ts = a.status_at ? new Date(a.status_at).getTime() : 0;
+    return (agora - ts) > LIMITE_MS;
+  });
+  if (!orfaos.length) return;
+  for (const a of orfaos) {
+    await mudarStatusApto(
+      a.id, 'sujo',
+      `Limpeza encerrada automaticamente — processo não concluído (inativo há mais de 2h)`
+    );
+  }
+  toast(`${orfaos.length} apto(s) em limpeza sem processo ativo foram revertidos para Sujo`, 'warning');
 }
 
 // ── POPULAR SELECT DE CAMAREIRA (de user_profiles) ───────────
@@ -875,8 +904,8 @@ async function iniciarLimpeza() {
   const acao = apto.status === 'pausado' ? 'retomada' : 'iniciada';
   const obs  = `Limpeza ${acao} por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
   await mudarStatusApto(selectedAptoId, 'limpando', obs);
-  // Apenas camareira preenche checklist ao iniciar — admin e gestor seguem fluxo direto
-  if (currentUser?.perfil === 'camareira') {
+  // Camareira e admins preenchem checklist ao iniciar; gestor/supervisora seguem fluxo direto
+  if (['camareira','admin_global','admin_hotel'].includes(currentUser?.perfil)) {
     await abrirChecklistApp(selectedAptoId);
   }
 }
@@ -955,8 +984,8 @@ async function concluirLimpeza() {
   if (apto.status !== 'limpando') {
     toast('Conclusão só é permitida com apartamento Em limpeza. Retome antes de concluir.', 'error'); return;
   }
-  if (currentUser?.perfil === 'camareira') {
-    // Re-abre checklist caso a camareira tenha fechado o modal sem concluir
+  if (['camareira','admin_global','admin_hotel'].includes(currentUser?.perfil)) {
+    // Re-abre checklist caso o modal tenha sido fechado sem concluir
     _checklistOrigemStatus = 'limpando';
     await abrirChecklistApp(selectedAptoId);
   } else {
