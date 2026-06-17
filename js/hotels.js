@@ -166,11 +166,14 @@ async function salvarHotel() {
 
   const payload = { nome, cnpj, endereco, cidade, estado, total_andares: andares, telefone, email, ativo };
 
-  let error;
+  let error, novoHotelId = null;
   if (_editingHotelId) {
     ({ error } = await supabaseClient.from('hotels').update(payload).eq('id', _editingHotelId));
   } else {
-    ({ error } = await supabaseClient.from('hotels').insert([payload]));
+    const { data: inserted, error: insErr } = await supabaseClient
+      .from('hotels').insert([payload]).select('id').single();
+    error = insErr;
+    novoHotelId = inserted?.id || null;
   }
 
   btn.disabled    = false;
@@ -179,6 +182,11 @@ async function salvarHotel() {
   if (error) {
     toast('Erro ao salvar: ' + error.message, 'error');
     return;
+  }
+
+  // Replica configurações do Gran Estanplaza para o hotel novo
+  if (novoHotelId && typeof _replicarConfigGranEstanplaza === 'function') {
+    await _replicarConfigGranEstanplaza(novoHotelId);
   }
 
   closeModal('modal-hotel-form');

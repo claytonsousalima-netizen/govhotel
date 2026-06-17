@@ -2013,7 +2013,7 @@ initMapaAdmin = async function() {
 // ── TIPOS E CATEGORIAS DE APARTAMENTO (banco de dados) ───────
 
 async function _loadAptoOpcoes(tabela) {
-  const hotelId = currentUser?.perfil === 'admin_global' ? null : currentUser?.hotelId;
+  const hotelId = (typeof _cfgHotelId === 'function') ? _cfgHotelId() : (currentUser?.hotelId || null);
   let q = supabaseClient.from(tabela).select('id, nome, hotel_id, ativo').order('ordem');
   if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
   const { data } = await q;
@@ -2105,7 +2105,8 @@ async function _cfgSave(tabela, id) {
 async function _cfgAdd(tabela, inputEl) {
   const nome = (inputEl?.value || '').trim();
   if (!nome) { toast('Informe o nome', 'error'); return; }
-  const hotel_id = currentUser?.perfil === 'admin_global' ? null : currentUser?.hotelId;
+  if (typeof _cfgBlocked === 'function' && _cfgBlocked()) { toast('Selecione um hotel para editar configurações', 'error'); return; }
+  const hotel_id = (typeof _cfgHotelId === 'function') ? _cfgHotelId() : (currentUser?.hotelId || null);
   const { data: existentes } = await supabaseClient.from(tabela).select('ordem').order('ordem', { ascending: false }).limit(1);
   const ordem = existentes?.length ? (existentes[0].ordem + 1) : 1;
   const { error } = await supabaseClient.from(tabela).insert([{ nome, hotel_id, ativo: true, ordem }]);

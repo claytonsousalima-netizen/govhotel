@@ -4,9 +4,63 @@
 // Visível apenas para admin_global e admin_hotel.
 // ================================================================
 
-// ── RENDER PÁGINA CONFIG ──────────────────────────────────────
-async function renderConfigPage() {
-  if (!canAccess('config')) return;
+// ── HOTEL SELECTOR (admin_global) ────────────────────────────
+let _configViewHotelId = null; // hotel selecionado no seletor global da Config
+
+function _cfgHotelId() {
+  // Retorna o hotel_id a usar em todas as operações de config
+  return currentUser?.perfil === 'admin_global'
+    ? _configViewHotelId
+    : (currentUser?.hotelId || null);
+}
+
+function _cfgBlocked() {
+  // Bloqueia edições para admin_global sem hotel selecionado
+  return currentUser?.perfil === 'admin_global' && !_configViewHotelId;
+}
+
+async function _renderConfigHotelSelector() {
+  const wrap = document.getElementById('config-global-hotel-selector');
+  const aviso = document.getElementById('config-sem-hotel-aviso');
+  const conteudo = document.getElementById('config-conteudo');
+  if (!wrap) return;
+
+  if (currentUser?.perfil !== 'admin_global') {
+    wrap.style.display = 'none';
+    if (aviso) aviso.style.display = 'none';
+    if (conteudo) conteudo.style.display = 'grid';
+    return;
+  }
+
+  wrap.style.display = 'block';
+  const sel = document.getElementById('cfg-global-hotel-select');
+  if (sel) {
+    const { data } = await supabaseClient.from('hotels').select('id, nome').eq('ativo', true).order('nome');
+    sel.innerHTML = '<option value="">— Selecione um hotel para configurar —</option>' +
+      (data || []).map(h => `<option value="${h.id}" ${h.id === _configViewHotelId ? 'selected' : ''}>${h.nome}</option>`).join('');
+  }
+
+  const semHotel = !_configViewHotelId;
+  if (aviso) aviso.style.display = semHotel ? 'block' : 'none';
+  if (conteudo) conteudo.style.display = semHotel ? 'none' : 'grid';
+
+  const hint = document.getElementById('config-hotel-hint');
+  if (hint) {
+    const h = (document.getElementById('cfg-global-hotel-select') || {});
+    const nomeHotel = h.options?.[h.selectedIndex]?.text || '';
+    hint.textContent = _configViewHotelId
+      ? `Exibindo configurações de: ${nomeHotel}`
+      : 'Selecione um hotel para visualizar e editar suas configurações.';
+  }
+}
+
+async function _onConfigHotelChange(hotelId) {
+  _configViewHotelId = hotelId || null;
+  await _renderConfigHotelSelector();
+  if (_configViewHotelId) await _recarregarTodasSections();
+}
+
+async function _recarregarTodasSections() {
   await Promise.all([
     renderConfigTurnos(),
     renderConfigTipos(),
@@ -19,7 +73,15 @@ async function renderConfigPage() {
     renderConfigMotivosPausa(),
     renderConfigMotivosCancel(),
     renderConfigSupervisoraChecklist(),
+    (typeof renderConfigAptoTiposCats === 'function' ? renderConfigAptoTiposCats() : Promise.resolve()),
   ]);
+}
+
+// ── RENDER PÁGINA CONFIG ──────────────────────────────────────
+async function renderConfigPage() {
+  if (!canAccess('config')) return;
+  await _renderConfigHotelSelector();
+  if (!_cfgBlocked()) await _recarregarTodasSections();
 }
 
 // ── TURNOS ────────────────────────────────────────────────────
@@ -29,7 +91,7 @@ async function renderConfigTurnos() {
   const el = document.getElementById('config-turnos');
   if (!el) return;
 
-  const hotelId = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
+  const hotelId = _cfgHotelId();
   let query = supabaseClient.from('turnos').select('*').order('periodo').order('numero');
   if (hotelId) query = query.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
 
@@ -98,7 +160,7 @@ async function renderConfigTipos() {
   const elMan  = document.getElementById('config-tipos-manutencao');
   if (!elGov && !elMan) return;
 
-  const hotelId = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
+  const hotelId = _cfgHotelId();
   let query = supabaseClient.from('chamado_tipos').select('*').order('ordem');
   if (hotelId) query = query.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
 
@@ -183,7 +245,8 @@ async function _adicionarTipo(dept) {
   const input = document.getElementById(`new-tipo-nome-${dept}`);
   const nome  = input?.value.trim();
   if (!nome) { toast('Informe o nome do tipo', 'error'); return; }
-  const hotel_id = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
+  if (_cfgBlocked()) { toast('Selecione um hotel para editar configurações', 'error'); return; }
+  const hotel_id = _cfgHotelId();
   const ordem    = (_tiposCache.filter(t => t.departamento === dept).length || 0) + 1;
   const { error } = await supabaseClient.from('chamado_tipos').insert([{ nome, hotel_id, ordem, departamento: dept }]);
   if (error) { toast('Erro: ' + error.message, 'error'); return; }
@@ -213,7 +276,7 @@ async function renderConfigChecklist() {
   const el = document.getElementById('config-checklist');
   if (!el) return;
 
-  const hotelId = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
+  const hotelId = _cfgHotelId();
   let query = supabaseClient.from('checklist_templates').select('*').order('ordem');
   if (hotelId) query = query.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
 
@@ -290,7 +353,8 @@ async function _adicionarCheckItem() {
   const input = document.getElementById('new-check-nome');
   const nome  = input?.value.trim();
   if (!nome) { toast('Informe o nome do item', 'error'); return; }
-  const hotel_id = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
+  if (_cfgBlocked()) { toast('Selecione um hotel para editar configurações', 'error'); return; }
+  const hotel_id = _cfgHotelId();
   const ordem    = (_checklistCache.length || 0) + 1;
   const { error } = await supabaseClient.from('checklist_templates').insert([{ nome, hotel_id, ordem }]);
   if (error) { toast('Erro: ' + error.message, 'error'); return; }
@@ -352,7 +416,7 @@ async function renderConfigSolicitantes() {
   const el = document.getElementById('config-solicitantes');
   if (!el) return;
 
-  const hotelId = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
+  const hotelId = _cfgHotelId();
   let query = supabaseClient.from('solicitantes').select('*').order('ordem');
   if (hotelId) query = query.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
 
@@ -425,7 +489,8 @@ async function _adicionarSolicitante() {
   const input = document.getElementById('new-solicitante-nome');
   const nome  = input?.value.trim();
   if (!nome) { toast('Informe o nome do solicitante', 'error'); return; }
-  const hotel_id = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
+  if (_cfgBlocked()) { toast('Selecione um hotel para editar configurações', 'error'); return; }
+  const hotel_id = _cfgHotelId();
   const ordem    = (_solicitantesCache.length || 0) + 1;
   const { error } = await supabaseClient.from('solicitantes').insert([{ nome, hotel_id, ativo: true, ordem }]);
   if (error) { toast('Erro: ' + error.message, 'error'); return; }
@@ -455,7 +520,7 @@ async function renderConfigMotivos() {
   const el = document.getElementById('config-motivos-reprovacao');
   if (!el) return;
 
-  const hotelId = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
+  const hotelId = _cfgHotelId();
   let query = supabaseClient.from('motivos_reprovacao').select('*').order('ordem');
   if (hotelId) query = query.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
 
@@ -531,7 +596,8 @@ async function _adicionarMotivo() {
   const input = document.getElementById('new-motivo-nome');
   const nome  = input?.value.trim();
   if (!nome) { toast('Informe o motivo de reprovação', 'error'); return; }
-  const hotel_id = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
+  if (_cfgBlocked()) { toast('Selecione um hotel para editar configurações', 'error'); return; }
+  const hotel_id = _cfgHotelId();
   const ordem    = (_motivosCache.length || 0) + 1;
   const { error } = await supabaseClient.from('motivos_reprovacao').insert([{ nome, hotel_id, ativo: true, ordem }]);
   if (error) { toast('Erro: ' + error.message, 'error'); return; }
@@ -558,7 +624,7 @@ async function _excluirMotivo(id) {
 async function renderConfigAndares() {
   const el = document.getElementById('config-andares');
   if (!el) return;
-  const hotelId = currentUser.hotelId;
+  const hotelId = _cfgHotelId();
   if (!hotelId) {
     el.innerHTML = '<div style="font-size:12px;color:var(--text3);">Selecione um hotel para configurar.</div>';
     return;
@@ -577,9 +643,10 @@ async function renderConfigAndares() {
 }
 
 async function _salvarMaxAndares() {
+  if (_cfgBlocked()) { toast('Selecione um hotel para editar configurações', 'error'); return; }
   const val = parseInt(document.getElementById('cfg-max-andares')?.value);
   if (!val || val < 1 || val > 99) { toast('Valor inválido (1–99)', 'error'); return; }
-  const hotelId = currentUser.hotelId;
+  const hotelId = _cfgHotelId();
   if (!hotelId) return;
   const { error } = await supabaseClient.from('hotel_config')
     .upsert({ hotel_id: hotelId, chave: 'max_andares', valor: String(val) }, { onConflict: 'hotel_id,chave' });
@@ -590,51 +657,15 @@ async function _salvarMaxAndares() {
 
 // ── PARÂMETROS DE TEMPO DE LIMPEZA ───────────────────────────
 
-let _cfgHotelId = null; // hotel selecionado no seletor de parâmetros (admin_global)
-
-async function _popularCfgHotelSelect() {
-  const wrap = document.getElementById('cfg-hotel-selector-wrap');
-  const sel  = document.getElementById('cfg-hotel-select');
-  if (!wrap || !sel) return;
-  wrap.style.display = 'block';
-  const { data } = await supabaseClient.from('hotels').select('id, nome').eq('ativo', true).order('nome');
-  sel.innerHTML = '<option value="">🌐 Global — todos os hotéis</option>' +
-    (data || []).map(h => `<option value="${h.id}" ${h.id === _cfgHotelId ? 'selected' : ''}>${h.nome}</option>`).join('');
-  _atualizarHint();
-}
-
-function _onCfgHotelChange(hotelId) {
-  _cfgHotelId = hotelId || null;
-  _atualizarHint();
-  renderConfigParametrosLimpeza();
-}
-
-function _atualizarHint() {
-  const hint = document.getElementById('cfg-hotel-hint');
-  if (!hint) return;
-  hint.innerHTML = _cfgHotelId
-    ? `Salvando somente para o hotel selecionado.`
-    : `Sem seleção: salva para <strong>todos os hotéis</strong> ativos.`;
-}
-
 async function renderConfigParametrosLimpeza() {
-  const isGlobal = currentUser?.perfil === 'admin_global';
-
-  // Mostra seletor de hotel para admin_global
-  if (isGlobal) await _popularCfgHotelSelect();
-
-  const hotelId = isGlobal ? _cfgHotelId : currentUser?.hotelId;
-
+  const hotelId = _cfgHotelId();
   const inpS = document.getElementById('cfg-tempo-saida');
   const inpP = document.getElementById('cfg-tempo-permanencia');
-
   if (!hotelId) {
-    // admin_global sem hotel selecionado — limpa campos (serão aplicados a todos ao salvar)
     if (inpS) inpS.value = '';
     if (inpP) inpP.value = '';
     return;
   }
-
   const { data } = await supabaseClient
     .from('hotel_config').select('chave, valor')
     .eq('hotel_id', hotelId)
@@ -645,30 +676,11 @@ async function renderConfigParametrosLimpeza() {
 }
 
 async function _salvarParametrosLimpeza() {
+  if (_cfgBlocked()) { toast('Selecione um hotel para editar configurações', 'error'); return; }
   const saida = parseInt(document.getElementById('cfg-tempo-saida')?.value);
   const perm  = parseInt(document.getElementById('cfg-tempo-permanencia')?.value);
   if (!saida || saida < 1 || !perm || perm < 1) { toast('Valores inválidos (mínimo 1 min)', 'error'); return; }
-
-  const isGlobal = currentUser?.perfil === 'admin_global';
-
-  if (isGlobal && !_cfgHotelId) {
-    // Salva para TODOS os hotéis ativos
-    const { data: hoteis, error: hErr } = await supabaseClient
-      .from('hotels').select('id').eq('ativo', true);
-    if (hErr) { toast('Erro ao listar hotéis: ' + hErr.message, 'error'); return; }
-    const registros = (hoteis || []).flatMap(h => [
-      { hotel_id: h.id, chave: 'tempo_padrao_saida',       valor: String(saida) },
-      { hotel_id: h.id, chave: 'tempo_padrao_permanencia', valor: String(perm)  },
-    ]);
-    if (!registros.length) { toast('Nenhum hotel ativo encontrado', 'error'); return; }
-    const { error } = await supabaseClient.from('hotel_config')
-      .upsert(registros, { onConflict: 'hotel_id,chave' });
-    if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
-    toast(`Parâmetros salvos para ${hoteis.length} hotel(is)!`, 'success');
-    return;
-  }
-
-  const hotelId = isGlobal ? _cfgHotelId : currentUser?.hotelId;
+  const hotelId = _cfgHotelId();
   if (!hotelId) { toast('Hotel não identificado', 'error'); return; }
   const { error } = await supabaseClient.from('hotel_config').upsert([
     { hotel_id: hotelId, chave: 'tempo_padrao_saida',       valor: String(saida) },
@@ -684,7 +696,7 @@ let _tiposLimpezaCache = [];
 async function renderConfigTiposLimpeza() {
   const el = document.getElementById('config-tipos-limpeza');
   if (!el) return;
-  const hotelId = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
+  const hotelId = _cfgHotelId();
   let query = supabaseClient.from('tipos_limpeza').select('*').order('ordem');
   if (hotelId) query = query.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
   const { data, error } = await query;
@@ -754,7 +766,8 @@ async function _salvarTipoLimpeza(id) {
 async function _adicionarTipoLimpeza() {
   const nome = document.getElementById('new-tipo-limpeza-nome')?.value.trim();
   if (!nome) { toast('Informe o nome do tipo', 'error'); return; }
-  const hotel_id = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
+  if (_cfgBlocked()) { toast('Selecione um hotel para editar configurações', 'error'); return; }
+  const hotel_id = _cfgHotelId();
   const ordem    = (_tiposLimpezaCache.length || 0) + 1;
   const { error } = await supabaseClient.from('tipos_limpeza').insert([{ nome, hotel_id, ativo: true, ordem }]);
   if (error) { toast('Erro: ' + error.message, 'error'); return; }
@@ -785,7 +798,7 @@ let _motivosPausaCache = [];
 async function renderConfigMotivosPausa() {
   const el = document.getElementById('config-motivos-pausa');
   if (!el) return;
-  const hotelId = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
+  const hotelId = _cfgHotelId();
   let q = supabaseClient.from('motivos_pausa').select('*').order('ordem');
   if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
   const { data, error } = await q;
@@ -841,7 +854,8 @@ async function _addMotivosPausa() {
   const input = document.getElementById('new-mpaus-nome');
   const nome  = input?.value.trim();
   if (!nome) { toast('Informe o motivo', 'error'); return; }
-  const hotel_id = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
+  if (_cfgBlocked()) { toast('Selecione um hotel para editar configurações', 'error'); return; }
+  const hotel_id = _cfgHotelId();
   const { error } = await supabaseClient.from('motivos_pausa').insert([{ nome, hotel_id, ativo: true, ordem: (_motivosPausaCache.length || 0) + 1 }]);
   if (error) { toast('Erro: ' + error.message, 'error'); return; }
   if (input) input.value = '';
@@ -863,7 +877,7 @@ let _motivosCancelCache = [];
 async function renderConfigMotivosCancel() {
   const el = document.getElementById('config-motivos-cancelamento');
   if (!el) return;
-  const hotelId = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
+  const hotelId = _cfgHotelId();
   let q = supabaseClient.from('motivos_cancelamento').select('*').order('ordem');
   if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
   const { data, error } = await q;
@@ -919,7 +933,8 @@ async function _addMotivosCancel() {
   const input = document.getElementById('new-mcanc-nome');
   const nome  = input?.value.trim();
   if (!nome) { toast('Informe o motivo', 'error'); return; }
-  const hotel_id = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
+  if (_cfgBlocked()) { toast('Selecione um hotel para editar configurações', 'error'); return; }
+  const hotel_id = _cfgHotelId();
   const { error } = await supabaseClient.from('motivos_cancelamento').insert([{ nome, hotel_id, ativo: true, ordem: (_motivosCancelCache.length || 0) + 1 }]);
   if (error) { toast('Erro: ' + error.message, 'error'); return; }
   if (input) input.value = '';
@@ -941,7 +956,7 @@ let _supClCache = [];
 async function renderConfigSupervisoraChecklist() {
   const el = document.getElementById('config-supervisora-checklist');
   if (!el) return;
-  const hotelId = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
+  const hotelId = _cfgHotelId();
   let q = supabaseClient.from('supervisora_checklist_items').select('*').order('ordem');
   if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
   const { data, error } = await q;
@@ -1006,7 +1021,8 @@ async function _addSupCl() {
   const nome = document.getElementById('new-supcl-nome')?.value.trim();
   const obrigatorio = document.getElementById('new-supcl-obrig')?.checked ?? true;
   if (!nome) { toast('Informe o nome do item', 'error'); return; }
-  const hotel_id = currentUser.perfil === 'admin_global' ? null : currentUser.hotelId;
+  if (_cfgBlocked()) { toast('Selecione um hotel para editar configurações', 'error'); return; }
+  const hotel_id = _cfgHotelId();
   const { error } = await supabaseClient.from('supervisora_checklist_items').insert([{ nome, obrigatorio, hotel_id, ativo: true, ordem: (_supClCache.length || 0) + 1 }]);
   if (error) { toast('Erro: ' + error.message, 'error'); return; }
   const input = document.getElementById('new-supcl-nome');
@@ -1023,5 +1039,48 @@ async function _delSupCl(id) {
   toast('Excluído!', 'success'); await renderConfigSupervisoraChecklist();
 }
 
+
+// ── REPLICAR CONFIG DO HOTEL GRAN ESTANPLAZA ─────────────────
+async function _replicarConfigGranEstanplaza(novoHotelId) {
+  if (!novoHotelId) return;
+
+  // Busca o ID do Hotel Gran Estanplaza
+  const { data: hotelOrigem } = await supabaseClient
+    .from('hotels').select('id').ilike('nome', '%gran estanplaza%').single();
+  if (!hotelOrigem) { console.warn('Hotel Gran Estanplaza não encontrado para replicação'); return; }
+  const origemId = hotelOrigem.id;
+
+  const tabelas = [
+    { tabela: 'turnos',                    colunas: ['nome', 'label', 'inicio', 'fim', 'periodo', 'numero', 'ativo', 'ordem'] },
+    { tabela: 'chamado_tipos',             colunas: ['nome', 'departamento', 'ativo', 'ordem'] },
+    { tabela: 'checklist_templates',       colunas: ['nome', 'ativo', 'ordem'] },
+    { tabela: 'solicitantes',              colunas: ['nome', 'ativo', 'ordem'] },
+    { tabela: 'motivos_reprovacao',        colunas: ['nome', 'ativo', 'ordem'] },
+    { tabela: 'tipos_limpeza',             colunas: ['nome', 'ativo', 'ordem'] },
+    { tabela: 'motivos_pausa',             colunas: ['nome', 'ativo', 'ordem'] },
+    { tabela: 'motivos_cancelamento',      colunas: ['nome', 'ativo', 'ordem'] },
+    { tabela: 'supervisora_checklist_items', colunas: ['nome', 'obrigatorio', 'ativo', 'ordem'] },
+  ];
+
+  for (const { tabela, colunas } of tabelas) {
+    const { data } = await supabaseClient.from(tabela).select(colunas.join(','))
+      .eq('hotel_id', origemId);
+    if (!data || !data.length) continue;
+    const registros = data.map(r => {
+      const obj = { hotel_id: novoHotelId };
+      colunas.forEach(c => { if (r[c] !== undefined) obj[c] = r[c]; });
+      return obj;
+    });
+    await supabaseClient.from(tabela).insert(registros);
+  }
+
+  // Replica hotel_config (parâmetros e andares)
+  const { data: cfgData } = await supabaseClient.from('hotel_config')
+    .select('chave, valor').eq('hotel_id', origemId);
+  if (cfgData?.length) {
+    const cfgRegistros = cfgData.map(r => ({ hotel_id: novoHotelId, chave: r.chave, valor: r.valor }));
+    await supabaseClient.from('hotel_config').upsert(cfgRegistros, { onConflict: 'hotel_id,chave' });
+  }
+}
 
 // Rendering chamado diretamente por renderConfig() em index.html
