@@ -212,12 +212,12 @@
     <table>
       <thead><tr><th>Status</th><th>Significado</th><th>Próxima ação esperada</th></tr></thead>
       <tbody>
-        <tr><td><span class="badge b-sujo">Sujo</span></td><td>Apartamento precisa de limpeza</td><td>Camareira inicia limpeza</td></tr>
-        <tr><td><span class="badge b-limpando">Limpando</span></td><td>Limpeza em andamento</td><td>Camareira conclui ou pausa</td></tr>
-        <tr><td><span class="badge b-pausado">Pausado</span></td><td>Limpeza interrompida temporariamente</td><td>Camareira retoma</td></tr>
-        <tr><td><span class="badge b-conferencia">Conferência</span></td><td>Aguardando vistoria da supervisora/gestor</td><td>Supervisora ou gestor aprova ou reprova</td></tr>
-        <tr><td><span class="badge b-limpo">Limpo</span></td><td>Aprovado pela supervisora/gestor</td><td>Admin/Gestor libera para check-in → <span class="badge b-livre">Livre</span></td></tr>
-        <tr><td><span class="badge b-reprovado">Reprovado</span></td><td>Não passou na conferência</td><td>Camareira refaz a limpeza</td></tr>
+        <tr><td><span class="badge b-sujo">Sujo</span></td><td>Apartamento precisa de limpeza</td><td>Perfil operacional inicia limpeza — checklist abre imediatamente</td></tr>
+        <tr><td><span class="badge b-limpando">Limpando</span></td><td>Checklist de limpeza sendo preenchido</td><td>Quem iniciou conclui checklist (→ Conferência), pausa ou cancela. Status transitório — revertido para Sujo automaticamente se inativo por mais de 2h.</td></tr>
+        <tr><td><span class="badge b-pausado">Pausado</span></td><td>Limpeza interrompida temporariamente</td><td>Quem pausou retoma → limpando + checklist reabre</td></tr>
+        <tr><td><span class="badge b-conferencia">Conferência</span></td><td>Aguardando vistoria</td><td>Supervisora, Gestor, Governanta ou Admin abre checklist de conferência, aprova ou reprova</td></tr>
+        <tr><td><span class="badge b-limpo">Limpo</span></td><td>Aprovado na conferência</td><td>Admin/Gestor libera para check-in → <span class="badge b-livre">Livre</span></td></tr>
+        <tr><td><span class="badge b-reprovado">Reprovado</span></td><td>Não passou na conferência</td><td>Perfil operacional re-limpa — checklist abre imediatamente</td></tr>
         <tr><td><span class="badge b-livre">Livre</span></td><td>Disponível para hospedagem</td><td>—</td></tr>
         <tr><td><span class="badge b-ocupado">Ocupado</span></td><td>Hóspede no apartamento</td><td>—</td></tr>
         <tr><td><span class="badge b-bloqueado">Bloqueado</span></td><td>Fora de uso (interdição)</td><td>—</td></tr>
@@ -361,6 +361,21 @@
     </div>
 
     <div class="section">
+      <div class="section-title">🧹 Fluxo de Limpeza (Admin Global)</div>
+      <div class="info-box amber">O Admin Global pode executar o fluxo de limpeza igual à camareira — ao iniciar ou retomar uma limpeza o checklist abre automaticamente. Suas demais funções (conferência, aprovação, gestão) permanecem inalteradas.</div>
+      <table>
+        <thead><tr><th>Status do apto</th><th>Ação disponível</th><th>Resultado</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge b-sujo">Sujo</span></td><td>▶ Iniciar limpeza</td><td>→ <span class="badge b-limpando">Limpando</span> + checklist abre</td></tr>
+          <tr><td><span class="badge b-limpando">Limpando</span></td><td>⏸ Pausar · 🚫 Cancelar · 🔍 Enviar conf.</td><td>Pausar → <span class="badge b-pausado">Pausado</span> · Cancelar → reverte ao status anterior · Enviar → reabre checklist</td></tr>
+          <tr><td><span class="badge b-pausado">Pausado</span></td><td>▶ Retomar limpeza</td><td>→ <span class="badge b-limpando">Limpando</span> + checklist reabre</td></tr>
+          <tr><td><span class="badge b-reprovado">Reprovado</span></td><td>▶ Re-limpar</td><td>→ <span class="badge b-limpando">Limpando</span> + checklist abre</td></tr>
+          <tr><td><span class="badge b-conferencia">Conferência</span></td><td>✅ Aprovar · ❌ Reprovar</td><td>Aprovar → checklist conferência → <span class="badge b-limpo">Limpo</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section">
       <div class="section-title">⚙ Configurações do Sistema</div>
       <p style="color:var(--text2);margin-bottom:12px;">O módulo Config centraliza todas as listas e parâmetros usados no sistema. Veja a seção completa em <a href="#mod-config" style="color:var(--blue);">Módulo: Configurações</a>.</p>
     </div>
@@ -398,6 +413,9 @@
         <li>Não consegue visualizar ou criar usuários com perfil <strong>Admin Global</strong></li>
         <li>Vê automaticamente os dados do seu hotel (sem seletor de hotel)</li>
       </ul>
+    </div>
+    <div class="info-box amber" style="margin-top:12px;">
+      <strong>Fluxo de limpeza:</strong> O Admin Hotel participa do fluxo de limpeza igual à camareira — ao iniciar ou retomar uma limpeza o checklist abre automaticamente. Também pode aprovar/reprovar apartamentos na conferência.
     </div>
   </section>
 
@@ -459,6 +477,20 @@
     </div>
 
     <div class="section">
+      <div class="section-title">🧹 Fluxo de Limpeza (Gestor) <span class="novidade-badge">Atualizado</span></div>
+      <div class="info-box amber">O Gestor agora também participa do fluxo de limpeza — ao iniciar ou retomar uma limpeza o checklist abre automaticamente. Suas funções de gestão e conferência permanecem inalteradas.</div>
+      <table>
+        <thead><tr><th>Status do apto</th><th>Ação</th><th>Resultado</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge b-sujo">Sujo</span></td><td>▶ Iniciar limpeza</td><td>→ <span class="badge b-limpando">Limpando</span> + checklist abre</td></tr>
+          <tr><td><span class="badge b-pausado">Pausado</span></td><td>▶ Retomar limpeza</td><td>→ <span class="badge b-limpando">Limpando</span> + checklist reabre</td></tr>
+          <tr><td><span class="badge b-reprovado">Reprovado</span></td><td>▶ Re-limpar</td><td>→ <span class="badge b-limpando">Limpando</span> + checklist abre</td></tr>
+          <tr><td><span class="badge b-conferencia">Conferência</span></td><td>✅ Aprovar · ❌ Reprovar</td><td>Aprovar → checklist conferência → <span class="badge b-limpo">Limpo</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section">
       <div class="section-title">📌 Minha Fila (visão gestor) <span class="novidade-badge">Atualizado</span></div>
       <ul class="steps">
         <li><div class="step-num">1</div><div class="step-body">Contadores clicáveis de todos os status no topo: Ag. Conferência, Reprovados, Em limpeza, Sujos, Pausados, Limpos, Bloqueados, Em manutenção.</div></li>
@@ -491,13 +523,27 @@
     </div>
 
     <div class="section">
+      <div class="section-title">🧹 Fluxo de Limpeza (Supervisora / Governanta) <span class="novidade-badge">Atualizado</span></div>
+      <div class="info-box amber">A Supervisora e a Governanta agora também participam do fluxo de limpeza — ao iniciar ou retomar uma limpeza o checklist abre automaticamente, igual à camareira. Suas funções de conferência e aprovação permanecem inalteradas.</div>
+      <table>
+        <thead><tr><th>Status do apto</th><th>Ação</th><th>Resultado</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge b-sujo">Sujo</span></td><td>▶ Iniciar limpeza</td><td>→ <span class="badge b-limpando">Limpando</span> + checklist abre</td></tr>
+          <tr><td><span class="badge b-pausado">Pausado</span></td><td>▶ Retomar limpeza</td><td>→ <span class="badge b-limpando">Limpando</span> + checklist reabre</td></tr>
+          <tr><td><span class="badge b-reprovado">Reprovado</span></td><td>▶ Re-limpar</td><td>→ <span class="badge b-limpando">Limpando</span> + checklist abre</td></tr>
+          <tr><td><span class="badge b-conferencia">Conferência</span></td><td>✅ Aprovar · ❌ Reprovar</td><td>Aprovar → checklist de conferência → <span class="badge b-limpo">Limpo</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section">
       <div class="section-title">📌 Conferência pela Minha Fila (fluxo principal)</div>
       <div class="info-box blue">A <strong>Minha Fila</strong> é a tela principal da supervisora. O sistema abre nela automaticamente ao fazer login.</div>
       <ul class="steps">
         <li><div class="step-num">1</div><div class="step-body">Na seção <strong>"Aguardando Conferência"</strong>, veja todos os aptos prontos para vistoria, com nome da camareira que realizou a limpeza.</div></li>
-        <li><div class="step-num">2</div><div class="step-body">Para <strong>aprovar</strong>: clique <strong>✅ Aprovar limpeza</strong>. O apto muda para <span class="badge b-limpo">Limpo</span>.</div></li>
-        <li><div class="step-num">3</div><div class="step-body">Para <strong>reprovar</strong>: clique <strong>❌ Reprovar</strong>, selecione o motivo da lista (configurável em <strong>Config → Motivos de Reprovação</strong>), adicione uma observação opcional e confirme. O apto volta para <span class="badge b-reprovado">Reprovado</span> e o motivo fica registrado para a camareira.</div></li>
-        <li><div class="step-num">4</div><div class="step-body">O checklist de conferência (avaliado antes de aprovar/reprovar) é configurado em <strong>Config → Checklist de Conferência</strong>. Os itens representam os critérios que a supervisora, governanta ou gestor verificam na vistoria.</div></li>
+        <li><div class="step-num">2</div><div class="step-body">Para <strong>aprovar</strong>: clique <strong>✅ Aprovar limpeza</strong>. Abre o checklist de conferência — avalie cada item e clique <strong>✅ Aprovar</strong>. O apto muda para <span class="badge b-limpo">Limpo</span>. Itens marcados como <strong>Não conforme</strong> exigem descrição obrigatória.</div></li>
+        <li><div class="step-num">3</div><div class="step-body">Para <strong>reprovar</strong>: clique <strong>❌ Reprovar</strong>, selecione o motivo (configurável em <strong>Config → Motivos de Reprovação</strong>), adicione observação e confirme. O apto volta para <span class="badge b-reprovado">Reprovado</span> e o motivo fica registrado.</div></li>
+        <li><div class="step-num">4</div><div class="step-body">O checklist de conferência é configurado em <strong>Config → Checklist de Conferência</strong>. Itens marcados com <span style="color:var(--danger);">*</span> são obrigatórios.</div></li>
         <li><div class="step-num">5</div><div class="step-body">Clique em <strong>↺ Atualizar</strong> para ver novos aptos prontos.</div></li>
       </ul>
     </div>
@@ -884,36 +930,51 @@
     <p style="color:var(--text2);margin-bottom:16px;"><em>Disponível para: todos os perfis</em></p>
 
     <div class="card">
-      <h4>Visão por Perfil</h4>
+      <h4>Visão por Perfil <span class="novidade-badge">Atualizado</span></h4>
       <table>
-        <thead><tr><th>Perfil</th><th>O que vê em Minha Fila</th></tr></thead>
+        <thead><tr><th>Perfil</th><th>O que vê em Minha Fila</th><th>Checklist de limpeza</th></tr></thead>
         <tbody>
           <tr>
             <td><strong>Camareira</strong></td>
-            <td>Fila pessoal ordenada: Reprovados → Pausados → Em limpeza → Sujos<br>Botões: Iniciar · Pausar · Retomar · Enviar para conferência</td>
+            <td>Fila pessoal ordenada: Reprovados → Pausados → Em limpeza → Sujos<br>Botões: Iniciar · Pausar · Retomar · Enviar conf.</td>
+            <td>✅ Abre ao iniciar / retomar / re-limpar</td>
           </tr>
           <tr>
-            <td><strong>Supervisora / Gestor / Admin</strong></td>
-            <td>
+            <td><strong>Admin Global / Admin Hotel</strong></td>
+            <td rowspan="3">
               Contadores clicáveis de todos os status + seções individuais:<br>
               <ul style="margin:6px 0 0 16px;font-size:12px;color:var(--text2);">
-                <li><strong>👤 Sujos sem camareira</strong> — aptos sujos sem responsável (aparece só quando houver)</li>
+                <li><strong>👤 Sujos sem camareira</strong> — aptos sem responsável</li>
                 <li><strong>🔍 Aguardando conferência</strong> — botões Aprovar / Reprovar</li>
                 <li><strong>❌ Reprovados</strong> — aguardando re-limpeza</li>
-                <li><strong>🟠 Para limpar</strong> — aptos sujos com ou sem camareira</li>
-                <li><strong>🧹 Em limpeza agora</strong> — aptos com limpeza em andamento</li>
+                <li><strong>🟠 Para limpar</strong> — aptos sujos</li>
+                <li><strong>🧹 Em limpeza agora</strong> — limpeza em andamento</li>
                 <li><strong>⏸ Pausados</strong> — limpeza interrompida</li>
-                <li><strong>🔒 Bloqueados</strong> — aptos interditados</li>
-                <li><strong>🔧 Em Manutenção</strong> — aptos em reparo</li>
+                <li><strong>🔒 Bloqueados / 🔧 Manutenção</strong></li>
               </ul>
             </td>
+            <td>✅ Abre ao iniciar / retomar / re-limpar<br><em>+ pode aprovar / reprovar conferência</em></td>
+          </tr>
+          <tr>
+            <td><strong>Gestor</strong></td>
+            <td>✅ Abre ao iniciar / retomar / re-limpar<br><em>+ pode aprovar / reprovar conferência</em></td>
+          </tr>
+          <tr>
+            <td><strong>Supervisora / Governanta</strong></td>
+            <td>✅ Abre ao iniciar / retomar / re-limpar<br><em>+ pode aprovar / reprovar conferência</em></td>
           </tr>
           <tr>
             <td><strong>Manutenção</strong></td>
-            <td>Painel de boas-vindas com total de aptos em manutenção e botão <strong>🔧 Ver meus chamados</strong> (redireciona para Chamados)</td>
+            <td>Painel de boas-vindas com total de aptos em manutenção e botão <strong>🔧 Ver meus chamados</strong></td>
+            <td>❌ Não participa do fluxo de limpeza</td>
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <div class="card">
+      <h4>🔄 Recuperação automática de limpeza abandonada <span class="novidade-badge">Novo</span></h4>
+      <p style="font-size:13px;color:var(--text2);">Ao fazer login, o sistema verifica automaticamente se existem apartamentos em status <span class="badge b-limpando">Limpando</span> sem processo ativo (inativo há mais de 2 horas). Esses aptos são revertidos automaticamente para <span class="badge b-sujo">Sujo</span> com registro no histórico, evitando que o status fique preso indefinidamente. Um aviso em tela informa quantos aptos foram revertidos.</p>
     </div>
   </section>
 
