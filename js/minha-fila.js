@@ -82,19 +82,57 @@ async function _mfSelecionarHotel(hotelId) {
 
 function _mfRenderCamareira(el) {
   const nome = currentUser.nome?.split(' ')[0] || 'Camareira';
+  const uid  = currentUser.id;
 
-  const grupos = [
-    { key:'reprovado',   label:'Reprovados',              icon:'❌', color:'#e74c3c', badge:'badge-reprovado'   },
-    { key:'pausado',     label:'Pausados',                icon:'⏸', color:'#f39c12', badge:'badge-pausado'     },
-    { key:'limpando',    label:'Em limpeza',              icon:'🧹', color:'#2e86c1', badge:'badge-limpando'    },
-    { key:'sujo',        label:'Para limpar',             icon:'🟠', color:'#e67e22', badge:'badge-sujo'        },
-    { key:'conferencia', label:'Aguardando conferência',  icon:'🔍', color:'#8e44ad', badge:'badge-conferencia' },
-    { key:'limpo',       label:'Limpos',                  icon:'✨', color:'#1abc9c', badge:'badge-limpo'       },
-    { key:'livre',       label:'Livres',                  icon:'✅', color:'#27ae60', badge:'badge-livre'       },
-    { key:'ocupado',     label:'Ocupados',                icon:'🏠', color:'#7f8c8d', badge:'badge-ocupado'     },
-    { key:'bloqueado',   label:'Bloqueados',              icon:'🔒', color:'#c0392b', badge:'badge-bloqueado'   },
-    { key:'manutencao',  label:'Manutenção',              icon:'🔧', color:'#95a5a6', badge:'badge-manutencao'  },
-  ];
+  // Grupos ordenados por prioridade operacional
+  const statusUrgencia = { reprovado:0, pausado:1, limpando:2, sujo:3, conferencia:4 };
+
+  // 1. Minha atribuição — qualquer status operacional com meu maid_id
+  const meusAptos = aptos
+    .filter(a => a.camareira_id === uid && a.status in statusUrgencia)
+    .sort((a, b) => (statusUrgencia[a.status] ?? 9) - (statusUrgencia[b.status] ?? 9));
+
+  const meusIds = new Set(meusAptos.map(a => a.id));
+
+  // 2. Reprovados disponíveis (não atribuídos a mim)
+  const reprovDisp = aptos.filter(a => a.status === 'reprovado' && !meusIds.has(a.id));
+
+  // 3. Sujos sem responsável (sem nenhuma camareira, não atribuído a mim)
+  const sujosSemCam = aptos.filter(a => a.status === 'sujo' && !a.camareira_id && !meusIds.has(a.id));
+
+  // 4. Demais (pausados/limpando não meus, conferencia não minha, etc.)
+  const demaisIds = new Set([...meusIds, ...reprovDisp.map(a=>a.id), ...sujosSemCam.map(a=>a.id)]);
+  const demais = aptos.filter(a => !demaisIds.has(a.id) && a.status in statusUrgencia);
+
+  const _cardCamareira = (a, corBorda, corTexto = 'var(--text)') => `
+    <div class="card" style="margin-bottom:10px;border-left:4px solid ${corBorda};padding:14px 16px;">
+      ${a.prioridade ? `<div style="font-size:11px;font-weight:700;color:var(--danger);margin-bottom:6px;">⚠️ PRIORIDADE</div>` : ''}
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px;">
+        <div>
+          <div style="font-size:22px;font-weight:800;color:${corTexto};line-height:1;">${a.numero}</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:3px;">
+            ${a.tipo} &nbsp;·&nbsp; ${a.andar}º andar &nbsp;·&nbsp; ${a.leitos} leito${a.leitos !== 1 ? 's' : ''}
+          </div>
+        </div>
+        <span class="badge badge-${a.status}" style="flex-shrink:0;">${_STATUS_LABELS?.[a.status] || a.status}</span>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        ${_mfBtnsCamareira(a)}
+        <button class="btn btn-ghost btn-sm" onclick="openAptoDetail('${a.id}')">👁 Ver</button>
+      </div>
+    </div>`;
+
+  const _secao = (id, icon, label, cor, lista, renderFn) => {
+    if (!lista.length) return '';
+    return `<div id="${id}" style="margin-bottom:22px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid ${cor};">
+        <span style="font-size:15px;">${icon}</span>
+        <span style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;">${label}</span>
+        <span style="background:${cor};color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:auto;">${lista.length}</span>
+      </div>
+      ${lista.map(renderFn).join('')}
+    </div>`;
+  };
 
   let html = `
     <div style="background:linear-gradient(135deg,var(--primary),var(--primary-dark,#1a3a6e));
@@ -104,54 +142,64 @@ function _mfRenderCamareira(el) {
       <div style="font-size:13px;opacity:0.85;margin-top:6px;">${aptos.length} apartamento${aptos.length !== 1 ? 's' : ''} no hotel</div>
     </div>`;
 
-  grupos.forEach(g => {
-    const lista = [...aptos.filter(a => a.status === g.key)].sort((a, b) =>
-      (a.camareira_id === currentUser.id ? 0 : 1) - (b.camareira_id === currentUser.id ? 0 : 1)
-    );
-    if (!lista.length) return;
-
-    html += `<div style="margin-bottom:22px;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;
-                  padding-bottom:8px;border-bottom:2px solid ${g.color};">
-        <span style="font-size:15px;">${g.icon}</span>
-        <span style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;">${g.label}</span>
-        <span style="background:${g.color};color:#fff;font-size:10px;font-weight:700;
-                     padding:2px 8px;border-radius:10px;margin-left:auto;">${lista.length}</span>
-      </div>`;
-
-    if (g.key === 'livre') {
-      html += `<div class="card" style="padding:14px 16px;color:var(--text2);font-size:13px;">
-        ✅ ${lista.length} apartamento${lista.length !== 1 ? 's' : ''} livre${lista.length !== 1 ? 's' : ''} — sem ação necessária.
-      </div>`;
-    } else {
-      lista.forEach(a => {
-        const meuApto = a.camareira_id === currentUser.id;
-        const borderColor = meuApto ? '#1d4ed8' : (a.prioridade ? 'var(--danger)' : g.color);
-        const extraStyle  = meuApto ? 'background:linear-gradient(135deg,#eff6ff 0%,#fff 60%);box-shadow:0 2px 12px rgba(29,78,216,0.12);' : '';
-        html += `
-        <div class="card" style="margin-bottom:10px;border-left:4px solid ${borderColor};padding:14px 16px;${extraStyle}">
-          ${meuApto ? `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;
-                      background:#dbeafe;color:#1d4ed8;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;">
-            📌 Atribuído a mim</div>` : ''}
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px;">
-            <div>
-              <div style="font-size:22px;font-weight:800;color:${meuApto ? '#1d4ed8' : 'var(--text)'};line-height:1;">${a.numero}</div>
-              <div style="font-size:12px;color:var(--text2);margin-top:3px;">
-                ${a.tipo} &nbsp;·&nbsp; ${a.andar}º andar &nbsp;·&nbsp; ${a.leitos} leito${a.leitos !== 1 ? 's' : ''}
-              </div>
-              ${a.prioridade ? `<div style="font-size:11px;font-weight:700;color:var(--danger);margin-top:4px;">⚠️ PRIORIDADE</div>` : ''}
-            </div>
-            <span class="badge ${g.badge}" style="flex-shrink:0;">${_STATUS_LABELS?.[a.status] || a.status}</span>
+  // 1. Minha atribuição
+  html += _secao('mf-sec-meus', '📌', 'Minha atribuição', '#1d4ed8', meusAptos,
+    a => `<div class="card" style="margin-bottom:10px;border-left:4px solid #1d4ed8;padding:14px 16px;
+              background:linear-gradient(135deg,#eff6ff 0%,#fff 60%);box-shadow:0 2px 12px rgba(29,78,216,0.10);">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;
+          background:#dbeafe;color:#1d4ed8;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;">
+        📌 Atribuído a mim</div>
+      ${a.prioridade ? `<div style="font-size:11px;font-weight:700;color:var(--danger);margin-bottom:6px;">⚠️ PRIORIDADE</div>` : ''}
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px;">
+        <div>
+          <div style="font-size:22px;font-weight:800;color:#1d4ed8;line-height:1;">${a.numero}</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:3px;">
+            ${a.tipo} &nbsp;·&nbsp; ${a.andar}º andar &nbsp;·&nbsp; ${a.leitos} leito${a.leitos !== 1 ? 's' : ''}
           </div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button class="btn btn-ghost btn-sm" onclick="openAptoDetail('${a.id}')">👁 Ver detalhes</button>
-          </div>
-        </div>`;
-      });
-    }
+        </div>
+        <span class="badge badge-${a.status}" style="flex-shrink:0;">${_STATUS_LABELS?.[a.status] || a.status}</span>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        ${_mfBtnsCamareira(a)}
+        <button class="btn btn-ghost btn-sm" onclick="openAptoDetail('${a.id}')">👁 Ver</button>
+      </div>
+    </div>`);
 
-    html += `</div>`;
-  });
+  // 2. Reprovados disponíveis
+  html += _secao('mf-sec-reprov', '❌', 'Reprovados — disponíveis', '#e74c3c', reprovDisp,
+    a => _cardCamareira(a, '#e74c3c'));
+
+  // 3. Sujos sem responsável
+  html += _secao('mf-sec-sem-cam', '🟠', 'Para limpar — sem responsável', '#e67e22', sujosSemCam,
+    a => `<div class="card" style="margin-bottom:10px;border-left:4px solid #e67e22;padding:14px 16px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px;">
+        <div>
+          <div style="font-size:22px;font-weight:800;line-height:1;">${a.numero}</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} &nbsp;·&nbsp; ${a.andar}º andar</div>
+          <div style="font-size:11px;font-weight:700;color:var(--danger);margin-top:3px;">Sem responsável</div>
+        </div>
+        <span class="badge badge-sujo" style="flex-shrink:0;">Sujo</span>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        ${_mfBtnsCamareira(a)}
+        <button class="btn btn-ghost btn-sm" onclick="openAptoDetail('${a.id}')">👁 Ver</button>
+      </div>
+    </div>`);
+
+  // 4. Demais
+  if (demais.length) {
+    const dGrupos = [
+      { key:'pausado',    label:'Pausados',   icon:'⏸', color:'#f39c12' },
+      { key:'limpando',   label:'Em limpeza', icon:'🧹', color:'#2e86c1' },
+      { key:'sujo',       label:'Para limpar',icon:'🟠', color:'#e67e22' },
+      { key:'conferencia',label:'Ag. conf.',  icon:'🔍', color:'#8e44ad' },
+    ];
+    dGrupos.forEach(g => {
+      const lista = demais.filter(a => a.status === g.key);
+      html += _secao(`mf-sec-dem-${g.key}`, g.icon, g.label, g.color, lista,
+        a => _cardCamareira(a, g.color));
+    });
+  }
 
   el.innerHTML = html;
 }
@@ -328,38 +376,14 @@ function _mfRenderGestor(el) {
     html += `</div>`;
   }
 
-  // ── Sujos sem camareira ──
-  const sujossSemCam = sujos.filter(a => !a.camareira_id);
-  if (sujossSemCam.length) {
-    html += `<div id="mf-sec-sem-camareira" style="margin-bottom:24px;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;
-                  padding-bottom:8px;border-bottom:2px solid var(--danger);">
-        <span style="font-size:16px;">👤</span>
-        <span style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;">Sujos sem camareira</span>
-        <span style="background:var(--danger);color:#fff;font-size:10px;font-weight:700;
-                     padding:2px 8px;border-radius:10px;margin-left:auto;">${sujossSemCam.length}</span>
-      </div>`;
-    sujossSemCam.forEach(a => {
-      html += `
-      <div class="card" style="margin-bottom:10px;border-left:4px solid var(--danger);padding:14px 16px;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
-          <div>
-            <div style="font-size:22px;font-weight:800;line-height:1;">${a.numero}</div>
-            <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} · ${a.andar}º andar</div>
-            <div style="font-size:11px;color:var(--danger);font-weight:700;margin-top:3px;">Sem responsável</div>
-          </div>
-          <span class="badge badge-sujo" style="flex-shrink:0;">Sujo</span>
-        </div>
-        <div style="margin-top:10px;">
-          <button class="btn btn-ghost btn-sm" onclick="openAptoDetail('${a.id}')">👁 Ver detalhes</button>
-        </div>
-      </div>`;
-    });
-    html += `</div>`;
-  }
-
-  // ── Para limpar (Sujos) ──
+  // ── Para limpar (Sujos) — sem responsável primeiro ──
   if (sujos.length) {
+    // Ordenar: sem camareira primeiro, depois com camareira
+    const sujosOrdenados = [...sujos].sort((a, b) => {
+      if (!a.camareira_id && b.camareira_id) return -1;
+      if (a.camareira_id && !b.camareira_id) return 1;
+      return 0;
+    });
     html += `<div id="mf-sec-sujos" style="margin-bottom:24px;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;
                   padding-bottom:8px;border-bottom:2px solid #e67e22;">
@@ -368,14 +392,19 @@ function _mfRenderGestor(el) {
         <span style="background:#e67e22;color:#fff;font-size:10px;font-weight:700;
                      padding:2px 8px;border-radius:10px;margin-left:auto;">${sujos.length}</span>
       </div>`;
-    sujos.forEach(a => {
+    sujosOrdenados.forEach(a => {
+      const cam = equipe.find(e => e.id === a.camareira_id);
+      const semResp = !a.camareira_id;
       html += `
-      <div class="card" style="margin-bottom:10px;border-left:4px solid #e67e22;padding:14px 16px;">
+      <div class="card" style="margin-bottom:10px;border-left:4px solid ${semResp ? 'var(--danger)' : '#e67e22'};padding:14px 16px;">
+        ${semResp ? `<div style="display:inline-flex;align-items:center;gap:4px;
+            background:#fee2e2;color:var(--danger);padding:3px 8px;border-radius:5px;
+            font-size:11px;font-weight:700;margin-bottom:8px;">👤 Sem responsável</div>` : ''}
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
           <div>
             <div style="font-size:22px;font-weight:800;line-height:1;">${a.numero}</div>
             <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} · ${a.andar}º andar</div>
-            ${a.obs ? `<div style="font-size:11px;color:var(--text3);margin-top:3px;font-style:italic;">${a.obs}</div>` : ''}
+            ${cam ? `<div style="font-size:11px;color:var(--text3);margin-top:3px;">🧹 ${cam.nome}</div>` : ''}
           </div>
           <span class="badge badge-sujo" style="flex-shrink:0;">Sujo</span>
         </div>
