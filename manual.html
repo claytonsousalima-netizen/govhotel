@@ -127,7 +127,7 @@
 <nav class="sidebar">
   <div class="sidebar-logo">
     <h1>🏨 Gov Estancorp</h1>
-    <p>Manual de Uso — v2026.06.17b</p>
+    <p>Manual de Uso — v2026.06.17c</p>
   </div>
 
   <div class="sidebar-section">Introdução</div>
@@ -642,7 +642,7 @@
       <ul class="steps">
         <li><div class="step-num">1</div><div class="step-body">A fila é organizada por <strong>prioridade de atribuição</strong> em 4 seções: <strong>(1) Minha atribuição</strong> (aptos atribuídos a mim em qualquer status operacional) → <strong>(2) Reprovados disponíveis</strong> (sem camareira definida) → <strong>(3) Sujos sem responsável</strong> (nenhuma camareira atribuída) → <strong>(4) Demais</strong> (pausados e em conferência não atribuídos a mim).</div></li>
         <li><div class="step-num">2</div><div class="step-body">Todos os cards exibem o <strong>nome da camareira responsável</strong> pelo apartamento, ou o texto <span style="color:#dc2626;font-weight:700;">👤 Sem responsável</span> em vermelho quando não há atribuição. Isso vale para todos os status.</div></li>
-        <li><div class="step-num">3</div><div class="step-body">Para <strong>iniciar</strong>: clique em <strong>▶ Iniciar limpeza</strong>. O apto vai para <span class="badge b-limpando">Em andamento</span> e o <strong>checklist de limpeza abre automaticamente</strong>. No topo do checklist, selecione o <strong>tipo de limpeza</strong> (Saída/checkout · Permanência · Pós-manutenção). Marque os itens (mínimo 80%) enquanto limpa.</div></li>
+        <li><div class="step-num">3</div><div class="step-body">Para <strong>iniciar</strong>: clique em <strong>▶ Iniciar limpeza</strong>. O apto vai para <span class="badge b-limpando">Em andamento</span> e o <strong>checklist de limpeza abre automaticamente</strong>. No topo do checklist, três botões com emojis aparecem sempre: <strong>🛏 Saída (checkout)</strong>, <strong>🏠 Permanência</strong> e <strong>🔧 Pós-manutenção</strong>. Toque no tipo correto antes de marcar os itens (mínimo 80%).</div></li>
         <li><div class="step-num">4</div><div class="step-body">Ao concluir o checklist, clique em <strong>✓ Concluir limpeza</strong>. O tipo de limpeza selecionado e as respostas são salvos e o apto vai direto para <span class="badge b-conferencia">Ag. Conferência</span>. Se precisar cancelar, clique em <strong>🚫 Cancelar limpeza</strong> — o apto retorna ao status de origem.</div></li>
         <li><div class="step-num">5</div><div class="step-body">Aguarde a supervisora aprovar ou reprovar. Se <span class="badge b-reprovado">Reprovado</span>: veja o motivo, clique em <strong>▶ Re-limpar</strong> → apto volta para <span class="badge b-limpando">Em andamento</span>, checklist abre novamente e o ciclo recomeça.</div></li>
       </ul>
@@ -1427,7 +1427,7 @@
     <div class="card">
       <h4>✅ Checklist de Limpeza (Camareira) <span class="novidade-badge">Atualizado</span></h4>
       <p style="font-size:13px;color:var(--text2);">Itens que a camareira preenche ao <strong>iniciar</strong> a limpeza — o checklist abre automaticamente quando ela clica em "Iniciar limpeza", "Retomar" ou "Re-limpar". A limpeza só é enviada para conferência com ≥ 80% dos itens marcados.</p>
-      <p style="font-size:13px;color:var(--text2);margin-top:8px;">No topo do checklist a camareira seleciona o <strong>tipo de limpeza</strong> (ex.: Saída/checkout · Permanência · Pós-manutenção). O tipo é salvo junto com as respostas e usado nos relatórios de produtividade para comparação com as metas de tempo configuradas.</p>
+      <p style="font-size:13px;color:var(--text2);margin-top:8px;">No topo do checklist três botões com emojis são exibidos imediatamente — <strong>🛏 Saída (checkout)</strong>, <strong>🏠 Permanência</strong> e <strong>🔧 Pós-manutenção</strong> — sem depender de carregamento assíncrono. Se o hotel tiver tipos personalizados cadastrados em Config, os botões são atualizados em segundo plano. O tipo selecionado é salvo junto com as respostas e alimenta os relatórios de produtividade.</p>
     </div>
 
     <div class="card">
@@ -1448,7 +1448,7 @@
 
     <div class="card">
       <h4>🧹 Tipos de Limpeza <span class="novidade-badge">Atualizado</span></h4>
-      <p style="font-size:13px;color:var(--text2);">Gerencie os tipos de limpeza disponíveis (ex.: Saída/checkout, Permanência, Pós-manutenção). Ao abrir o checklist de limpeza, a camareira escolhe o tipo antes de marcar os itens. O tipo selecionado é salvo no histórico e alimenta o relatório de produtividade por tipo vs. meta de tempo.</p>
+      <p style="font-size:13px;color:var(--text2);">Gerencie os tipos de limpeza disponíveis (ex.: Saída/checkout, Permanência, Pós-manutenção). No checklist, três botões padrão com emojis (🛏/🏠/🔧) ficam sempre visíveis no topo; se o hotel tiver tipos cadastrados aqui, os botões são substituídos em segundo plano. O tipo selecionado é salvo no histórico e alimenta o relatório de produtividade por tipo vs. meta de tempo.</p>
     </div>
 
     <div class="card">
@@ -1578,7 +1578,7 @@
 
     <div class="card">
       <h4>Como a camareira informa o tipo de limpeza?</h4>
-      <p>No momento em que o checklist abre (ao iniciar, retomar ou re-limpar), aparecem botões no topo: <strong>Saída (checkout)</strong>, <strong>Permanência</strong> e <strong>Pós-manutenção</strong> (ou os tipos configurados em <strong>Config → Tipos de Limpeza</strong>). O primeiro tipo já vem selecionado por padrão. A camareira toca no tipo correto antes de marcar os itens. Ao concluir, o tipo é salvo junto com o checklist.</p>
+      <p>Ao abrir o checklist (iniciar, retomar ou re-limpar), três botões com emojis aparecem <strong>sempre visíveis</strong> no topo: <strong>🛏 Saída (checkout)</strong>, <strong>🏠 Permanência</strong> e <strong>🔧 Pós-manutenção</strong>. Os botões são estáticos no HTML e não dependem de carregamento — ficam disponíveis imediatamente. Se o hotel tiver tipos personalizados em <strong>Config → Tipos de Limpeza</strong>, eles substituem os padrões em segundo plano. O primeiro tipo vem selecionado (destaque azul). A camareira toca no tipo correto e ao concluir o tipo é salvo junto com o checklist.</p>
     </div>
 
     <div class="card">
@@ -1613,7 +1613,7 @@
   </section>
 
   <div style="text-align:center;padding:32px 0;color:var(--text3);font-size:12px;border-top:1px solid var(--border);">
-    Gov Estancorp · Manual de Uso · Versão 2026.06.17 · Sistema de Governança Hoteleira
+    Gov Estancorp · Manual de Uso · Versão 2026.06.17c · Sistema de Governança Hoteleira
   </div>
 
 </main>
