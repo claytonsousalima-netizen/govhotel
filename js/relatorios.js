@@ -1196,7 +1196,7 @@ function _relAbaTimeline(el) {
 function _relAbaRetrabalhos(el) {
   const retrabalhos = _fRetrab(_relData.retrabalhos);
   const abertos  = retrabalhos.filter(r=>!r.status||r.status==='aberto'||r.status==='aberta').length;
-  const concluidos=retrabalhos.filter(r=>r.status==='concluido'||r.status==='resolvido').length;
+  const concluidos=retrabalhos.filter(r=>r.status==='resolvida'||r.status==='resolvido'||r.status==='concluido').length;
 
   const motivoCnt={}, aptoCnt={};
   retrabalhos.forEach(r=>{ if(r.motivo) motivoCnt[r.motivo]=(motivoCnt[r.motivo]||0)+1; });

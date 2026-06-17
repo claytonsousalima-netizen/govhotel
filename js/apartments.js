@@ -1107,7 +1107,7 @@ async function confirmarChecklistSupervisora(decisao) {
     await mudarStatusApto(selectedAptoId, 'limpo', obsStatus);
     // fecha pendências de retrabalho abertas deste apartamento
     supabaseClient.from('pendencias_retrabalho')
-      .update({ status: 'concluido', resolvido_por: currentUser?.id || null, resolvido_at: new Date().toISOString() })
+      .update({ status: 'resolvida', resolvido_por: currentUser?.id || null, resolvido_at: new Date().toISOString() })
       .eq('apartment_id', selectedAptoId)
       .or('status.eq.aberta,status.eq.aberto,status.is.null')
       .then(({ error }) => { if (error) console.warn('Erro ao fechar retrabalho:', error); });
