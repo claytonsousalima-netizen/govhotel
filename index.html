@@ -909,6 +909,17 @@ tr:last-child td { border-bottom: none; }
           <!-- Parâmetros de limpeza -->
           <div class="card" id="config-parametros-limpeza">
             <div class="card-title" style="margin-bottom:14px;">🧹 Parâmetros de limpeza</div>
+            <!-- Seletor de hotel — apenas admin_global -->
+            <div id="cfg-hotel-selector-wrap" style="display:none;margin-bottom:14px;">
+              <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px;">🏨 Aplicar para</label>
+              <select id="cfg-hotel-select" onchange="_onCfgHotelChange(this.value)"
+                style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;">
+                <option value="">🌐 Global — todos os hotéis</option>
+              </select>
+              <div id="cfg-hotel-hint" style="font-size:11px;color:var(--text3);margin-top:5px;">
+                Sem seleção: salva para <strong>todos os hotéis</strong> ativos.
+              </div>
+            </div>
             <div class="field" style="margin-bottom:12px;">
               <label>Tempo padrão limpeza saída (min)</label>
               <input type="number" id="cfg-tempo-saida" min="1" max="999" placeholder="45">
@@ -2920,12 +2931,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <script src="js/hotels.js?v=20260613p"></script>
-<script src="js/apartments.js?v=20260618l"></script>
-<script src="js/maids.js?v=20260616c"></script>
-<script src="js/users.js?v=20260615a"></script>
+<script src="js/apartments.js?v=20260618m2"></script>
+<script src="js/maids.js?v=20260618p"></script>
+<script src="js/users.js?v=20260618q"></script>
 <script src="js/permissions.js?v=20260616a"></script>
 <script src="js/chamados.js?v=20260618m"></script>
-<script src="js/config.js?v=20260618n"></script>
+<script src="js/config.js?v=20260618r"></script>
 <script src="js/dashboard.js?v=20260616a"></script>
 <script src="js/relatorios.js?v=20260618o"></script>
 <script src="js/minha-fila.js?v=20260618k"></script>

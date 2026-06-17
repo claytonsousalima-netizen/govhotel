@@ -17,7 +17,7 @@ async function renderEquipe() {
   const selectorWrap = document.getElementById('equipe-hotel-selector');
   if (selectorWrap) {
     if (currentUser.perfil === 'admin_global') {
-      selectorWrap.style.display = '';
+      selectorWrap.style.display = 'block';
       await _popularSeletorHotelEquipe();
     } else {
       _maidViewHotelId = currentUser.hotelId;

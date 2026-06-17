@@ -15,7 +15,7 @@ async function renderUsuarios() {
 
   const selectorWrap = document.getElementById('usuarios-hotel-selector');
   if (currentUser.perfil === 'admin_global') {
-    if (selectorWrap) selectorWrap.style.display = '';
+    if (selectorWrap) selectorWrap.style.display = 'block';
     await _popularSeletorHotelUsuarios();
   } else {
     _userViewHotelId = currentUser.hotelId;

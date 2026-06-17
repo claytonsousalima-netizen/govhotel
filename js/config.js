@@ -590,29 +590,89 @@ async function _salvarMaxAndares() {
 
 // ── PARÂMETROS DE TEMPO DE LIMPEZA ───────────────────────────
 
+let _cfgHotelId = null; // hotel selecionado no seletor de parâmetros (admin_global)
+
+async function _popularCfgHotelSelect() {
+  const wrap = document.getElementById('cfg-hotel-selector-wrap');
+  const sel  = document.getElementById('cfg-hotel-select');
+  if (!wrap || !sel) return;
+  wrap.style.display = 'block';
+  const { data } = await supabaseClient.from('hotels').select('id, nome').eq('ativo', true).order('nome');
+  sel.innerHTML = '<option value="">🌐 Global — todos os hotéis</option>' +
+    (data || []).map(h => `<option value="${h.id}" ${h.id === _cfgHotelId ? 'selected' : ''}>${h.nome}</option>`).join('');
+  _atualizarHint();
+}
+
+function _onCfgHotelChange(hotelId) {
+  _cfgHotelId = hotelId || null;
+  _atualizarHint();
+  renderConfigParametrosLimpeza();
+}
+
+function _atualizarHint() {
+  const hint = document.getElementById('cfg-hotel-hint');
+  if (!hint) return;
+  hint.innerHTML = _cfgHotelId
+    ? `Salvando somente para o hotel selecionado.`
+    : `Sem seleção: salva para <strong>todos os hotéis</strong> ativos.`;
+}
+
 async function renderConfigParametrosLimpeza() {
-  const hotelId = currentUser?.hotelId;
-  if (!hotelId) return;
+  const isGlobal = currentUser?.perfil === 'admin_global';
+
+  // Mostra seletor de hotel para admin_global
+  if (isGlobal) await _popularCfgHotelSelect();
+
+  const hotelId = isGlobal ? _cfgHotelId : currentUser?.hotelId;
+
+  const inpS = document.getElementById('cfg-tempo-saida');
+  const inpP = document.getElementById('cfg-tempo-permanencia');
+
+  if (!hotelId) {
+    // admin_global sem hotel selecionado — limpa campos (serão aplicados a todos ao salvar)
+    if (inpS) inpS.value = '';
+    if (inpP) inpP.value = '';
+    return;
+  }
+
   const { data } = await supabaseClient
     .from('hotel_config').select('chave, valor')
     .eq('hotel_id', hotelId)
     .in('chave', ['tempo_padrao_saida', 'tempo_padrao_permanencia']);
   const map = Object.fromEntries((data || []).map(r => [r.chave, r.valor]));
-  const inpS = document.getElementById('cfg-tempo-saida');
-  const inpP = document.getElementById('cfg-tempo-permanencia');
-  if (inpS) inpS.value = map['tempo_padrao_saida']       || '45';
-  if (inpP) inpP.value = map['tempo_padrao_permanencia']  || '25';
+  if (inpS) inpS.value = map['tempo_padrao_saida']      || '45';
+  if (inpP) inpP.value = map['tempo_padrao_permanencia'] || '25';
 }
 
 async function _salvarParametrosLimpeza() {
-  const hotelId = currentUser?.hotelId;
-  if (!hotelId) { toast('Hotel não identificado', 'error'); return; }
   const saida = parseInt(document.getElementById('cfg-tempo-saida')?.value);
   const perm  = parseInt(document.getElementById('cfg-tempo-permanencia')?.value);
   if (!saida || saida < 1 || !perm || perm < 1) { toast('Valores inválidos (mínimo 1 min)', 'error'); return; }
+
+  const isGlobal = currentUser?.perfil === 'admin_global';
+
+  if (isGlobal && !_cfgHotelId) {
+    // Salva para TODOS os hotéis ativos
+    const { data: hoteis, error: hErr } = await supabaseClient
+      .from('hotels').select('id').eq('ativo', true);
+    if (hErr) { toast('Erro ao listar hotéis: ' + hErr.message, 'error'); return; }
+    const registros = (hoteis || []).flatMap(h => [
+      { hotel_id: h.id, chave: 'tempo_padrao_saida',       valor: String(saida) },
+      { hotel_id: h.id, chave: 'tempo_padrao_permanencia', valor: String(perm)  },
+    ]);
+    if (!registros.length) { toast('Nenhum hotel ativo encontrado', 'error'); return; }
+    const { error } = await supabaseClient.from('hotel_config')
+      .upsert(registros, { onConflict: 'hotel_id,chave' });
+    if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
+    toast(`Parâmetros salvos para ${hoteis.length} hotel(is)!`, 'success');
+    return;
+  }
+
+  const hotelId = isGlobal ? _cfgHotelId : currentUser?.hotelId;
+  if (!hotelId) { toast('Hotel não identificado', 'error'); return; }
   const { error } = await supabaseClient.from('hotel_config').upsert([
-    { hotel_id: hotelId, chave: 'tempo_padrao_saida',        valor: String(saida) },
-    { hotel_id: hotelId, chave: 'tempo_padrao_permanencia',  valor: String(perm)  },
+    { hotel_id: hotelId, chave: 'tempo_padrao_saida',       valor: String(saida) },
+    { hotel_id: hotelId, chave: 'tempo_padrao_permanencia', valor: String(perm)  },
   ], { onConflict: 'hotel_id,chave' });
   if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
   toast('Parâmetros de tempo salvos!', 'success');

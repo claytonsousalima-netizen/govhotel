@@ -140,7 +140,7 @@ async function renderApartamentos() {
   const selectorWrap = document.getElementById('apto-hotel-selector');
   if (selectorWrap) {
     if (currentUser.perfil === 'admin_global') {
-      selectorWrap.style.display = '';
+      selectorWrap.style.display = 'block';
       await _popularSeletorHotelPagina();
     } else {
       _aptoViewHotelId = currentUser.hotelId;
