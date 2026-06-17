@@ -127,7 +127,7 @@
 <nav class="sidebar">
   <div class="sidebar-logo">
     <h1>🏨 Gov Estancorp</h1>
-    <p>Manual de Uso — v2026.06.17</p>
+    <p>Manual de Uso — v2026.06.17b</p>
   </div>
 
   <div class="sidebar-section">Introdução</div>
@@ -164,6 +164,7 @@
   <a href="#mod-rel-chamados" style="padding-left:24px;font-size:12px;">↳ Chamados</a>
   <a href="#mod-rel-retrabalhos" style="padding-left:24px;font-size:12px;">↳ Retrabalhos</a>
   <a href="#mod-rel-timeline" style="padding-left:24px;font-size:12px;">↳ Timeline</a>
+  <a href="#mod-rel-equipe" style="padding-left:24px;font-size:12px;">↳ Equipe</a>
   <a href="#mod-config">Configurações</a>
   <a href="#mod-config" style="padding-left:24px;font-size:12px;">↳ Seletor hotel (Admin Global)</a>
 
@@ -199,7 +200,7 @@
         <tr><td><strong>Gestor</strong></td><td>Gestão operacional do hotel</td><td>Dashboard, Mapa, Kanban, Chamados, Equipe, Relatórios, Minha Fila</td></tr>
         <tr><td><strong>Supervisora</strong></td><td>Supervisão e conferência de limpeza</td><td>Mapa, Kanban, Chamados, Equipe, Minha Fila</td></tr>
         <tr><td><strong>Camareira</strong></td><td>Execução da limpeza</td><td>App Camareira (Meus Aptos), Mapa, Chamados, Minha Fila</td></tr>
-        <tr><td><strong>Manutenção</strong></td><td>Manutenção de apartamentos</td><td>Mapa, Chamados, Minha Fila (acesso somente leitura)</td></tr>
+        <tr><td><strong>Manutenção</strong></td><td>Manutenção de apartamentos</td><td>Mapa, Chamados</td></tr>
       </tbody>
     </table>
 
@@ -650,6 +651,21 @@
 
     <div class="section">
       <div class="section-title">⏸ Pausar e Cancelar Limpeza</div>
+      <table style="margin-bottom:12px;">
+        <thead><tr><th>Ação</th><th>O que acontece</th><th>Quando usar</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>⏸ Pausar</strong></td>
+            <td>Apto vai para <span class="badge b-pausado">Pausado</span>. A limpeza pode ser retomada depois — o checklist reabre do ponto em que parou.</td>
+            <td>Interrupção temporária (hóspede no quarto, falta de material)</td>
+          </tr>
+          <tr>
+            <td><strong>🚫 Cancelar</strong></td>
+            <td>A limpeza é encerrada e o apto <strong>retorna ao status anterior</strong> (normalmente Sujo). O progresso do checklist é descartado.</td>
+            <td>Iniciado por engano, redistribuição de equipe, decisão operacional</td>
+          </tr>
+        </tbody>
+      </table>
       <div class="card">
         <h4>Motivos de Pausa</h4>
         <p style="font-size:13px;color:var(--text2);margin-bottom:8px;">Ao pausar uma limpeza, a camareira seleciona o motivo na lista suspensa (configurável em <strong>Config → Motivos de Pausa</strong>):</p>
@@ -698,24 +714,17 @@
       <div class="perfil-avatar">🔧</div>
       <div>
         <h2>Manutenção</h2>
-        <p>Execução de manutenção. Acessa o Mapa, Chamados de Manutenção e Minha Fila do hotel.</p>
+        <p>Execução de manutenção. Acessa o Mapa e os Chamados de Manutenção do hotel.</p>
       </div>
     </div>
 
     <div class="acesso-grid">
       <span class="acesso-badge">🗺 Mapa</span>
       <span class="acesso-badge">🎫 Chamados (Manutenção)</span>
-      <span class="acesso-badge">📌 Minha Fila</span>
     </div>
 
-    <div class="section">
-      <div class="section-title">📌 Minha Fila (tela inicial) <span class="novidade-badge">Novo</span></div>
-      <div class="info-box blue">Ao fazer login, o técnico de manutenção é direcionado para <strong>Minha Fila</strong>, que exibe um painel de boas-vindas com atalho direto para os chamados.</div>
-      <ul class="steps">
-        <li><div class="step-num">1</div><div class="step-body">A tela exibe seu nome, o total de apartamentos com status <span class="badge b-manutencao">Manutenção</span> no hotel e um botão <strong>🔧 Ver meus chamados</strong>.</div></li>
-        <li><div class="step-num">2</div><div class="step-body">Clique em <strong>🔧 Ver meus chamados</strong> para ir diretamente à tela de Chamados.</div></li>
-        <li><div class="step-num">3</div><div class="step-body">O fluxo de trabalho completo (assumir, andamento, conclusão) está em <strong>Chamados</strong> — não em Minha Fila.</div></li>
-      </ul>
+    <div class="info-box amber" style="margin-top:12px;">
+      <strong>Tela inicial:</strong> Ao fazer login, o técnico de manutenção é direcionado automaticamente para a tela de <strong>Chamados</strong>, onde pode ver e assumir os chamados de manutenção disponíveis.
     </div>
 
     <div class="section">
@@ -844,6 +853,10 @@
 
     <div class="info-box amber">
       <strong>Admin Global e Admin Hotel:</strong> Vêem também os botões <strong>⊕ Cadastrar Apto</strong> e <strong>⚡ Gerar em lote</strong> no cabeçalho do Mapa. Esses botões <strong>não aparecem</strong> para Gestor, Supervisora, Camareira e Manutenção.
+    </div>
+
+    <div class="info-box blue">
+      <strong>Admin Global — seletor de hotel no Mapa:</strong> No cabeçalho do Mapa há um seletor de hotel. O Admin Global deve escolher o hotel antes de visualizar os apartamentos. Os dados exibidos (status, atribuições, filtros) correspondem exclusivamente ao hotel selecionado. Trocar o hotel recarrega o mapa automaticamente.
     </div>
   </section>
 
@@ -1072,7 +1085,7 @@
           <tr><td><strong>Gestor</strong></td><td>Admin Global ou Admin Hotel</td><td>Dashboard, Mapa, Kanban, Chamados, Equipe, Relatórios, Minha Fila</td></tr>
           <tr><td><strong>Supervisora</strong></td><td>Admin Global ou Admin Hotel</td><td>Mapa, Kanban, Chamados, Equipe, Minha Fila</td></tr>
           <tr><td><strong>Camareira</strong></td><td>Admin Global ou Admin Hotel</td><td>Meus Aptos, Mapa, Chamados, Minha Fila</td></tr>
-          <tr><td><strong>Manutenção</strong></td><td>Admin Global ou Admin Hotel</td><td>Mapa, Chamados, Minha Fila</td></tr>
+          <tr><td><strong>Manutenção</strong></td><td>Admin Global ou Admin Hotel</td><td>Mapa, Chamados</td></tr>
         </tbody>
       </table>
     </div>
@@ -1340,9 +1353,19 @@
     </div>
 
     <!-- Aba Equipe -->
-    <div class="section">
+    <div class="section" id="mod-rel-equipe">
       <div class="section-title" style="font-size:14px;">13. Equipe</div>
-      <p style="font-size:13px;color:var(--text2);">Lista de todos os membros da equipe ativa com perfil, número de aptos atribuídos e situação atual. Agrupados por perfil (camareira, supervisora, governanta, manutenção, etc.).</p>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:8px;">Visão consolidada de todos os membros da equipe ativa no hotel, com distribuição por perfil e aptos atribuídos.</p>
+      <table>
+        <thead><tr><th>Indicador</th><th>O que mostra</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Por perfil</strong></td><td>Contagem de membros ativos agrupados por perfil (camareira, supervisora, manutenção, etc.)</td></tr>
+          <tr><td><strong>Membros da equipe</strong></td><td>Lista completa com nome, perfil, situação (Ativo/Inativo) e número de aptos atribuídos</td></tr>
+        </tbody>
+      </table>
+      <div class="info-box blue">
+        Use o filtro <strong>Camareira</strong> no topo da tela para focar em um membro específico. O número de aptos atribuídos reflete o valor atual do campo <code>maid_id</code> nos apartamentos — não o histórico de limpezas.
+      </div>
     </div>
 
     <div class="info-box green">
