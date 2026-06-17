@@ -127,7 +127,7 @@
 <nav class="sidebar">
   <div class="sidebar-logo">
     <h1>🏨 Gov Estancorp</h1>
-    <p>Manual de Uso — v2026.06.7</p>
+    <p>Manual de Uso — v2026.06.17</p>
   </div>
 
   <div class="sidebar-section">Introdução</div>
@@ -163,6 +163,7 @@
   <a href="#mod-rel-retrabalhos" style="padding-left:24px;font-size:12px;">↳ Retrabalhos</a>
   <a href="#mod-rel-timeline" style="padding-left:24px;font-size:12px;">↳ Timeline</a>
   <a href="#mod-config">Configurações</a>
+  <a href="#mod-config" style="padding-left:24px;font-size:12px;">↳ Seletor hotel (Admin Global)</a>
 
   <div class="sidebar-section">Ajuda</div>
   <a href="#mobile">Uso em Celular</a>
@@ -173,7 +174,7 @@
 
   <div class="page-title">Manual de Uso — Gov Estancorp</div>
   <div class="page-subtitle">
-    Sistema de Governança Hoteleira · Todos os perfis de acesso · Versão 2026.06.7
+    Sistema de Governança Hoteleira · Todos os perfis de acesso · Versão 2026.06.17
   </div>
 
   <!-- ══ VISÃO GERAL ════════════════════════════════════════ -->
@@ -376,8 +377,17 @@
     </div>
 
     <div class="section">
-      <div class="section-title">⚙ Configurações do Sistema</div>
+      <div class="section-title">⚙ Configurações do Sistema <span class="novidade-badge">Atualizado</span></div>
       <p style="color:var(--text2);margin-bottom:12px;">O módulo Config centraliza todas as listas e parâmetros usados no sistema. Veja a seção completa em <a href="#mod-config" style="color:var(--blue);">Módulo: Configurações</a>.</p>
+      <div class="info-box purple">
+        <strong>Seletor de hotel (exclusivo Admin Global):</strong> No topo da aba Config existe um seletor de hotel que controla <em>todas</em> as seções simultaneamente — Turnos, Parâmetros, Tipos de Chamado, Tipos de Apto, Tipos de Limpeza, Andares, Solicitantes, Motivos, Checklists e todas as demais. Enquanto nenhum hotel estiver selecionado, as seções ficam ocultas e nenhuma edição é permitida. Ao trocar o hotel, todas as seções recarregam com os dados do hotel escolhido.
+      </div>
+      <div class="info-box green">
+        <strong>Dados por hotel:</strong> Cada hotel tem suas próprias configurações isoladas no banco. O Admin Hotel edita apenas o seu hotel (sem seletor). O Admin Global seleciona o hotel desejado antes de editar.
+      </div>
+      <div class="info-box amber">
+        <strong>Replicação automática:</strong> Ao cadastrar um novo hotel, todas as configurações do <strong>Hotel Gran Estanplaza</strong> (turnos, tipos de chamado, checklists, motivos, tipos de limpeza, parâmetros e demais) são copiadas automaticamente para o novo hotel como ponto de partida.
+      </div>
     </div>
   </section>
 
@@ -825,7 +835,7 @@
     </div>
 
     <div class="info-box amber">
-      <strong>Admin:</strong> Vê também os botões <strong>⊕ Cadastrar Apto</strong> e <strong>⚡ Gerar em lote</strong> no cabeçalho. Esses botões não aparecem para outros perfis.
+      <strong>Admin Global e Admin Hotel:</strong> Vêem também os botões <strong>⊕ Cadastrar Apto</strong> e <strong>⚡ Gerar em lote</strong> no cabeçalho do Mapa. Esses botões <strong>não aparecem</strong> para Gestor, Supervisora, Camareira e Manutenção.
     </div>
   </section>
 
@@ -1272,6 +1282,19 @@
       <strong>Atenção:</strong> Alterações nas configurações afetam todos os usuários do hotel imediatamente. Desativar um tipo ou motivo impede que ele seja usado em novos registros.
     </div>
 
+    <div class="card">
+      <h4>🏨 Seletor de Hotel — Admin Global <span class="novidade-badge">Novo</span></h4>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:8px;">O Admin Global vê no topo da aba Config um seletor de hotel que controla <strong>todas as seções simultaneamente</strong>. Enquanto nenhum hotel estiver selecionado:</p>
+      <ul style="font-size:13px;color:var(--text2);padding-left:18px;margin-bottom:8px;">
+        <li>As seções de configuração ficam <strong>ocultas</strong></li>
+        <li>Nenhuma adição, edição ou exclusão é permitida</li>
+      </ul>
+      <p style="font-size:13px;color:var(--text2);">Ao selecionar um hotel, todas as seções carregam os dados daquele hotel. Ao trocar o hotel, todas as seções recarregam automaticamente. O Admin Hotel não vê o seletor — edita sempre o seu próprio hotel.</p>
+      <div class="info-box green" style="margin-top:10px;margin-bottom:0;">
+        <strong>Replicação automática:</strong> Ao cadastrar um novo hotel, todas as configurações do <strong>Hotel Gran Estanplaza</strong> são copiadas automaticamente (turnos, tipos de chamado, checklists, motivos, tipos de limpeza, andares, solicitantes, parâmetros e demais). O novo hotel já começa com uma base de configuração completa.
+      </div>
+    </div>
+
     <p style="margin-bottom:12px;">Todos os itens abaixo seguem o mesmo padrão de interface: <strong>+ Adicionar</strong> para incluir, ✏ para editar, ⏸/▶ para ativar/inativar, 🗑 para excluir. Registros marcados com 🌐 são globais (visíveis em todos os hotéis); registros 🏨 são específicos do hotel e podem ser excluídos.</p>
 
     <div class="card">
@@ -1468,10 +1491,30 @@
       <h4>O Kanban mudou de limpeza para chamados sozinho. O que aconteceu?</h4>
       <p>A partir desta versão o Kanban tem dois modos: <strong>🧹 Limpeza</strong> e <strong>📋 Chamados</strong>, alternados pelos botões no topo. Os modos são isolados — um não interfere no outro. Se você estava em Limpeza e o board exibiu chamados, verifique se o botão <em>Chamados</em> foi clicado acidentalmente.</p>
     </div>
+
+    <div class="card">
+      <h4>Sou Admin Global e não consigo editar nenhuma configuração. Por quê?</h4>
+      <p>No módulo <strong>Config</strong>, o Admin Global precisa primeiro selecionar um hotel no seletor no topo da página. Enquanto nenhum hotel estiver selecionado, todas as seções ficam ocultas e qualquer tentativa de adição ou edição é bloqueada — isso evita alterações acidentais em múltiplos hotéis ao mesmo tempo.</p>
+    </div>
+
+    <div class="card">
+      <h4>Ao criar um novo hotel, preciso configurar tudo do zero?</h4>
+      <p>Não. Ao salvar um novo hotel, o sistema replica automaticamente todas as configurações do <strong>Hotel Gran Estanplaza</strong> — turnos, tipos de chamado, checklists, motivos de pausa, motivos de cancelamento, motivos de reprovação, tipos de limpeza, solicitantes, checklist da supervisora e parâmetros de tempo. O novo hotel já começa com uma base completa que pode ser ajustada conforme necessário.</p>
+    </div>
+
+    <div class="card">
+      <h4>O botão "Cadastrar Apto" sumiu do Mapa. É um erro?</h4>
+      <p>Não. O botão <strong>⊕ Cadastrar Apto</strong> no cabeçalho do Mapa é visível apenas para <strong>Admin Global</strong> e <strong>Admin Hotel</strong>. Gestor, Supervisora, Camareira e Manutenção não têm acesso a esse botão — é o comportamento correto, pois cadastro de apartamentos é exclusivo para admins.</p>
+    </div>
+
+    <div class="card">
+      <h4>As configurações de um hotel afetam os outros hotéis?</h4>
+      <p>Não. Cada hotel tem suas configurações isoladas no banco de dados. Uma alteração feita no Hotel A (seja pelo Admin Global com aquele hotel selecionado, ou pelo Admin Hotel do Hotel A) não afeta o Hotel B. A única exceção é a replicação automática que ocorre <em>uma única vez</em> ao criar um novo hotel.</p>
+    </div>
   </section>
 
   <div style="text-align:center;padding:32px 0;color:var(--text3);font-size:12px;border-top:1px solid var(--border);">
-    Gov Estancorp · Manual de Uso · Versão 2026.06.7 · Sistema de Governança Hoteleira
+    Gov Estancorp · Manual de Uso · Versão 2026.06.17 · Sistema de Governança Hoteleira
   </div>
 
 </main>
