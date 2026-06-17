@@ -327,7 +327,20 @@ function _fRetrab(arr) {
     if (f.dtIni && r.created_at.slice(0,10) < f.dtIni) return false;
     if (f.dtFim && r.created_at.slice(0,10) > f.dtFim) return false;
     if (f.apto) { const a = _relData.aptoById[r.apartment_id]; if (!a||!String(a.numero||'').toLowerCase().includes(f.apto.toLowerCase())) return false; }
-    if (f.camareira) { const a = _relData.aptoById[r.apartment_id]; if (!a||a.maid_id!==f.camareira) return false; }
+    if (f.andar) { const a = _relData.aptoById[r.apartment_id]; if (!a||String(a.andar)!==String(f.andar)) return false; }
+    if (f.camareira) {
+      // Tenta encontrar quem fez a limpeza pelo limpeza_checklist anterior à reprovação (até 4h antes)
+      const retTs = new Date(r.created_at).getTime();
+      const limpMatch = _relData.limpChecklists.find(c =>
+        c.apartment_id === r.apartment_id &&
+        c.usuario_id === f.camareira &&
+        retTs - new Date(c.created_at).getTime() >= 0 &&
+        retTs - new Date(c.created_at).getTime() <= 4 * 60 * 60 * 1000
+      );
+      // Fallback: usa maid_id atual do apto
+      const a = _relData.aptoById[r.apartment_id];
+      if (!limpMatch && (!a || a.maid_id !== f.camareira)) return false;
+    }
     return true;
   });
 }
@@ -337,6 +350,8 @@ function _fCheck(arr) {
     if (f.dtIni && h.created_at.slice(0,10) < f.dtIni) return false;
     if (f.dtFim && h.created_at.slice(0,10) > f.dtFim) return false;
     if (f.apto) { const a = _relData.aptoById[h.apartment_id]; if (!a||!String(a.numero||'').toLowerCase().includes(f.apto.toLowerCase())) return false; }
+    if (f.andar) { const a = _relData.aptoById[h.apartment_id]; if (!a||String(a.andar)!==String(f.andar)) return false; }
+    if (f.camareira) { const a = _relData.aptoById[h.apartment_id]; if (!a||a.maid_id!==f.camareira) return false; }
     return true;
   });
 }
@@ -733,6 +748,7 @@ function _relAbaProdutividade(el) {
     const iniTs = new Date(s.inicio).getTime();
     const match = limpFilt.find(c =>
       c.apartment_id === s.aptoId &&
+      (!s.camareira_id || c.usuario_id === s.camareira_id) &&
       new Date(c.created_at).getTime() >= iniTs - 120000 &&
       new Date(c.created_at).getTime() <= fimTs + 600000
     );
@@ -755,8 +771,10 @@ function _relAbaProdutividade(el) {
     const sCan  = sSes.filter(s=>s.statusFinal==='sujo'||s.statusFinal==='livre'&&s.pausas.length>0);
     const sPaus = sSes.filter(s=>s.pausas.length>0);
 
-    const aprovados = confChecks.filter(h=>(h.camareira_id===cam.user_id||(aptos.find(a=>a.id===h.apartment_id)?.maid_id===cam.user_id))&&(h.resultado==='aprovado'||h.resultado==='conforme')).length;
-    const reprovados= confChecks.filter(h=>(h.camareira_id===cam.user_id||(aptos.find(a=>a.id===h.apartment_id)?.maid_id===cam.user_id))&&(h.resultado==='reprovado'||h.resultado==='nao_conforme')).length;
+    // confChecks tem uma linha por item — conta sessões únicas por _sessionId
+    const confCam = confChecks.filter(h=>(_relData.aptoById[h.apartment_id]||{}).maid_id===cam.user_id);
+    const aprovados  = new Set(confCam.filter(h=>h.resultado==='aprovado').map(h=>h._sessionId)).size;
+    const reprovados = new Set(confCam.filter(h=>h.resultado==='reprovado').map(h=>h._sessionId)).size;
     const retrabCam = retrabalhos.filter(r=>{ const a=_relData.aptoById[r.apartment_id]; return a&&a.maid_id===cam.user_id; }).length;
     const atrib     = aptos.filter(a=>a.maid_id===cam.user_id).length;
 
