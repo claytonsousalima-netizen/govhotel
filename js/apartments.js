@@ -1105,6 +1105,12 @@ async function confirmarChecklistSupervisora(decisao) {
   if (decisao === 'aprovar') {
     const obsStatus = `Aprovado por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}${obs ? ' — ' + obs : ''}`;
     await mudarStatusApto(selectedAptoId, 'limpo', obsStatus);
+    // fecha pendências de retrabalho abertas deste apartamento
+    supabaseClient.from('pendencias_retrabalho')
+      .update({ status: 'concluido', updated_at: new Date().toISOString() })
+      .eq('apartment_id', selectedAptoId)
+      .or('status.eq.aberto,status.is.null')
+      .then(({ error }) => { if (error) console.warn('Erro ao fechar retrabalho:', error); });
   } else {
     abrirModalReprovacao();
   }

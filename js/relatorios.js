@@ -61,6 +61,34 @@ async function _selecionarHotelRel(hotelId) {
   await _relCarregarDados(hotelId);
 }
 
+// ── Expansão do checklist de conferência (JSONB → linhas) ────────
+// Cada sessão vira N linhas (uma por item). Cada linha carrega:
+//   _sessionId, resultado (sessão), item, resposta, observacao, user_id, created_at
+function _expandConfChecklists(raw) {
+  const out = [];
+  (raw || []).forEach(r => {
+    const resultadoNorm = r.resultado === 'aprovar' ? 'aprovado'
+      : r.resultado === 'reprovar' ? 'reprovado'
+      : (r.resultado || 'aprovado');
+    const respostas = r.respostas && typeof r.respostas === 'object' ? r.respostas : {};
+    const entries = Object.entries(respostas);
+    if (!entries.length) {
+      out.push({ _sessionId: r.id, apartment_id: r.apartment_id, item: null,
+        resposta: null, observacao: r.obs || null,
+        resultado: resultadoNorm, user_id: r.usuario_id, created_at: r.created_at });
+    } else {
+      entries.forEach(([nome, dados]) => {
+        const val = (dados && dados.valor) || '';
+        out.push({ _sessionId: r.id, apartment_id: r.apartment_id, item: nome,
+          resposta: val === 'ok' ? 'Conforme' : val === 'nao' ? 'Não conforme' : 'N/A',
+          observacao: (dados && dados.obs) || null,
+          resultado: resultadoNorm, user_id: r.usuario_id, created_at: r.created_at });
+      });
+    }
+  });
+  return out;
+}
+
 // ── Carga de dados ───────────────────────────────────────────────
 
 async function _relCarregarDados(hotelId) {
@@ -84,7 +112,7 @@ async function _relCarregarDados(hotelId) {
       .select('id, apartment_id, status_anterior, status_novo, alterado_por, obs, created_at')
       .eq('hotel_id', hotelId).order('created_at', { ascending: false }).limit(5000),
     supabaseClient.from('conferencia_supervisora_checklists')
-      .select('id, apartment_id, item, resposta, observacao, resultado, user_id, camareira_id, created_at')
+      .select('id, apartment_id, respostas, obs, resultado, usuario_id, created_at')
       .eq('hotel_id', hotelId).order('created_at', { ascending: false }).limit(3000),
     supabaseClient.from('limpeza_checklists')
       .select('id, apartment_id, usuario_id, tipo_limpeza, respostas, obs_geral, created_at')
@@ -99,7 +127,7 @@ async function _relCarregarDados(hotelId) {
   const retrabalhos   = retrabRes.data      || [];
   const equipe        = equipeRes.data      || [];
   const history       = historyRes.data     || [];
-  const confChecklists= confCheckRes.error  ? [] : (confCheckRes.data || []);
+  const confChecklists= confCheckRes.error  ? [] : _expandConfChecklists(confCheckRes.data || []);
   const limpChecklists= limpCheckRes.error  ? [] : (limpCheckRes.data || []);
   const configMap     = Object.fromEntries((configRes.data || []).map(r => [r.chave, parseInt(r.valor) || 0]));
   const parametros    = {
@@ -797,41 +825,50 @@ function _relAbaQualidade(el) {
   const retrab  = _fRetrab(_relData.retrabalhos);
   const { aptoById } = _relData;
 
-  const total    = checks.length;
-  const aprovados= checks.filter(h=>h.resultado==='aprovado'||h.resultado==='conforme').length;
-  const reprovados=checks.filter(h=>h.resultado==='reprovado'||h.resultado==='nao_conforme').length;
-  const taxaPct  = total ? Math.round(reprovados/total*100) : 0;
+  // Contagens por sessão (não por item — cada sessão pode ter N linhas)
+  const sessoes     = [...new Set(checks.map(h=>h._sessionId))];
+  const total       = sessoes.length;
+  const sessoesRep  = new Set(checks.filter(h=>h.resultado==='reprovado').map(h=>h._sessionId));
+  const aprovados   = total - sessoesRep.size;
+  const reprovados  = sessoesRep.size;
+  const taxaPct     = total ? Math.round(reprovados/total*100) : 0;
 
-  // Itens mais reprovados
+  // Itens mais não conformes (filtra por resposta do item, não resultado da sessão)
   const itensCnt = {};
-  checks.filter(h=>h.resultado==='reprovado'||h.resultado==='nao_conforme')
+  checks.filter(h=>h.resposta==='Não conforme')
     .forEach(h=>{ if(h.item) itensCnt[h.item]=(itensCnt[h.item]||0)+1; });
 
-  // Aptos com reprovação reincidente
-  const aptoRepCnt = {};
-  checks.filter(h=>h.resultado==='reprovado'||h.resultado==='nao_conforme')
-    .forEach(h=>{ aptoRepCnt[h.apartment_id]=(aptoRepCnt[h.apartment_id]||0)+1; });
-  const reincidentes = Object.entries(aptoRepCnt).filter(([,n])=>n>1)
-    .map(([id,n])=>({v:id,n})).sort((a,b)=>b.n-a.n).slice(0,10);
+  // Aptos com reprovação reincidente (conta sessões reprovadas, não itens)
+  const aptoRepSessoes = {};
+  checks.filter(h=>h.resultado==='reprovado').forEach(h=>{
+    if (!aptoRepSessoes[h.apartment_id]) aptoRepSessoes[h.apartment_id] = new Set();
+    aptoRepSessoes[h.apartment_id].add(h._sessionId);
+  });
+  const reincidentes = Object.entries(aptoRepSessoes)
+    .map(([id,s])=>({v:id,n:s.size})).filter(x=>x.n>1)
+    .sort((a,b)=>b.n-a.n).slice(0,10);
   const reincHtml = reincidentes.length
     ? reincidentes.map(x=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border2);">
         <span>Apto ${_relAptoNum(x.v)}</span><span class="badge badge-reprovado">${x.n}x</span></div>`).join('')
     : '<p style="font-size:12px;color:var(--text3);">Nenhum.</p>';
 
-  // Camareiras com mais reprovações
-  const camRepCnt = {};
-  checks.filter(h=>h.resultado==='reprovado'||h.resultado==='nao_conforme').forEach(h=>{
-    const uid = h.camareira_id || (aptoById[h.apartment_id]||{}).maid_id;
-    if (uid) camRepCnt[uid]=(camRepCnt[uid]||0)+1;
+  // Camareiras com mais sessões reprovadas
+  const camRepSessoes = {};
+  checks.filter(h=>h.resultado==='reprovado').forEach(h=>{
+    const uid = (aptoById[h.apartment_id]||{}).maid_id;
+    if (!uid) return;
+    if (!camRepSessoes[uid]) camRepSessoes[uid] = new Set();
+    camRepSessoes[uid].add(h._sessionId);
   });
+  const camRepCnt = Object.fromEntries(Object.entries(camRepSessoes).map(([k,s])=>[k,s.size]));
 
   // Retrabalhos gerados por apartamento reprovado
   const retByApto = {};
   retrab.forEach(r=>{ retByApto[r.apartment_id]=(retByApto[r.apartment_id]||0)+1; });
 
-  const rows = checks.slice(0,200).map(h=>{
+  const rows = checks.slice(0,500).map(h=>{
     const a = aptoById[h.apartment_id];
-    const camUid = h.camareira_id || (a&&a.maid_id);
+    const camUid = (a&&a.maid_id);
     const temRet = retByApto[h.apartment_id]>0;
     return [
       _fmtDt(h.created_at), a?(a.numero||'—'):'—',
@@ -871,13 +908,15 @@ function _relAbaChecklists(el) {
   const limpChecks = _fCheck(_relData.limpChecklists);
 
   // ── Seção A: Conferência ──
-  const confTotal  = confChecks.length;
-  const confAprov  = confChecks.filter(h=>h.resultado==='aprovado'||h.resultado==='conforme').length;
-  const confNC     = confChecks.filter(h=>h.resultado==='reprovado'||h.resultado==='nao_conforme').length;
-  const confItens  = {};
-  confChecks.filter(h=>h.resultado==='reprovado'||h.resultado==='nao_conforme')
+  const confSessoes = new Set(confChecks.map(h=>h._sessionId));
+  const confTotal   = confSessoes.size;
+  const confRepSet  = new Set(confChecks.filter(h=>h.resultado==='reprovado').map(h=>h._sessionId));
+  const confNC      = confRepSet.size;
+  const confAprov   = confTotal - confNC;
+  const confItens   = {};
+  confChecks.filter(h=>h.resposta==='Não conforme')
     .forEach(h=>{ if(h.item) confItens[h.item]=(confItens[h.item]||0)+1; });
-  const confRows = confChecks.slice(0,100).map(h=>[
+  const confRows = confChecks.slice(0,300).map(h=>[
     _fmtDt(h.created_at), _relAptoNum(h.apartment_id),
     h.item||'—', h.resposta||'—', h.observacao||'—', h.resultado||'—', _relNome(h.user_id),
   ]);
