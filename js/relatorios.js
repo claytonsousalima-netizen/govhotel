@@ -64,14 +64,41 @@ async function _selecionarHotelRel(hotelId) {
 // ── Expansão do checklist de conferência (JSONB → linhas) ────────
 // Cada sessão vira N linhas (uma por item). Cada linha carrega:
 //   _sessionId, resultado (sessão), item, resposta, observacao, user_id, created_at
+// Suporta dois formatos do campo respostas:
+//   objeto: { [nome]: { valor: 'ok'|'nao', obs: '' } }  ← formato atual
+//   array:  [ { item, resposta, obs } ]                  ← formato legado
 function _expandConfChecklists(raw) {
   const out = [];
   (raw || []).forEach(r => {
     const resultadoNorm = r.resultado === 'aprovar' ? 'aprovado'
       : r.resultado === 'reprovar' ? 'reprovado'
+      : r.resultado === 'aprovado' ? 'aprovado'
+      : r.resultado === 'reprovado' ? 'reprovado'
       : (r.resultado || 'aprovado');
-    const respostas = r.respostas && typeof r.respostas === 'object' ? r.respostas : {};
-    const entries = Object.entries(respostas);
+
+    const respostas = r.respostas;
+
+    // Formato array (legado): [{ item, resposta, obs }]
+    if (Array.isArray(respostas)) {
+      if (!respostas.length) {
+        out.push({ _sessionId: r.id, apartment_id: r.apartment_id, item: null,
+          resposta: null, observacao: r.obs || null,
+          resultado: resultadoNorm, user_id: r.usuario_id, created_at: r.created_at });
+      } else {
+        respostas.forEach(item => {
+          const val = item.resposta || item.valor || '';
+          out.push({ _sessionId: r.id, apartment_id: r.apartment_id, item: item.item || null,
+            resposta: val === 'ok' || val === 'conforme' ? 'Conforme'
+              : val === 'nao' || val === 'nao_conforme' ? 'Não conforme' : 'N/A',
+            observacao: item.obs || item.observacao || null,
+            resultado: resultadoNorm, user_id: r.usuario_id, created_at: r.created_at });
+        });
+      }
+      return;
+    }
+
+    // Formato objeto (atual): { [nome]: { valor, obs } }
+    const entries = respostas && typeof respostas === 'object' ? Object.entries(respostas) : [];
     if (!entries.length) {
       out.push({ _sessionId: r.id, apartment_id: r.apartment_id, item: null,
         resposta: null, observacao: r.obs || null,
@@ -122,11 +149,25 @@ async function _relCarregarDados(hotelId) {
       .in('chave', ['tempo_padrao_saida', 'tempo_padrao_permanencia']),
   ]);
 
+  // Logar erros de cada query para facilitar diagnóstico no console
+  const _queryErros = [];
+  if (aptosRes.error)      _queryErros.push('apartments: ' + aptosRes.error.message);
+  if (chamadosRes.error)   _queryErros.push('work_orders: ' + chamadosRes.error.message);
+  if (retrabRes.error)     _queryErros.push('pendencias_retrabalho: ' + retrabRes.error.message);
+  if (equipeRes.error)     _queryErros.push('user_profiles: ' + equipeRes.error.message);
+  if (historyRes.error)    _queryErros.push('apartment_status_history: ' + historyRes.error.message);
+  if (confCheckRes.error)  _queryErros.push('conferencia_supervisora_checklists: ' + confCheckRes.error.message);
+  if (limpCheckRes.error)  _queryErros.push('limpeza_checklists: ' + limpCheckRes.error.message);
+  if (configRes.error)     _queryErros.push('hotel_config: ' + configRes.error.message);
+  if (_queryErros.length)  console.warn('[Relatórios] Erros nas queries:\n' + _queryErros.join('\n'));
+
   const aptos         = aptosRes.data       || [];
   const chamados      = chamadosRes.data    || [];
   const retrabalhos   = retrabRes.data      || [];
   const equipe        = equipeRes.data      || [];
-  const history       = historyRes.data     || [];
+  // Filtrar history pelos apartment_ids do hotel (necessário para admin_global que recebe tudo via RLS ALL)
+  const _aptoIdsSet   = new Set(aptos.map(a => a.id));
+  const history       = (historyRes.data || []).filter(h => _aptoIdsSet.has(h.apartment_id));
   const confChecklists= confCheckRes.error  ? [] : _expandConfChecklists(confCheckRes.data || []);
   const limpChecklists= limpCheckRes.error  ? [] : (limpCheckRes.data || []);
   const configMap     = Object.fromEntries((configRes.data || []).map(r => [r.chave, parseInt(r.valor) || 0]));
@@ -135,6 +176,13 @@ async function _relCarregarDados(hotelId) {
     tempo_permanencia:  configMap['tempo_padrao_permanencia'] || 25,
   };
 
+  console.log('[Relatórios] Dados carregados:', {
+    aptos: aptos.length, chamados: chamados.length, retrabalhos: retrabalhos.length,
+    equipe: equipe.length, history: history.length,
+    confChecklists: confChecklists.length, limpChecklists: limpChecklists.length,
+    erros: _queryErros.length,
+  });
+
   const userNames = {};
   equipe.forEach(u => { userNames[u.user_id] = u.nome; });
   const aptoById = {};
@@ -142,8 +190,15 @@ async function _relCarregarDados(hotelId) {
 
   // Sessões de limpeza calculadas do histórico
   const sessoes = _relCalcSessoes(history, aptoById);
+  console.log('[Relatórios] Sessões calculadas:', sessoes.length, '— com tempo:', sessoes.filter(s=>s.durBruta!=null).length);
 
-  _relData    = { aptos, chamados, retrabalhos, equipe, history, confChecklists, limpChecklists, userNames, aptoById, sessoes, parametros };
+  // Alertar no UI se dados críticos estão faltando (provável erro de banco)
+  const avisos = [];
+  if (historyRes.error)   avisos.push('Histórico de status indisponível (verifique console)');
+  if (limpCheckRes.error) avisos.push('Checklists de limpeza indisponíveis (verifique console)');
+  if (confCheckRes.error) avisos.push('Conferências de supervisora indisponíveis (verifique console)');
+
+  _relData    = { aptos, chamados, retrabalhos, equipe, history, confChecklists, limpChecklists, userNames, aptoById, sessoes, parametros, avisos };
   _relFiltros = { dtIni:'', dtFim:'', andar:'', camareira:'', status:'', apto:'', tipo:'', prioridade:'' };
 
   _relRenderShell();
@@ -215,14 +270,21 @@ function _relRenderShell() {
     { id:'equipe',          label:'👥 Equipe' },
   ];
 
-  const { aptos, equipe, chamados } = _relData;
+  const { aptos, equipe, chamados, avisos } = _relData;
   const andares    = [...new Set(aptos.map(a=>a.andar).filter(v=>v!=null))].sort((a,b)=>a-b);
   const camareiras = equipe.filter(u=>u.perfil==='camareira');
   const statusList = ['sujo','limpando','pausado','conferencia','limpo','reprovado','livre','ocupado','bloqueado','manutencao'];
   const tipoList   = [...new Set(chamados.map(c=>c.tipo).filter(Boolean))].sort();
   const prioList   = [...new Set(chamados.map(c=>c.prioridade).filter(Boolean))].sort();
 
-  c.innerHTML = `
+  const avisoBanner = (avisos && avisos.length)
+    ? `<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px;font-size:12px;color:#856404;">
+        ⚠️ <strong>Atenção:</strong> Alguns dados não foram carregados. Abra o Console do navegador (F12 → Console) para ver o detalhe dos erros.<br>
+        ${avisos.map(a=>`• ${a}`).join('<br>')}
+       </div>`
+    : '';
+
+  c.innerHTML = `${avisoBanner}
     <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:16px;">
       ${abas.map(a=>`<button id="rel-tab-${a.id}" class="btn btn-sm ${_relAba===a.id?'btn-primary':'btn-outline'}"
         onclick="_relAbrirAba('${a.id}')">${a.label}</button>`).join('')}
