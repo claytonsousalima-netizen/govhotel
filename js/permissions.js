@@ -104,17 +104,6 @@ function applyProfileRestrictions() {
     btn.style.display = canWrite('equipe') ? '' : 'none';
   });
 
-  // Mapa: ações do cabeçalho — cadastro restrito a admin
-  const mapaActions = document.getElementById('mapa-header-actions');
-  if (mapaActions) {
-    const isAdminUser = ['admin_global','admin_hotel'].includes(currentUser.perfil);
-    mapaActions.innerHTML = [
-      isAdminUser
-        ? `<button class="btn btn-ghost btn-sm" onclick="openPage('cadastro-apto')">⊕ Cadastrar Apto</button>`
-        : '',
-      `<button class="btn btn-primary btn-sm" onclick="openModal('modal-trocar-status')">Alterar Status</button>`,
-    ].join('');
-  }
 
   // Kanban: restringe drag-and-drop de status para camareira
   // (o drag é permitido — camareira pode alterar apartment_status — mas criar chamados não)
