@@ -875,8 +875,8 @@ async function iniciarLimpeza() {
   const acao = apto.status === 'pausado' ? 'retomada' : 'iniciada';
   const obs  = `Limpeza ${acao} por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
   await mudarStatusApto(selectedAptoId, 'limpando', obs);
-  // Camareira preenche checklist imediatamente ao iniciar/retomar/re-limpar
-  if (currentUser?.perfil === 'camareira') {
+  // Camareira e admins preenchem checklist imediatamente ao iniciar/retomar/re-limpar
+  if (['camareira','admin_global','admin_hotel'].includes(currentUser?.perfil)) {
     await abrirChecklistApp(selectedAptoId);
   }
 }
@@ -955,8 +955,8 @@ async function concluirLimpeza() {
   if (apto.status !== 'limpando') {
     toast('Conclusão só é permitida com apartamento Em limpeza. Retome antes de concluir.', 'error'); return;
   }
-  if (currentUser?.perfil === 'camareira') {
-    // Re-abre checklist caso a camareira tenha fechado o modal sem concluir
+  if (['camareira','admin_global','admin_hotel'].includes(currentUser?.perfil)) {
+    // Re-abre checklist caso o modal tenha sido fechado sem concluir
     _checklistOrigemStatus = 'limpando';
     await abrirChecklistApp(selectedAptoId);
   } else {
