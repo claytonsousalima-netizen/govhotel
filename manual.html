@@ -127,7 +127,7 @@
 <nav class="sidebar">
   <div class="sidebar-logo">
     <h1>🏨 Gov Estancorp</h1>
-    <p>Manual de Uso — v2026.06.5</p>
+    <p>Manual de Uso — v2026.06.6</p>
   </div>
 
   <div class="sidebar-section">Introdução</div>
@@ -151,7 +151,17 @@
   <a href="#mod-chamados">Chamados</a>
   <a href="#mod-minha-fila">Minha Fila</a>
   <a href="#mod-equipe">Equipe</a>
-  <a href="#mod-relatorios">Relatórios</a>
+  <a href="#mod-relatorios">Relatórios & Analytics</a>
+  <a href="#mod-rel-executivo" style="padding-left:24px;font-size:12px;">↳ Painel Executivo</a>
+  <a href="#mod-rel-gargalos" style="padding-left:24px;font-size:12px;">↳ Gargalos</a>
+  <a href="#mod-rel-resumo" style="padding-left:24px;font-size:12px;">↳ Resumo de Aptos</a>
+  <a href="#mod-rel-tempo" style="padding-left:24px;font-size:12px;">↳ Tempo de Limpeza</a>
+  <a href="#mod-rel-produtividade" style="padding-left:24px;font-size:12px;">↳ Produtividade</a>
+  <a href="#mod-rel-qualidade" style="padding-left:24px;font-size:12px;">↳ Qualidade</a>
+  <a href="#mod-rel-checklists" style="padding-left:24px;font-size:12px;">↳ Checklists</a>
+  <a href="#mod-rel-chamados" style="padding-left:24px;font-size:12px;">↳ Chamados</a>
+  <a href="#mod-rel-retrabalhos" style="padding-left:24px;font-size:12px;">↳ Retrabalhos</a>
+  <a href="#mod-rel-timeline" style="padding-left:24px;font-size:12px;">↳ Timeline</a>
   <a href="#mod-config">Configurações</a>
 
   <div class="sidebar-section">Ajuda</div>
@@ -163,7 +173,7 @@
 
   <div class="page-title">Manual de Uso — Gov Estancorp</div>
   <div class="page-subtitle">
-    Sistema de Governança Hoteleira · Todos os perfis de acesso · Versão 2026.06.5
+    Sistema de Governança Hoteleira · Todos os perfis de acesso · Versão 2026.06.6
   </div>
 
   <!-- ══ VISÃO GERAL ════════════════════════════════════════ -->
@@ -206,7 +216,7 @@
         <tr><td><span class="badge b-limpando">Limpando</span></td><td>Limpeza em andamento</td><td>Camareira conclui ou pausa</td></tr>
         <tr><td><span class="badge b-pausado">Pausado</span></td><td>Limpeza interrompida temporariamente</td><td>Camareira retoma</td></tr>
         <tr><td><span class="badge b-conferencia">Conferência</span></td><td>Aguardando vistoria da supervisora/gestor</td><td>Supervisora ou gestor aprova ou reprova</td></tr>
-        <tr><td><span class="badge b-limpo">Limpo</span></td><td>Aprovado pela supervisora/gestor</td><td>Recepção pode usar</td></tr>
+        <tr><td><span class="badge b-limpo">Limpo</span></td><td>Aprovado pela supervisora/gestor</td><td>Admin/Gestor libera para check-in → <span class="badge b-livre">Livre</span></td></tr>
         <tr><td><span class="badge b-reprovado">Reprovado</span></td><td>Não passou na conferência</td><td>Camareira refaz a limpeza</td></tr>
         <tr><td><span class="badge b-livre">Livre</span></td><td>Disponível para hospedagem</td><td>—</td></tr>
         <tr><td><span class="badge b-ocupado">Ocupado</span></td><td>Hóspede no apartamento</td><td>—</td></tr>
@@ -538,27 +548,27 @@
         <tbody>
           <tr>
             <td><span class="badge b-sujo">Sujo</span></td>
-            <td>Checklist de limpeza</td>
-            <td>⏸ Pausar · ✓ Concluir limpeza → <span class="badge b-limpando">Em andamento</span></td>
+            <td>Botões de ação diretos</td>
+            <td>▶ Iniciar limpeza → apto vai para <span class="badge b-limpando">Em andamento</span> e o checklist de limpeza abre imediatamente</td>
           </tr>
           <tr>
             <td><span class="badge b-limpando">Em andamento</span></td>
             <td>Tela de ação direta</td>
-            <td>⏸ Pausar limpeza → <span class="badge b-pausado">Pausado</span> · 🔍 Enviar para conferência → <span class="badge b-conferencia">Conferência</span></td>
+            <td>⏸ Pausar · 🚫 Cancelar limpeza (volta ao sujo) · 🔍 Enviar conf. (reabre checklist se fechou sem concluir)</td>
           </tr>
           <tr>
             <td><span class="badge b-pausado">Pausado</span></td>
             <td>Tela de ação direta</td>
-            <td>▶ Retomar limpeza → <span class="badge b-limpando">Em andamento</span></td>
+            <td>▶ Retomar limpeza → apto vai para <span class="badge b-limpando">Em andamento</span> e checklist abre → ao concluir → <span class="badge b-conferencia">Conferência</span></td>
           </tr>
           <tr>
             <td><span class="badge b-reprovado">Reprovado</span></td>
             <td>Tela com motivo da reprovação</td>
-            <td>▶ Iniciar re-limpeza → abre checklist</td>
+            <td>▶ Re-limpar → apto vai para <span class="badge b-limpando">Em andamento</span> e checklist abre → ao concluir → <span class="badge b-conferencia">Conferência</span></td>
           </tr>
         </tbody>
       </table>
-      <div class="info-box amber" style="margin-top:14px;"><strong>Fluxo completo:</strong> Sujo → (checklist) → Em andamento → (enviar conf.) → Ag. Conferência → (supervisora aprova) → Limpo</div>
+      <div class="info-box amber" style="margin-top:14px;"><strong>Fluxo completo:</strong> Sujo → (iniciar) → Em andamento + checklist abre → (concluir checklist) → Ag. Conferência → (supervisora aprova com checklist) → Limpo</div>
     </div>
 
     <div class="section">
@@ -567,10 +577,9 @@
       <ul class="steps">
         <li><div class="step-num">1</div><div class="step-body">A fila é ordenada por urgência: <span class="badge b-reprovado">Reprovados</span> → <span class="badge b-pausado">Pausados</span> → <span class="badge b-limpando">Em andamento</span> → <span class="badge b-sujo">Sujos</span>.</div></li>
         <li><div class="step-num">2</div><div class="step-body">Dentro de cada grupo, apartamentos <strong>atribuídos diretamente a você</strong> aparecem primeiro com banner azul <strong>📌 Atribuído a mim</strong>.</div></li>
-        <li><div class="step-num">3</div><div class="step-body">Para <strong>iniciar</strong>: clique em <strong>▶ Iniciar limpeza</strong>. O checklist de limpeza abre — o status <strong>não muda ainda</strong>.</div></li>
-        <li><div class="step-num">4</div><div class="step-body">No checklist: <strong>Cancelar</strong> (mantém status), <strong>⏸ Pausar</strong> (→ <span class="badge b-pausado">Pausado</span>), ou <strong>✓ Concluir limpeza</strong> (≥ 80% dos itens → <span class="badge b-limpando">Em andamento</span>).</div></li>
-        <li><div class="step-num">5</div><div class="step-body">Com status <span class="badge b-limpando">Em andamento</span>: clique em <strong>🔍 Enviar conf.</strong> → <span class="badge b-conferencia">Conferência</span>. Aguarde a supervisora.</div></li>
-        <li><div class="step-num">6</div><div class="step-body">Se <span class="badge b-reprovado">Reprovado</span>: veja o <strong>motivo da reprovação</strong> e a observação deixada pela supervisora. Clique em <strong>▶ Re-limpar</strong> para iniciar a re-limpeza.</div></li>
+        <li><div class="step-num">3</div><div class="step-body">Para <strong>iniciar</strong>: clique em <strong>▶ Iniciar limpeza</strong>. O apto vai para <span class="badge b-limpando">Em andamento</span> e o <strong>checklist de limpeza abre automaticamente</strong>. Marque os itens (mínimo 80%) enquanto limpa.</div></li>
+        <li><div class="step-num">4</div><div class="step-body">Ao concluir o checklist, clique em <strong>✓ Concluir limpeza</strong>. As respostas são salvas e o apto vai direto para <span class="badge b-conferencia">Ag. Conferência</span>. Se precisar cancelar a limpeza, clique em <strong>🚫 Cancelar limpeza</strong> — o apto retorna ao status de origem.</div></li>
+        <li><div class="step-num">5</div><div class="step-body">Aguarde a supervisora aprovar ou reprovar. Se <span class="badge b-reprovado">Reprovado</span>: veja o motivo, clique em <strong>▶ Re-limpar</strong> → apto volta para <span class="badge b-limpando">Em andamento</span>, checklist abre novamente e o ciclo recomeça.</div></li>
       </ul>
     </div>
 
@@ -758,7 +767,7 @@
         <li><div class="step-num">3</div><div class="step-body">Com apartamentos selecionados, escolha a ação:<br>
           <ul style="margin:6px 0 0 16px;font-size:12px;color:var(--text2);">
             <li><strong>Alterar Status</strong>: altera todos os selecionados para o status escolhido</li>
-            <li><strong>Atribuir Camareira</strong>: atribui a mesma camareira a todos os selecionados</li>
+            <li><strong>👤 Atribuir em lote</strong>: abre modal para atribuir a mesma camareira a todos os selecionados e salva <code>camareira_id</code> no cadastro do apto</li>
             <li><strong>Marcar Prioritário</strong>: ativa o indicador de prioridade em todos os selecionados</li>
             <li><strong>Remover Prioridade</strong>: remove o indicador de prioridade</li>
           </ul>
@@ -840,7 +849,8 @@
     <div class="section">
       <div class="section-title" style="font-size:14px;">Fluxo de Status dos Chamados</div>
       <div class="info-box green"><strong>Fluxo Governança:</strong> Aberto → Em análise → Em andamento → <strong>Resolvido</strong><br>
-      <strong>Fluxo Manutenção:</strong> Aberto → Em análise → Em andamento → <strong>Concluído</strong></div>
+      <strong>Fluxo Manutenção:</strong> Aberto → Em análise → Em andamento → <strong>Concluído</strong><br>
+      <span style="font-size:12px;color:var(--text2);">Ao resolver, cancelar ou concluir um chamado, o sistema registra automaticamente <strong>data/hora de conclusão</strong> (<code>resolved_at</code>) e <strong>quem concluiu</strong> (<code>resolved_by</code>). Esses dados alimentam o relatório de <strong>Tempo Médio de Resolução</strong> por prioridade, tipo e departamento.</span></div>
       <table>
         <thead><tr><th>De</th><th>Governança pode ir para</th><th>Manutenção pode ir para</th></tr></thead>
         <tbody>
@@ -938,14 +948,219 @@
   </section>
 
   <section id="mod-relatorios" class="section">
-    <div class="section-title">📈 Módulo: Relatórios</div>
+    <div class="section-title">📈 Módulo: Relatórios &amp; Analytics <span class="novidade-badge">Atualizado</span></div>
     <p style="color:var(--text2);margin-bottom:16px;"><em>Disponível para: Admin Global, Admin Hotel, Gestor</em></p>
-    <ul class="steps">
-      <li><div class="step-num">1</div><div class="step-body">Clique em <strong>Relatórios</strong> no menu lateral.</div></li>
-      <li><div class="step-num">2</div><div class="step-body">Selecione o período desejado (dia, semana, mês).</div></li>
-      <li><div class="step-num">3</div><div class="step-body">Veja métricas históricas de limpeza, chamados e ocupação.</div></li>
-      <li><div class="step-num">4</div><div class="step-body">Use os filtros de departamento para visualizar somente governança ou manutenção.</div></li>
-    </ul>
+
+    <div class="info-box blue">
+      Todos os dados exibidos nos relatórios são carregados diretamente do Supabase em tempo real. Não há dados fictícios nem estimativas: tudo reflete o histórico real de operações do hotel selecionado.
+    </div>
+
+    <div class="card">
+      <h4>Filtros Globais</h4>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:8px;">Os filtros ficam no topo da tela e se aplicam a todas as abas simultaneamente.</p>
+      <table>
+        <thead><tr><th>Filtro</th><th>O que faz</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Data inicial / Data final</strong></td><td>Limita os registros ao período selecionado (histórico, chamados, checklists, retrabalhos)</td></tr>
+          <tr><td><strong>Andar</strong></td><td>Filtra apartamentos e eventos pelo andar</td></tr>
+          <tr><td><strong>Camareira</strong></td><td>Filtra sessões de limpeza e checklists por camareira responsável</td></tr>
+          <tr><td><strong>Status</strong></td><td>Filtra a lista de apartamentos pelo status atual</td></tr>
+          <tr><td><strong>Nº Apto</strong></td><td>Busca um apartamento específico</td></tr>
+          <tr><td><strong>Tipo Chamado</strong></td><td>Filtra a aba Chamados por tipo</td></tr>
+          <tr><td><strong>Prioridade</strong></td><td>Filtra chamados por prioridade (Urgente, Alta, Normal, Baixa)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Aba Executivo -->
+    <div class="section" id="mod-rel-executivo">
+      <div class="section-title" style="font-size:14px;">1. Painel Executivo <span class="novidade-badge">Novo</span></div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:8px;">Visão consolidada com os principais KPIs da operação, calculados sobre os dados reais do período filtrado.</p>
+      <table>
+        <thead><tr><th>Indicador</th><th>Como é calculado</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Total de Aptos</strong></td><td>Todos os apartamentos ativos do hotel</td></tr>
+          <tr><td><strong>Limpos</strong></td><td>Aptos com status <em>limpo</em> agora</td></tr>
+          <tr><td><strong>Em operação</strong></td><td>Aptos limpando + pausados + em conferência</td></tr>
+          <tr><td><strong>Pendentes</strong></td><td>Aptos sujos no momento</td></tr>
+          <tr><td><strong>Sessões de limpeza</strong></td><td>Número de limpezas concluídas (início e fim detectados no histórico)</td></tr>
+          <tr><td><strong>Tempo médio bruto</strong></td><td>Duração média entre início (→ limpando) e fim de cada sessão</td></tr>
+          <tr><td><strong>Tempo médio líquido</strong></td><td>Tempo bruto descontando pausas</td></tr>
+          <tr><td><strong>Taxa de aprovação</strong></td><td>Sessões que terminaram em <em>limpo</em> ÷ total de sessões concluídas</td></tr>
+          <tr><td><strong>Taxa de reprovação</strong></td><td>Sessões que terminaram em <em>reprovado</em> ÷ total de sessões</td></tr>
+          <tr><td><strong>Taxa de retrabalho</strong></td><td>Retrabalhos abertos ÷ sessões concluídas</td></tr>
+          <tr><td><strong>Chamados abertos</strong></td><td>Chamados com status não-concluído no período</td></tr>
+          <tr><td><strong>Chamados atrasados</strong></td><td>Chamados com prazo vencido ainda não resolvidos</td></tr>
+          <tr><td><strong>Tm médio chamados</strong></td><td>Tempo médio de resolução (resolved_at − created_at) para chamados concluídos</td></tr>
+          <tr><td><strong>Retrabalhos abertos</strong></td><td>Pendências de retrabalho não encerradas</td></tr>
+          <tr><td><strong>Equipe ativa</strong></td><td>Membros da equipe com status ativo no hotel</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Aba Gargalos -->
+    <div class="section" id="mod-rel-gargalos">
+      <div class="section-title" style="font-size:14px;">2. Gargalos da Governança <span class="novidade-badge">Novo</span></div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:8px;">Identifica pontos críticos que precisam de ação imediata.</p>
+      <table>
+        <thead><tr><th>Alerta</th><th>Critério</th></tr></thead>
+        <tbody>
+          <tr><td>🔴 Sujos sem camareira</td><td>Aptos <em>sujos</em> sem <code>maid_id</code> definido</td></tr>
+          <tr><td>🟠 Em limpeza há muito tempo</td><td>Sessões ativas de <em>limpando</em> com tempo acima de 2h</td></tr>
+          <tr><td>🟡 Pausados</td><td>Aptos com status <em>pausado</em></td></tr>
+          <tr><td>🔵 Ag. Conferência</td><td>Aptos com status <em>conferencia</em></td></tr>
+          <tr><td>🔴 Reprovados</td><td>Aptos com status <em>reprovado</em></td></tr>
+          <tr><td>🟠 Retrabalhos abertos</td><td>Pendências de retrabalho não encerradas</td></tr>
+          <tr><td>🔴 Chamados atrasados</td><td>Chamados com prazo vencido e não concluídos</td></tr>
+          <tr><td>🔴 Chamados urgentes</td><td>Chamados com prioridade <em>urgente</em> não concluídos</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Aba Resumo -->
+    <div class="section" id="mod-rel-resumo">
+      <div class="section-title" style="font-size:14px;">3. Resumo de Apartamentos</div>
+      <p style="font-size:13px;color:var(--text2);">Cards com contagem por status + tabela completa de todos os apartamentos ativos. Exibe número, andar, tipo, status atual, camareira atribuída e data da última atualização. Todos os apartamentos são exibidos (sem limite de paginação).</p>
+    </div>
+
+    <!-- Aba Status -->
+    <div class="section">
+      <div class="section-title" style="font-size:14px;">4. Distribuição de Status</div>
+      <p style="font-size:13px;color:var(--text2);">Barras de distribuição proporcional por status + tabela do histórico de mudanças de status com filtros de período e apartamento.</p>
+    </div>
+
+    <!-- Aba Sem resp -->
+    <div class="section">
+      <div class="section-title" style="font-size:14px;">5. Sem Responsável</div>
+      <p style="font-size:13px;color:var(--text2);">Lista completa de apartamentos sem <code>camareira_id</code> definido — independente do status. Útil para identificar aptos que precisam de atribuição antes do início das limpezas.</p>
+    </div>
+
+    <!-- Aba Tempo -->
+    <div class="section" id="mod-rel-tempo">
+      <div class="section-title" style="font-size:14px;">6. Tempo de Limpeza <span class="novidade-badge">Atualizado</span></div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:8px;">As sessões de limpeza são derivadas do histórico de status — não há tabela separada. O sistema reconstrói cada sessão identificando a sequência <em>limpando → pausado → limpando → (conclusão)</em>.</p>
+      <table>
+        <thead><tr><th>Coluna</th><th>Significado</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Tempo Bruto</strong></td><td>Do início (→ limpando) ao fim da sessão</td></tr>
+          <tr><td><strong>Tempo Pausado</strong></td><td>Soma de todas as pausas da sessão</td></tr>
+          <tr><td><strong>Tempo Líquido</strong></td><td>Bruto − Pausado (tempo efetivo de trabalho)</td></tr>
+          <tr><td><strong>Status Final</strong></td><td>Como a sessão terminou: <em>limpo</em>, <em>reprovado</em>, etc.</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:12px;color:var(--text3);margin-top:6px;">Abaixo da tabela: médias de tempo bruto e líquido agrupadas por camareira e por andar.</p>
+    </div>
+
+    <!-- Aba Produtividade -->
+    <div class="section" id="mod-rel-produtividade">
+      <div class="section-title" style="font-size:14px;">7. Produtividade por Camareira <span class="novidade-badge">Atualizado</span></div>
+      <table>
+        <thead><tr><th>Coluna</th><th>O que mede</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Atribuídos</strong></td><td>Aptos com <code>maid_id</code> da camareira</td></tr>
+          <tr><td><strong>Iniciados</strong></td><td>Sessões iniciadas pela camareira no período</td></tr>
+          <tr><td><strong>Concluídos</strong></td><td>Sessões com fim detectado</td></tr>
+          <tr><td><strong>Aprovados / Reprovados</strong></td><td>Sessões com status final <em>limpo</em> ou <em>reprovado</em></td></tr>
+          <tr><td><strong>Pausas / Retomadas</strong></td><td>Total de eventos de pausa e retomada</td></tr>
+          <tr><td><strong>Retrabalhos</strong></td><td>Pendências de retrabalho abertas para aptos da camareira</td></tr>
+          <tr><td><strong>Tm Bruto / Líquido médio</strong></td><td>Média das durações brutas e líquidas das sessões concluídas</td></tr>
+          <tr><td><strong>Taxa Aprovação / Retrabalho</strong></td><td>% de sessões aprovadas e com retrabalho</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Aba Qualidade -->
+    <div class="section" id="mod-rel-qualidade">
+      <div class="section-title" style="font-size:14px;">8. Qualidade e Conferência <span class="novidade-badge">Novo</span></div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:8px;">Baseado nos checklists de conferência preenchidos pela supervisora/gestora durante a vistoria de cada apartamento.</p>
+      <table>
+        <thead><tr><th>Indicador</th><th>O que mede</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Total de conferências</strong></td><td>Vistorias realizadas no período</td></tr>
+          <tr><td><strong>Aprovadas / Reprovadas</strong></td><td>Resultado geral por vistoria</td></tr>
+          <tr><td><strong>Taxa de reprovação</strong></td><td>% de vistorias com resultado <em>reprovado</em></td></tr>
+          <tr><td><strong>Itens não-conformes mais frequentes</strong></td><td>Ranking dos itens marcados como <em>nao_conforme</em> em conferências</td></tr>
+          <tr><td><strong>Camareiras com mais reprovações</strong></td><td>Ranking por número de vistorias reprovadas</td></tr>
+          <tr><td><strong>Reincidentes</strong></td><td>Camareiras com 2+ reprovações no período</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Aba Checklists -->
+    <div class="section" id="mod-rel-checklists">
+      <div class="section-title" style="font-size:14px;">9. Checklists <span class="novidade-badge">Novo</span></div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:6px;">Duas seções:</p>
+      <div class="card" style="margin-bottom:8px;">
+        <h4>A) Conferência (supervisora)</h4>
+        <p style="font-size:12px;color:var(--text2);">Tabela com todas as respostas dos checklists de conferência: apto, item, resposta (conforme / não-conforme / não se aplica), observação e resultado geral.</p>
+      </div>
+      <div class="card">
+        <h4>B) Limpeza (camareira) <span class="novidade-badge">Novo</span></h4>
+        <p style="font-size:12px;color:var(--text2);">A partir desta versão, ao concluir o checklist de limpeza, a camareira salva automaticamente suas respostas no banco (<code>limpeza_checklists</code>). Esta aba exibe o histórico: apto, camareira, tipo de limpeza, itens marcados como conforme/não-conforme e observação geral.</p>
+      </div>
+    </div>
+
+    <!-- Aba Chamados -->
+    <div class="section" id="mod-rel-chamados">
+      <div class="section-title" style="font-size:14px;">10. Chamados da Governança <span class="novidade-badge">Atualizado</span></div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:8px;">Análise completa de chamados com métricas de tempo de resolução.</p>
+      <table>
+        <thead><tr><th>Indicador</th><th>O que mede</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Tempo médio de resolução</strong></td><td>Média de <code>resolved_at − created_at</code> para chamados concluídos</td></tr>
+          <tr><td><strong>Mais demorados</strong></td><td>Top 5 chamados com maior tempo de resolução</td></tr>
+          <tr><td><strong>Por prioridade</strong></td><td>Contagem de chamados agrupados por prioridade</td></tr>
+          <tr><td><strong>Por tipo</strong></td><td>Contagem agrupada por tipo de chamado</td></tr>
+          <tr><td><strong>Por departamento</strong></td><td>Governança vs. Manutenção</td></tr>
+          <tr><td><strong>Por responsável</strong></td><td>Ranking dos responsáveis com mais chamados</td></tr>
+          <tr><td><strong>Atrasados</strong></td><td>Chamados com prazo vencido e status não-concluído</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Aba Retrabalhos -->
+    <div class="section" id="mod-rel-retrabalhos">
+      <div class="section-title" style="font-size:14px;">11. Retrabalhos <span class="novidade-badge">Novo</span></div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:8px;">Lista e análise de pendências de retrabalho registradas pelos supervisores após reprovação de limpeza.</p>
+      <table>
+        <thead><tr><th>Indicador</th><th>O que mede</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Abertos / Resolvidos / Total</strong></td><td>Contagem por status de retrabalho</td></tr>
+          <tr><td><strong>Motivos mais frequentes</strong></td><td>Ranking dos motivos de retrabalho</td></tr>
+          <tr><td><strong>Aptos com mais retrabalhos</strong></td><td>Ranking de apartamentos com mais ocorrências</td></tr>
+          <tr><td><strong>Tabela detalhada</strong></td><td>Apto, motivo, observação, quem registrou, data e status</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Aba Timeline -->
+    <div class="section" id="mod-rel-timeline">
+      <div class="section-title" style="font-size:14px;">12. Linha do Tempo do Apartamento <span class="novidade-badge">Novo</span></div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:8px;">Histórico cronológico consolidado de todos os eventos de um ou todos os apartamentos. Cada linha combina eventos de diferentes fontes em ordem cronológica:</p>
+      <table>
+        <thead><tr><th>Tipo de evento</th><th>Fonte</th></tr></thead>
+        <tbody>
+          <tr><td>Mudança de status</td><td><code>apartment_status_history</code></td></tr>
+          <tr><td>Vistoria de conferência</td><td><code>conferencia_supervisora_checklists</code></td></tr>
+          <tr><td>Checklist de limpeza</td><td><code>limpeza_checklists</code></td></tr>
+          <tr><td>Retrabalho registrado</td><td><code>pendencias_retrabalho</code></td></tr>
+          <tr><td>Chamado aberto/alterado</td><td><code>work_orders</code></td></tr>
+        </tbody>
+      </table>
+      <div class="info-box amber">
+        <strong>Dica:</strong> Use o filtro <strong>Nº Apto</strong> para focar na timeline de um apartamento específico e investigar o histórico completo de uma ocorrência.
+      </div>
+    </div>
+
+    <!-- Aba Equipe -->
+    <div class="section">
+      <div class="section-title" style="font-size:14px;">13. Equipe</div>
+      <p style="font-size:13px;color:var(--text2);">Lista de todos os membros da equipe ativa com perfil, número de aptos atribuídos e situação atual. Agrupados por perfil (camareira, supervisora, governanta, manutenção, etc.).</p>
+    </div>
+
+    <div class="info-box green">
+      <strong>Fontes de dados:</strong> Os relatórios usam 7 tabelas do Supabase carregadas em paralelo: <code>apartments</code>, <code>work_orders</code>, <code>pendencias_retrabalho</code>, <code>user_profiles</code>, <code>apartment_status_history</code>, <code>conferencia_supervisora_checklists</code> e <code>limpeza_checklists</code>. O cálculo de sessões de limpeza é derivado do histórico — não há tabela dedicada de sessões.
+    </div>
   </section>
 
   <section id="mod-config" class="section">
@@ -988,7 +1203,7 @@
 
     <div class="card">
       <h4>✅ Checklist de Limpeza (Camareira)</h4>
-      <p style="font-size:13px;color:var(--text2);">Itens que a camareira verifica ao concluir a limpeza (antes de enviar para conferência). A limpeza só é enviada com ≥ 80% dos itens marcados.</p>
+      <p style="font-size:13px;color:var(--text2);">Itens que a camareira preenche ao <strong>iniciar</strong> a limpeza — o checklist abre automaticamente quando ela clica em "Iniciar limpeza", "Retomar" ou "Re-limpar". A limpeza só é enviada para conferência com ≥ 80% dos itens marcados.</p>
     </div>
 
     <div class="card">
@@ -1126,7 +1341,7 @@
   </section>
 
   <div style="text-align:center;padding:32px 0;color:var(--text3);font-size:12px;border-top:1px solid var(--border);">
-    Gov Estancorp · Manual de Uso · Versão 2026.06.5 · Sistema de Governança Hoteleira
+    Gov Estancorp · Manual de Uso · Versão 2026.06.6 · Sistema de Governança Hoteleira
   </div>
 
 </main>

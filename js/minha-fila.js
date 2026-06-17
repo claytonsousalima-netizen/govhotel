@@ -159,11 +159,11 @@ function _mfRenderCamareira(el) {
 function _mfBtnsCamareira(a) {
   switch (a.status) {
     case 'sujo':
-    case 'reprovado':
       return `<button class="btn btn-primary btn-sm" onclick="mfAcao('${a.id}','iniciar')">▶ Iniciar limpeza</button>`;
+    case 'reprovado':
+      return `<button class="btn btn-primary btn-sm" onclick="mfAcao('${a.id}','relimpar')">▶ Re-limpar</button>`;
     case 'pausado':
-      return `<button class="btn btn-primary btn-sm" onclick="mfAcao('${a.id}','iniciar')">▶ Retomar</button>
-              <button class="btn btn-outline btn-sm"  onclick="mfAcao('${a.id}','concluir')">🔍 Enviar conf.</button>`;
+      return `<button class="btn btn-primary btn-sm" onclick="mfAcao('${a.id}','retomar')">▶ Retomar limpeza</button>`;
     case 'limpando':
       return `<button class="btn btn-warning btn-sm" onclick="mfAcao('${a.id}','pausar')">⏸ Pausar</button>
               <button class="btn btn-danger btn-sm"   onclick="mfAcao('${a.id}','cancelar')">🚫 Cancelar</button>
@@ -616,10 +616,9 @@ function _mfScrollTo(id) {
 // ── DISPATCHER DE AÇÕES ───────────────────────────────────────
 function mfAcao(id, acao) {
   selectedAptoId = id;
-  if (acao === 'iniciar') {
-    // Abre checklist sem mudar status — status só muda ao concluir o checklist
-    if (typeof abrirChecklistApp === 'function') abrirChecklistApp(id);
-  }
+  if (acao === 'iniciar')  { iniciarLimpeza(); }
+  if (acao === 'relimpar') { iniciarLimpeza(); }
+  if (acao === 'retomar')  { iniciarLimpeza(); }
   if (acao === 'pausar')   abrirModalPausa(id);
   if (acao === 'cancelar') { _carregarMotivosCancelModal(); }
   if (acao === 'concluir') concluirLimpeza();

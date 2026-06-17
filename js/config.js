@@ -314,27 +314,32 @@ async function _excluirCheckItem(id) {
 }
 
 // ── INTEGRAÇÃO COM CHECKLIST DE LIMPEZA ───────────────────────
+// Versão autoritativa — config.js é carregado após apartments.js, portanto esta prevalece.
+// Fluxo novo: iniciar/retomar/re-limpar → limpando → checklist → conferencia
 async function abrirChecklistApp(id) {
   selectedAptoId = id;
   const apto = aptos.find(a => a.id === id);
   if (!apto) return;
 
-  document.getElementById('checklist-title').textContent = `Limpeza — Apto ${apto.numero}`;
+  // Usa origem salva em _checklistOrigemStatus para título correto (apto já está em 'limpando')
+  const origem = (typeof _checklistOrigemStatus !== 'undefined' && _checklistOrigemStatus) || apto.status;
+  const titulo = origem === 'reprovado'
+    ? `Re-limpeza — Apto ${apto.numero}`
+    : origem === 'pausado'
+    ? `Retomar limpeza — Apto ${apto.numero}`
+    : `Limpeza — Apto ${apto.numero}`;
+  document.getElementById('checklist-title').textContent = titulo;
 
-  const hotelId = currentUser.hotelId;
+  const hotelId = currentUser?.hotelId;
   let query = supabaseClient.from('checklist_templates').select('nome').eq('ativo', true).order('ordem');
   if (hotelId) query = query.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
 
   const { data } = await query;
-  const itens = (data || []).map(i => i.nome);
+  const itens = data?.length
+    ? data.map(i => i.nome)
+    : (typeof CHECKLIST_PADRAO !== 'undefined' ? CHECKLIST_PADRAO : []);
 
-  checklistState = (itens.length ? itens : (typeof CHECKLIST_PADRAO !== 'undefined' ? CHECKLIST_PADRAO : []))
-    .map(label => ({ label, done: false }));
-
-  if (apto.status === 'sujo') {
-    await supabaseClient.from('apartments').update({ status: 'limpando' }).eq('id', id);
-    apto.status = 'limpando';
-  }
+  checklistState = itens.map(label => ({ label, done: false }));
 
   renderChecklist();
   openModal('modal-checklist');

@@ -6,6 +6,7 @@
 
 let _editingAptoId  = null;
 let _aptoViewHotelId = null; // hotel selecionado na visualização (admin_global)
+let _checklistOrigemStatus = null; // status anterior ao abrir o checklist de limpeza (para cancelar reverter)
 
 // ── SINCRONIZAR COM SUPABASE ──────────────────────────────────
 
@@ -870,9 +871,14 @@ async function iniciarLimpeza() {
   if (!['sujo','pausado','reprovado'].includes(apto.status)) {
     toast('Limpeza só pode ser iniciada em apartamento Sujo, Pausado ou Reprovado', 'error'); return;
   }
+  _checklistOrigemStatus = apto.status; // guarda para cancelar poder reverter
   const acao = apto.status === 'pausado' ? 'retomada' : 'iniciada';
   const obs  = `Limpeza ${acao} por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
   await mudarStatusApto(selectedAptoId, 'limpando', obs);
+  // Camareira preenche checklist imediatamente ao iniciar/retomar/re-limpar
+  if (currentUser?.perfil === 'camareira') {
+    await abrirChecklistApp(selectedAptoId);
+  }
 }
 
 async function abrirModalCancelarLimpeza(id) {
@@ -949,8 +955,14 @@ async function concluirLimpeza() {
   if (apto.status !== 'limpando') {
     toast('Conclusão só é permitida com apartamento Em limpeza. Retome antes de concluir.', 'error'); return;
   }
-  const obs = `Limpeza concluída por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')} — aguardando conferência`;
-  await mudarStatusApto(selectedAptoId, 'conferencia', obs);
+  if (currentUser?.perfil === 'camareira') {
+    // Re-abre checklist caso a camareira tenha fechado o modal sem concluir
+    _checklistOrigemStatus = 'limpando';
+    await abrirChecklistApp(selectedAptoId);
+  } else {
+    const obs = `Limpeza concluída por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')} — aguardando conferência`;
+    await mudarStatusApto(selectedAptoId, 'conferencia', obs);
+  }
 }
 
 // ── CONFERÊNCIA DA SUPERVISORA ────────────────────────────────
@@ -1256,7 +1268,12 @@ async function abrirChecklistApp(id) {
   selectedAptoId = id;
   const apto = aptos.find(a => a.id === id);
   if (!apto) return;
-  document.getElementById('checklist-title').textContent = `Limpeza — Apto ${apto.numero}`;
+  const titulo = apto.status === 'limpando'
+    ? `Concluir limpeza — Apto ${apto.numero}`
+    : apto.status === 'reprovado'
+    ? `Re-limpeza — Apto ${apto.numero}`
+    : `Limpeza — Apto ${apto.numero}`;
+  document.getElementById('checklist-title').textContent = titulo;
   const hotelId = currentUser?.hotelId;
   let q = supabaseClient.from('checklist_templates').select('nome').eq('ativo', true).order('ordem');
   if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
@@ -1271,21 +1288,32 @@ async function concluirChecklist() {
   const done = checklistState.filter(i => i.done).length;
   if (done < checklistState.length * 0.8) { toast('Complete pelo menos 80% dos itens', 'error'); return; }
 
-  // Persiste respostas por apartamento (fire-and-forget — não bloqueia o fluxo)
-  const obsGeral   = (document.getElementById('checklist-obs')?.value || '').trim();
-  const respostas  = checklistState.map(i => ({ item: i.label, resposta: i.done ? 'conforme' : 'nao_conforme' }));
-  supabaseClient.from('limpeza_checklists').insert({
+  const obsGeral  = (document.getElementById('checklist-obs')?.value || '').trim();
+  const respostas = checklistState.map(i => ({ item: i.label, resposta: i.done ? 'conforme' : 'nao_conforme' }));
+
+  const { error: ckErr } = await supabaseClient.from('limpeza_checklists').insert({
     apartment_id: selectedAptoId,
     hotel_id:     currentUser.hotelId,
     usuario_id:   currentUser.id,
     tipo_limpeza: 'saida',
     respostas,
     obs_geral:    obsGeral || null,
-  }).then(({ error }) => { if (error) console.warn('Checklist não salvo:', error.message); });
+  });
+  if (ckErr) console.warn('Checklist não salvo:', ckErr.message);
 
+  _checklistOrigemStatus = null;
   closeModal('modal-checklist');
-  const obs = `Limpeza em andamento — checklist iniciado por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
-  await mudarStatusApto(selectedAptoId, 'limpando', obs);
+
+  const obs = `Checklist de limpeza concluído por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')} — aguardando conferência`;
+  await mudarStatusApto(selectedAptoId, 'conferencia', obs);
+}
+
+async function cancelarChecklistLimpeza() {
+  const status = _checklistOrigemStatus || 'sujo';
+  _checklistOrigemStatus = null;
+  closeModal('modal-checklist');
+  const obs = `Limpeza cancelada por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
+  await mudarStatusApto(selectedAptoId, status, obs);
 }
 
 // ── MAPA COM SELETOR DE HOTEL (admin_global) ──────────────────
