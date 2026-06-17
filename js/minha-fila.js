@@ -84,8 +84,8 @@ function _mfRenderCamareira(el) {
   const nome = currentUser.nome?.split(' ')[0] || 'Camareira';
   const uid  = currentUser.id;
 
-  // Grupos ordenados por prioridade operacional
-  const statusUrgencia = { reprovado:0, pausado:1, limpando:2, sujo:3, conferencia:4 };
+  // limpando é estado transitório (modal aberto) — não aparece na fila
+  const statusUrgencia = { reprovado:0, pausado:1, sujo:2, conferencia:3 };
 
   // 1. Minha atribuição — qualquer status operacional com meu maid_id
   const meusAptos = aptos
@@ -190,7 +190,6 @@ function _mfRenderCamareira(el) {
   if (demais.length) {
     const dGrupos = [
       { key:'pausado',    label:'Pausados',   icon:'⏸', color:'#f39c12' },
-      { key:'limpando',   label:'Em limpeza', icon:'🧹', color:'#2e86c1' },
       { key:'sujo',       label:'Para limpar',icon:'🟠', color:'#e67e22' },
       { key:'conferencia',label:'Ag. conf.',  icon:'🔍', color:'#8e44ad' },
     ];
