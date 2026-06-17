@@ -72,9 +72,9 @@ async function syncApartamentos() {
 }
 
 // Reverte para sujo qualquer apt em limpando cujo processo foi abandonado:
-// status_at > 2h e nenhum checklist ativo neste cliente para ele.
+// status_at > 1h e nenhum checklist ativo neste cliente para ele.
 async function _limparLimpandoOrfaos() {
-  const LIMITE_MS = 2 * 60 * 60 * 1000; // 2 horas
+  const LIMITE_MS = 1 * 60 * 60 * 1000; // 1 hora
   const agora = Date.now();
   const orfaos = aptos.filter(a => {
     if (a.status !== 'limpando') return false;
