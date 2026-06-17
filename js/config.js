@@ -12,13 +12,13 @@ async function renderConfigPage() {
     renderConfigTipos(),
     renderConfigAndares(),
     renderConfigTiposLimpeza(),
+    renderConfigParametrosLimpeza(),
     renderConfigSolicitantes(),
     renderConfigMotivos(),
     renderConfigChecklist(),
     renderConfigMotivosPausa(),
     renderConfigMotivosCancel(),
     renderConfigSupervisoraChecklist(),
-
   ]);
 }
 
@@ -586,6 +586,36 @@ async function _salvarMaxAndares() {
   if (error) { toast('Erro: ' + error.message, 'error'); return; }
   toast('Número de andares salvo!', 'success');
   await renderConfigAndares();
+}
+
+// ── PARÂMETROS DE TEMPO DE LIMPEZA ───────────────────────────
+
+async function renderConfigParametrosLimpeza() {
+  const hotelId = currentUser?.hotelId;
+  if (!hotelId) return;
+  const { data } = await supabaseClient
+    .from('hotel_config').select('chave, valor')
+    .eq('hotel_id', hotelId)
+    .in('chave', ['tempo_padrao_saida', 'tempo_padrao_permanencia']);
+  const map = Object.fromEntries((data || []).map(r => [r.chave, r.valor]));
+  const inpS = document.getElementById('cfg-tempo-saida');
+  const inpP = document.getElementById('cfg-tempo-permanencia');
+  if (inpS) inpS.value = map['tempo_padrao_saida']       || '45';
+  if (inpP) inpP.value = map['tempo_padrao_permanencia']  || '25';
+}
+
+async function _salvarParametrosLimpeza() {
+  const hotelId = currentUser?.hotelId;
+  if (!hotelId) { toast('Hotel não identificado', 'error'); return; }
+  const saida = parseInt(document.getElementById('cfg-tempo-saida')?.value);
+  const perm  = parseInt(document.getElementById('cfg-tempo-permanencia')?.value);
+  if (!saida || saida < 1 || !perm || perm < 1) { toast('Valores inválidos (mínimo 1 min)', 'error'); return; }
+  const { error } = await supabaseClient.from('hotel_config').upsert([
+    { hotel_id: hotelId, chave: 'tempo_padrao_saida',        valor: String(saida) },
+    { hotel_id: hotelId, chave: 'tempo_padrao_permanencia',  valor: String(perm)  },
+  ], { onConflict: 'hotel_id,chave' });
+  if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
+  toast('Parâmetros de tempo salvos!', 'success');
 }
 
 // ── TIPOS DE LIMPEZA ──────────────────────────────────────────

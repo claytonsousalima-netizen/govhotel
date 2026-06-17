@@ -68,7 +68,7 @@ async function _relCarregarDados(hotelId) {
   if (conteudo) conteudo.innerHTML =
     `<div style="padding:32px;text-align:center;color:var(--text3);font-size:13px;">⏳ Carregando dados...</div>`;
 
-  const [aptosRes, chamadosRes, retrabRes, equipeRes, historyRes, confCheckRes, limpCheckRes] = await Promise.all([
+  const [aptosRes, chamadosRes, retrabRes, equipeRes, historyRes, confCheckRes, limpCheckRes, configRes] = await Promise.all([
     supabaseClient.from('apartments')
       .select('id, numero, andar, tipo, status, maid_id, updated_at')
       .eq('hotel_id', hotelId).eq('ativo', true),
@@ -89,6 +89,9 @@ async function _relCarregarDados(hotelId) {
     supabaseClient.from('limpeza_checklists')
       .select('id, apartment_id, usuario_id, tipo_limpeza, respostas, obs_geral, created_at')
       .eq('hotel_id', hotelId).order('created_at', { ascending: false }).limit(2000),
+    supabaseClient.from('hotel_config')
+      .select('chave, valor').eq('hotel_id', hotelId)
+      .in('chave', ['tempo_padrao_saida', 'tempo_padrao_permanencia']),
   ]);
 
   const aptos         = aptosRes.data       || [];
@@ -98,6 +101,11 @@ async function _relCarregarDados(hotelId) {
   const history       = historyRes.data     || [];
   const confChecklists= confCheckRes.error  ? [] : (confCheckRes.data || []);
   const limpChecklists= limpCheckRes.error  ? [] : (limpCheckRes.data || []);
+  const configMap     = Object.fromEntries((configRes.data || []).map(r => [r.chave, parseInt(r.valor) || 0]));
+  const parametros    = {
+    tempo_saida:        configMap['tempo_padrao_saida']       || 45,
+    tempo_permanencia:  configMap['tempo_padrao_permanencia'] || 25,
+  };
 
   const userNames = {};
   equipe.forEach(u => { userNames[u.user_id] = u.nome; });
@@ -107,7 +115,7 @@ async function _relCarregarDados(hotelId) {
   // Sessões de limpeza calculadas do histórico
   const sessoes = _relCalcSessoes(history, aptoById);
 
-  _relData    = { aptos, chamados, retrabalhos, equipe, history, confChecklists, limpChecklists, userNames, aptoById, sessoes };
+  _relData    = { aptos, chamados, retrabalhos, equipe, history, confChecklists, limpChecklists, userNames, aptoById, sessoes, parametros };
   _relFiltros = { dtIni:'', dtFim:'', andar:'', camareira:'', status:'', apto:'', tipo:'', prioridade:'' };
 
   _relRenderShell();
@@ -676,15 +684,42 @@ function _relAbaTempoLimpeza(el) {
 // ── 7. PRODUTIVIDADE ─────────────────────────────────────────────
 
 function _relAbaProdutividade(el) {
-  const { equipe, aptos } = _relData;
+  const { equipe, aptos, limpChecklists, parametros } = _relData;
   const sessoes    = _fSessoes(_relData.sessoes);
   const retrabalhos= _fRetrab(_relData.retrabalhos);
   const confChecks = _fCheck(_relData.confChecklists);
   const camareiras = equipe.filter(u=>u.perfil==='camareira');
+  const metaSaida  = parametros.tempo_saida;       // minutos
+  const metaPerm   = parametros.tempo_permanencia; // minutos
 
   if (!camareiras.length) {
     el.innerHTML = `<div class="card" style="padding:24px;text-align:center;color:var(--text3);">Nenhuma camareira ativa.</div>`; return;
   }
+
+  // Enriquecer sessões com tipo_limpeza a partir dos checklists
+  // Associação: mesmo apartment_id + checklist.created_at próximo ao fim da sessão (± 10 min)
+  const limpFilt = _relData.limpChecklists; // já filtrado pelo período via _relFiltros se necessário
+  sessoes.forEach(s => {
+    if (s.tipo_limpeza || !s.fim) return;
+    const fimTs = new Date(s.fim).getTime();
+    const iniTs = new Date(s.inicio).getTime();
+    const match = limpFilt.find(c =>
+      c.apartment_id === s.aptoId &&
+      new Date(c.created_at).getTime() >= iniTs - 120000 &&
+      new Date(c.created_at).getTime() <= fimTs + 600000
+    );
+    s.tipo_limpeza = match?.tipo_limpeza || null;
+  });
+
+  const _avgMs = arr => arr.length ? arr.reduce((s,x)=>s+x,0)/arr.length : null;
+  const _slaOk = (msMedia, metaMin) => msMedia !== null ? msMedia <= metaMin * 60000 : null;
+  const _slaCell = (msMedia, metaMin) => {
+    const ok = _slaOk(msMedia, metaMin);
+    if (ok === null) return '—';
+    return ok
+      ? `<span style="color:var(--success);font-weight:700;">✅ ${_fmtDur(msMedia)}</span>`
+      : `<span style="color:var(--danger);font-weight:700;">⚠️ ${_fmtDur(msMedia)}</span>`;
+  };
 
   const rows = camareiras.map(cam=>{
     const sSes  = sessoes.filter(s=>s.camareira_id===cam.user_id);
@@ -703,8 +738,19 @@ function _relAbaProdutividade(el) {
     const txAprov   = (aprovados+reprovados) ? Math.round(aprovados/(aprovados+reprovados)*100)+'%' : '—';
     const txRetrab  = sConc.length ? Math.round(retrabCam/sConc.length*100)+'%' : '—';
 
+    // Por tipo
+    const sSaida = sConc.filter(s=>s.tipo_limpeza && s.tipo_limpeza.toLowerCase().includes('saíd') || s.tipo_limpeza?.toLowerCase().includes('said') || s.tipo_limpeza?.toLowerCase().includes('checkout'));
+    const sPerm  = sConc.filter(s=>s.tipo_limpeza && s.tipo_limpeza.toLowerCase().includes('perm'));
+    const msAvgSaida = _avgMs(sSaida.filter(s=>s.durBruta).map(s=>s.durBruta));
+    const msAvgPerm  = _avgMs(sPerm.filter(s=>s.durBruta).map(s=>s.durBruta));
+    const slaSaida   = _slaCell(msAvgSaida, metaSaida);
+    const slaPerm    = _slaCell(msAvgPerm,  metaPerm);
+    const nSaida     = sSaida.length || (limpFilt.filter(c=>c.usuario_id===cam.user_id&&(c.tipo_limpeza||'').toLowerCase().includes('said')).length);
+    const nPerm      = sPerm.length  || (limpFilt.filter(c=>c.usuario_id===cam.user_id&&(c.tipo_limpeza||'').toLowerCase().includes('perm')).length);
+
     return { nome:cam.nome, atrib, ini:sSes.length, conc:sConc.length, can:sCan.length, paus:sPaus.length,
-      aprov:aprovados, reprov:reprovados, retrab:retrabCam, avgBruto, avgLiq, txAprov, txRetrab };
+      aprov:aprovados, reprov:reprovados, retrab:retrabCam, avgBruto, avgLiq, txAprov, txRetrab,
+      nSaida, slaSaida, nPerm, slaPerm };
   }).sort((a,b)=>b.conc-a.conc);
 
   const totConc = rows.reduce((s,r)=>s+r.conc,0);
@@ -713,16 +759,33 @@ function _relAbaProdutividade(el) {
   const totRet  = rows.reduce((s,r)=>s+r.retrab,0);
 
   el.innerHTML = `
+    <div class="card" style="margin-bottom:14px;background:linear-gradient(135deg,#f0f9ff,#fff);border-left:4px solid var(--primary);">
+      <div class="card-title" style="margin-bottom:8px;">⏱ Metas de tempo configuradas</div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:13px;">
+        <div>🛏 <strong>Saída/Checkout:</strong> até <strong>${metaSaida} min</strong></div>
+        <div>🏠 <strong>Permanência:</strong> até <strong>${metaPerm} min</strong></div>
+        <div style="font-size:11px;color:var(--text3);align-self:center;">✅ dentro da meta &nbsp; ⚠️ acima da meta</div>
+      </div>
+    </div>
     <div class="stats-grid" style="margin-bottom:16px;">
       ${_relCard('Limpezas concluídas', totConc,'','s-green')}
       ${_relCard('Aprovações', totAprov,'','s-green')}
       ${_relCard('Reprovações', totReprov,'','s-red')}
       ${_relCard('Retrabalhos', totRet,'','s-orange')}
     </div>
-    <div class="card"><div class="card-title" style="margin-bottom:10px;">Por camareira</div>
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-title" style="margin-bottom:10px;">Por camareira — visão geral</div>
       ${_relTable(
         ['Camareira','Atrib.','Inic.','Conc.','Canc.','Pausas','Aprov.','Reprov.','Retrab.','T.Médio','T.Médio Liq.','Tx.Aprov','Tx.Retrab'],
         rows.map(r=>[r.nome,r.atrib,r.ini,r.conc,r.can,r.paus,r.aprov,r.reprov,r.retrab,r.avgBruto,r.avgLiq,r.txAprov,r.txRetrab])
+      )}
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:4px;">⏱ Tempo médio por tipo de limpeza vs. meta</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px;">✅ dentro da meta configurada &nbsp;·&nbsp; ⚠️ acima da meta &nbsp;·&nbsp; — sem dados suficientes</div>
+      ${_relTable(
+        ['Camareira','Qtd. Saída','T.Médio Saída','Qtd. Perm.','T.Médio Perm.'],
+        rows.map(r=>[r.nome, r.nSaida||'—', r.slaSaida, r.nPerm||'—', r.slaPerm])
       )}
     </div>`;
 }

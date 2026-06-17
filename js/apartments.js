@@ -1315,6 +1315,41 @@ async function renderAppCamareira() {
     `<div style="text-align:center;padding:32px;color:var(--text3);font-size:13px;">Nenhum apartamento encontrado.</div>`;
 }
 
+// ── TIPO DE LIMPEZA — seleção no modal ───────────────────────
+
+let _checklistTipoSelecionado = 'Saída (checkout)';
+
+async function _renderTipoLimpezaBtns() {
+  const wrap = document.getElementById('checklist-tipo-btns');
+  if (!wrap) return;
+  const hotelId = currentUser?.hotelId;
+  let q = supabaseClient.from('tipos_limpeza').select('id, nome').eq('ativo', true).order('ordem');
+  if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
+  const { data } = await q;
+  const tipos = data?.length ? data : [
+    { id: 1, nome: 'Saída (checkout)' },
+    { id: 2, nome: 'Permanência' },
+    { id: 3, nome: 'Pós-manutenção' },
+  ];
+  _checklistTipoSelecionado = tipos[0]?.nome || 'Saída (checkout)';
+  wrap.innerHTML = tipos.map((t, i) =>
+    `<button type="button" id="cl-tipo-btn-${i}"
+      class="btn btn-sm ${i === 0 ? 'btn-primary' : 'btn-ghost'}"
+      style="flex:1;min-width:100px;"
+      onclick="_selecionarTipoLimpeza('${t.nome.replace(/'/g,"\\'")}',${i},${tipos.length})">
+      ${t.nome}
+    </button>`
+  ).join('');
+}
+
+function _selecionarTipoLimpeza(nome, idx, total) {
+  _checklistTipoSelecionado = nome;
+  for (let i = 0; i < total; i++) {
+    const btn = document.getElementById(`cl-tipo-btn-${i}`);
+    if (btn) btn.className = `btn btn-sm ${i === idx ? 'btn-primary' : 'btn-ghost'}`;
+  }
+}
+
 // ── ADAPTAR abrirChecklistApp para UUIDs ─────────────────────
 
 async function abrirChecklistApp(id) {
@@ -1330,7 +1365,7 @@ async function abrirChecklistApp(id) {
   const hotelId = currentUser?.hotelId;
   let q = supabaseClient.from('checklist_templates').select('nome').eq('ativo', true).order('ordem');
   if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
-  const { data } = await q;
+  const [, { data }] = await Promise.all([_renderTipoLimpezaBtns(), q]);
   const itens = data?.length ? data : (typeof CHECKLIST_PADRAO !== 'undefined' ? CHECKLIST_PADRAO.map(n => ({ nome: n })) : []);
   checklistState = itens.map(item => ({ label: item.nome, done: false }));
   renderChecklist();
@@ -1348,7 +1383,7 @@ async function concluirChecklist() {
     apartment_id: selectedAptoId,
     hotel_id:     currentUser.hotelId,
     usuario_id:   currentUser.id,
-    tipo_limpeza: 'saida',
+    tipo_limpeza: _checklistTipoSelecionado || 'Saída (checkout)',
     respostas,
     obs_geral:    obsGeral || null,
   });
