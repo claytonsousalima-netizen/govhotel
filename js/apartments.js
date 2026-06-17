@@ -1334,27 +1334,36 @@ const _TIPOS_LIMPEZA_FALLBACK = [
 ];
 
 async function _renderTipoLimpezaBtns() {
+  // Sempre reseta para o primeiro tipo ao abrir o modal
+  _checklistTipoSelecionado = _TIPOS_LIMPEZA_FALLBACK[0].nome;
   const wrap = document.getElementById('checklist-tipo-btns');
   if (!wrap) return;
-  let tipos = _TIPOS_LIMPEZA_FALLBACK;
+
+  // Reseta seleção visual para padrão (primeiro btn ativo)
+  wrap.querySelectorAll('button').forEach((btn, i) => {
+    btn.className = `btn btn-sm ${i === 0 ? 'btn-primary' : 'btn-ghost'}`;
+  });
+
+  // Tenta carregar tipos personalizados do banco e atualiza se diferente do fallback
   try {
     const hotelId = currentUser?.hotelId;
     let q = supabaseClient.from('tipos_limpeza').select('id, nome').eq('ativo', true).order('ordem');
     if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
     const { data } = await q;
-    if (data?.length) tipos = data;
+    if (data?.length) {
+      _checklistTipoSelecionado = data[0].nome;
+      wrap.innerHTML = data.map((t, i) =>
+        `<button type="button" id="cl-tipo-btn-${i}"
+          class="btn btn-sm ${i === 0 ? 'btn-primary' : 'btn-ghost'}"
+          style="flex:1;min-width:110px;"
+          onclick="_selecionarTipoLimpeza('${(t.nome||'').replace(/'/g,"\\'")}',${i},${data.length})">
+          ${_emojiTipoLimpeza(t.nome)} ${t.nome || 'Tipo'}
+        </button>`
+      ).join('');
+    }
   } catch (e) {
-    console.warn('Tipos de limpeza: usando fallback.', e);
+    console.warn('Tipos de limpeza: mantendo botões padrão.', e);
   }
-  _checklistTipoSelecionado = tipos[0]?.nome || 'Saída (checkout)';
-  wrap.innerHTML = tipos.map((t, i) =>
-    `<button type="button" id="cl-tipo-btn-${i}"
-      class="btn btn-sm ${i === 0 ? 'btn-primary' : 'btn-ghost'}"
-      style="flex:1;min-width:110px;"
-      onclick="_selecionarTipoLimpeza('${(t.nome||'').replace(/'/g,"\\'")}',${i},${tipos.length})">
-      ${_emojiTipoLimpeza(t.nome)} ${t.nome || 'Tipo'}
-    </button>`
-  ).join('');
 }
 
 function _selecionarTipoLimpeza(nome, idx, total) {
