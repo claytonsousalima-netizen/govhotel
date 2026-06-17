@@ -2117,7 +2117,8 @@ function applyProfileRestrictions() {
   document.getElementById('btn-nova-acao').style.display = isOperacional ? 'none' : '';
 
   // Mapa: ocultar botões de ação para perfis operacionais
-  ['btn-cadastrar-apto-mapa','btn-alterar-status-header','btn-lote-selecionar'].forEach(id => {
+  // btn-cadastrar-apto-mapa é recriado dinamicamente por _garantirBotoesMapa() — não manipular aqui
+  ['btn-alterar-status-header','btn-lote-selecionar'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = isOperacional ? 'none' : '';
   });
