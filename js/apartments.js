@@ -1285,6 +1285,10 @@ async function renderAppCamareira() {
         const borderColor = meuApto ? '#1d4ed8' : (a.prioridade ? 'var(--danger)' : g.color);
         const extraStyle  = meuApto ? 'background:linear-gradient(135deg,#eff6ff 0%,#fff 60%);box-shadow:0 2px 12px rgba(29,78,216,0.12);' : '';
 
+        const camApto = (typeof equipe !== 'undefined' ? equipe : []).find(e => e.id === a.camareira_id);
+        const camLineApto = camApto
+          ? `<div style="font-size:11px;color:var(--text3);margin-top:3px;">🧹 ${camApto.nome}</div>`
+          : `<div style="font-size:11px;font-weight:700;color:var(--danger);margin-top:3px;">👤 Sem responsável</div>`;
         html += `
         <div class="card" style="margin-bottom:10px;border-left:4px solid ${borderColor};padding:14px 16px;${extraStyle}">
           ${meuApto ? `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;background:#dbeafe;color:#1d4ed8;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;">📌 Atribuído a mim</div>` : ''}
@@ -1292,6 +1296,7 @@ async function renderAppCamareira() {
             <div>
               <div style="font-size:22px;font-weight:800;color:${meuApto?'#1d4ed8':'var(--text)'};line-height:1;">${a.numero}</div>
               <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} &nbsp;·&nbsp; ${a.andar}º andar &nbsp;·&nbsp; ${a.leitos} leito${a.leitos!==1?'s':''}</div>
+              ${camLineApto}
               ${a.prioridade ? `<div style="font-size:11px;font-weight:700;color:var(--danger);margin-top:4px;">⚠️ PRIORIDADE</div>` : ''}
             </div>
             <span class="badge ${g.badge}" style="flex-shrink:0;">${LABEL[a.status]||a.status}</span>
