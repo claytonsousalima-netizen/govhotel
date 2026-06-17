@@ -1320,32 +1320,39 @@ async function renderAppCamareira() {
 let _checklistTipoSelecionado = 'Saída (checkout)';
 
 function _emojiTipoLimpeza(nome) {
-  const n = nome.toLowerCase();
+  const n = (nome || '').toLowerCase();
   if (n.includes('saída') || n.includes('saida') || n.includes('checkout')) return '🛏';
   if (n.includes('pós') || n.includes('pos') || n.includes('manutenção') || n.includes('manutencao')) return '🔧';
   if (n.includes('permanência') || n.includes('permanencia')) return '🏠';
   return '🧹';
 }
 
+const _TIPOS_LIMPEZA_FALLBACK = [
+  { nome: 'Saída (checkout)' },
+  { nome: 'Permanência' },
+  { nome: 'Pós-manutenção' },
+];
+
 async function _renderTipoLimpezaBtns() {
   const wrap = document.getElementById('checklist-tipo-btns');
   if (!wrap) return;
-  const hotelId = currentUser?.hotelId;
-  let q = supabaseClient.from('tipos_limpeza').select('id, nome').eq('ativo', true).order('ordem');
-  if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
-  const { data } = await q;
-  const tipos = data?.length ? data : [
-    { id: 1, nome: 'Saída (checkout)' },
-    { id: 2, nome: 'Permanência' },
-    { id: 3, nome: 'Pós-manutenção' },
-  ];
+  let tipos = _TIPOS_LIMPEZA_FALLBACK;
+  try {
+    const hotelId = currentUser?.hotelId;
+    let q = supabaseClient.from('tipos_limpeza').select('id, nome').eq('ativo', true).order('ordem');
+    if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
+    const { data } = await q;
+    if (data?.length) tipos = data;
+  } catch (e) {
+    console.warn('Tipos de limpeza: usando fallback.', e);
+  }
   _checklistTipoSelecionado = tipos[0]?.nome || 'Saída (checkout)';
   wrap.innerHTML = tipos.map((t, i) =>
     `<button type="button" id="cl-tipo-btn-${i}"
       class="btn btn-sm ${i === 0 ? 'btn-primary' : 'btn-ghost'}"
       style="flex:1;min-width:110px;"
-      onclick="_selecionarTipoLimpeza('${t.nome.replace(/'/g,"\\'")}',${i},${tipos.length})">
-      ${_emojiTipoLimpeza(t.nome)} ${t.nome}
+      onclick="_selecionarTipoLimpeza('${(t.nome||'').replace(/'/g,"\\'")}',${i},${tipos.length})">
+      ${_emojiTipoLimpeza(t.nome)} ${t.nome || 'Tipo'}
     </button>`
   ).join('');
 }
@@ -1373,7 +1380,8 @@ async function abrirChecklistApp(id) {
   const hotelId = currentUser?.hotelId;
   let q = supabaseClient.from('checklist_templates').select('nome').eq('ativo', true).order('ordem');
   if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
-  const [, { data }] = await Promise.all([_renderTipoLimpezaBtns(), q]);
+  const [, ckRes] = await Promise.allSettled([_renderTipoLimpezaBtns(), q]);
+  const { data } = (ckRes.status === 'fulfilled' ? ckRes.value : {}) || {};
   const itens = data?.length ? data : (typeof CHECKLIST_PADRAO !== 'undefined' ? CHECKLIST_PADRAO.map(n => ({ nome: n })) : []);
   checklistState = itens.map(item => ({ label: item.nome, done: false }));
   renderChecklist();
