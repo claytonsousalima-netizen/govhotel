@@ -1319,6 +1319,14 @@ async function renderAppCamareira() {
 
 let _checklistTipoSelecionado = 'Saída (checkout)';
 
+function _emojiTipoLimpeza(nome) {
+  const n = nome.toLowerCase();
+  if (n.includes('saída') || n.includes('saida') || n.includes('checkout')) return '🛏';
+  if (n.includes('pós') || n.includes('pos') || n.includes('manutenção') || n.includes('manutencao')) return '🔧';
+  if (n.includes('permanência') || n.includes('permanencia')) return '🏠';
+  return '🧹';
+}
+
 async function _renderTipoLimpezaBtns() {
   const wrap = document.getElementById('checklist-tipo-btns');
   if (!wrap) return;
@@ -1335,9 +1343,9 @@ async function _renderTipoLimpezaBtns() {
   wrap.innerHTML = tipos.map((t, i) =>
     `<button type="button" id="cl-tipo-btn-${i}"
       class="btn btn-sm ${i === 0 ? 'btn-primary' : 'btn-ghost'}"
-      style="flex:1;min-width:100px;"
+      style="flex:1;min-width:110px;"
       onclick="_selecionarTipoLimpeza('${t.nome.replace(/'/g,"\\'")}',${i},${tipos.length})">
-      ${t.nome}
+      ${_emojiTipoLimpeza(t.nome)} ${t.nome}
     </button>`
   ).join('');
 }

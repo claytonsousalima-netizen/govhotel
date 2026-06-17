@@ -1930,8 +1930,8 @@ tr:last-child td { border-bottom: none; }
       <div class="modal-title" id="checklist-title">Limpeza — Apto</div>
     </div>
     <div class="modal-body">
-      <div id="checklist-tipo-wrap" style="margin-bottom:14px;">
-        <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:8px;">Tipo de limpeza</label>
+      <div id="checklist-tipo-wrap" style="background:var(--surface2);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;border:1px solid var(--border);">
+        <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px;">Qual o tipo de limpeza?</div>
         <div id="checklist-tipo-btns" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
       </div>
       <div id="checklist-progress" style="margin-bottom:16px;"></div>
@@ -2816,15 +2816,7 @@ async function pausarLimpezaChecklist() {
   await mudarStatusApto(selectedAptoId, 'pausado', obs);
 }
 
-async function concluirChecklist() {
-  const done = checklistState.filter(i => i.done).length;
-  if (done < checklistState.length * 0.8) { toast('Complete pelo menos 80% dos itens', 'error'); return; }
-  const apto = aptos.find(a => a.id === selectedAptoId);
-  if (!apto) return;
-  closeModal('modal-checklist');
-  const obs = `Limpeza em andamento — checklist iniciado por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
-  await mudarStatusApto(selectedAptoId, 'limpando', obs);
-}
+// concluirChecklist() implementada em js/apartments.js (salva checklist no banco e envia para conferência)
 
 // ============ SELECTS ============
 function populateSelects() {
@@ -2949,7 +2941,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <script src="js/hotels.js?v=20260617a"></script>
-<script src="js/apartments.js?v=20260617b"></script>
+<script src="js/apartments.js?v=20260617c"></script>
 <script src="js/maids.js?v=20260618p"></script>
 <script src="js/users.js?v=20260618q"></script>
 <script src="js/permissions.js?v=20260617a"></script>
