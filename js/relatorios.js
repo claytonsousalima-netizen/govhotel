@@ -428,7 +428,7 @@ function _relAbaExecutivo(el) {
   const semCam      = aptos.filter(a=>!a.maid_id).length;
   const chamAbertos = chamados.filter(c=>c.status==='aberto').length;
   const chamAtras   = chamados.filter(c=>_isAtrasado(c)).length;
-  const retAbertos  = retrabalhos.filter(r=>!r.status||r.status==='aberto').length;
+  const retAbertos  = retrabalhos.filter(r=>!r.status||r.status==='aberto'||r.status==='aberta').length;
 
   const sessConcluidas = sessoes.filter(s=>['conferencia','limpo','livre'].includes(s.statusFinal));
   let tmBruto = '—';
@@ -488,7 +488,7 @@ function _relAbaGargalos(el) {
   const pausados     = aptos.filter(a=>a.status==='pausado');
   const emConf       = aptos.filter(a=>a.status==='conferencia');
   const reprovados   = aptos.filter(a=>a.status==='reprovado');
-  const retAbertos   = retrab.filter(r=>!r.status||r.status==='aberto');
+  const retAbertos   = retrab.filter(r=>!r.status||r.status==='aberto'||r.status==='aberta');
   const chamAtras    = chamados.filter(c=>_isAtrasado(c));
   const chamUrgentes = chamados.filter(c=>c.prioridade==='urgente'&&c.status==='aberto');
 
@@ -1153,7 +1153,7 @@ function _relAbaTimeline(el) {
     if (f.dtIni && r.created_at.slice(0,10)<f.dtIni) return;
     if (f.dtFim && r.created_at.slice(0,10)>f.dtFim) return;
     eventos.push({ dt: r.created_at, apto: a.numero||r.apartment_id, evento: 'Retrabalho',
-      anterior: '—', novo: r.status||'aberto', usuario: _relNome(r.criado_por),
+      anterior: '—', novo: r.status||'aberta', usuario: _relNome(r.criado_por),
       cam: a.maid_id?_relNome(a.maid_id):'—', obs: r.motivo||r.obs||'—' });
   });
 
@@ -1195,7 +1195,7 @@ function _relAbaTimeline(el) {
 
 function _relAbaRetrabalhos(el) {
   const retrabalhos = _fRetrab(_relData.retrabalhos);
-  const abertos  = retrabalhos.filter(r=>!r.status||r.status==='aberto').length;
+  const abertos  = retrabalhos.filter(r=>!r.status||r.status==='aberto'||r.status==='aberta').length;
   const concluidos=retrabalhos.filter(r=>r.status==='concluido'||r.status==='resolvido').length;
 
   const motivoCnt={}, aptoCnt={};
@@ -1210,7 +1210,7 @@ function _relAbaRetrabalhos(el) {
     const a = _relData.aptoById[r.apartment_id];
     return [
       _fmtDt(r.created_at), a?(a.numero||'—'):'—', r.motivo||'—', r.obs||'—',
-      r.status||'aberto', a&&a.maid_id?_relNome(a.maid_id):'—', _relNome(r.criado_por),
+      r.status||'aberta', a&&a.maid_id?_relNome(a.maid_id):'—', _relNome(r.criado_por),
       r.updated_at&&r.status&&['concluido','resolvido'].includes(r.status)?_fmtDt(r.updated_at):'—',
     ];
   });

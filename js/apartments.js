@@ -824,14 +824,14 @@ window.mudarStatusApto = async function mudarStatusApto(id, novoStatus, obs) {
 
     if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
 
-    // Histórico (não bloqueia o fluxo se falhar)
+    // Histórico
     supabaseClient.from('apartment_status_history').insert({
       apartment_id:    id,
       status_anterior: statusAnterior,
       status_novo:     novoStatus,
       alterado_por:    currentUser.id,
       obs:             obs || null,
-    });
+    }).then(({ error }) => { if (error) console.warn('Histórico status:', error.message); });
 
     apto.status = novoStatus;
     const label = (_STATUS_LABELS && _STATUS_LABELS[novoStatus]) || novoStatus;
@@ -1109,7 +1109,7 @@ async function confirmarChecklistSupervisora(decisao) {
     supabaseClient.from('pendencias_retrabalho')
       .update({ status: 'concluido', updated_at: new Date().toISOString() })
       .eq('apartment_id', selectedAptoId)
-      .or('status.eq.aberto,status.is.null')
+      .or('status.eq.aberta,status.eq.aberto,status.is.null')
       .then(({ error }) => { if (error) console.warn('Erro ao fechar retrabalho:', error); });
   } else {
     abrirModalReprovacao();

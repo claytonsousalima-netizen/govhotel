@@ -94,9 +94,10 @@ async function _carregarDashboard(hotelId) {
       .not('status', 'in', '("resolvido","concluido","cancelado")')
       .not('prazo', 'is', null)
       .lt('prazo', agora),
-    // retrabalhos registrados sem resolução (todos, sem filtro de data)
+    // retrabalhos em aberto (status aberta/aberto/null)
     supabaseClient.from('pendencias_retrabalho').select('id', { count: 'exact', head: true })
-      .eq('hotel_id', hotelId),
+      .eq('hotel_id', hotelId)
+      .or('status.eq.aberta,status.eq.aberto,status.is.null'),
   ]);
 
   const aptosArr   = aptosRes.data   || [];
