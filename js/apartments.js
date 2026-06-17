@@ -1004,18 +1004,24 @@ async function abrirChecklistSupervisora() {
       container.innerHTML = '<p style="font-size:13px;color:var(--text3);">Nenhum item configurado. Adicione itens em Configurações → Checklist da Supervisora.</p>';
     } else {
       container.innerHTML = _supChecklistAtivo.map((item, i) => `
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
-          <span style="font-size:14px;font-weight:500;">${item.nome}${item.obrigatorio ? '<span style="color:var(--danger);margin-left:3px;">*</span>' : ''}</span>
-          <div style="display:flex;gap:6px;">
-            <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;">
-              <input type="radio" name="sup-cl-${i}" value="ok" style="accent-color:var(--success);"> Conforme
-            </label>
-            <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;">
-              <input type="radio" name="sup-cl-${i}" value="nao"> Não conforme
-            </label>
-            <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;">
-              <input type="radio" name="sup-cl-${i}" value="na"> N/A
-            </label>
+        <div style="padding:10px 0;border-bottom:1px solid var(--border);">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+            <span style="font-size:14px;font-weight:500;">${item.nome}${item.obrigatorio ? '<span style="color:var(--danger);margin-left:3px;">*</span>' : ''}</span>
+            <div style="display:flex;gap:6px;flex-shrink:0;">
+              <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;">
+                <input type="radio" name="sup-cl-${i}" value="ok" style="accent-color:var(--success);" onchange="supClOnChange(${i})"> Conforme
+              </label>
+              <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;">
+                <input type="radio" name="sup-cl-${i}" value="nao" onchange="supClOnChange(${i})"> Não conforme
+              </label>
+              <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;">
+                <input type="radio" name="sup-cl-${i}" value="na" onchange="supClOnChange(${i})"> N/A
+              </label>
+            </div>
+          </div>
+          <div id="sup-cl-obs-row-${i}" style="display:none;margin-top:8px;">
+            <textarea id="sup-cl-obs-item-${i}" rows="2" placeholder="Descreva o que não estava conforme..."
+              style="width:100%;font-size:12px;padding:6px 8px;border:1px solid var(--danger);border-radius:var(--radius-sm);background:var(--bg);color:var(--text1);resize:vertical;box-sizing:border-box;"></textarea>
           </div>
         </div>`).join('');
     }
@@ -1025,13 +1031,24 @@ async function abrirChecklistSupervisora() {
   openModal('modal-conferencia-supervisora');
 }
 
+function supClOnChange(i) {
+  const sel = document.querySelector(`input[name="sup-cl-${i}"]:checked`);
+  const row = document.getElementById(`sup-cl-obs-row-${i}`);
+  if (row) row.style.display = sel?.value === 'nao' ? 'block' : 'none';
+}
+
 async function confirmarChecklistSupervisora(decisao) {
   const respostas = {};
   let incompleto = false;
   _supChecklistAtivo.forEach((item, i) => {
     const sel = document.querySelector(`input[name="sup-cl-${i}"]:checked`);
     if (!sel && item.obrigatorio) { incompleto = true; return; }
-    if (sel) respostas[item.nome] = sel.value;
+    if (sel) {
+      const obsItem = sel.value === 'nao'
+        ? (document.getElementById(`sup-cl-obs-item-${i}`)?.value?.trim() || '')
+        : '';
+      respostas[item.nome] = { valor: sel.value, obs: obsItem };
+    }
   });
   if (incompleto) { toast('Avalie todos os itens obrigatórios antes de continuar', 'error'); return; }
 
