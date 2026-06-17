@@ -1107,7 +1107,7 @@ async function confirmarChecklistSupervisora(decisao) {
     await mudarStatusApto(selectedAptoId, 'limpo', obsStatus);
     // fecha pendências de retrabalho abertas deste apartamento
     supabaseClient.from('pendencias_retrabalho')
-      .update({ status: 'concluido', updated_at: new Date().toISOString() })
+      .update({ status: 'concluido', resolvido_por: currentUser?.id || null, resolvido_at: new Date().toISOString() })
       .eq('apartment_id', selectedAptoId)
       .or('status.eq.aberta,status.eq.aberto,status.is.null')
       .then(({ error }) => { if (error) console.warn('Erro ao fechar retrabalho:', error); });
@@ -1325,6 +1325,13 @@ async function renderAppCamareira() {
 
 let _checklistTipoSelecionado = 'Saída (checkout)';
 
+function _tipoLimpezaEnum(nome) {
+  const n = (nome || '').toLowerCase();
+  if (n.includes('perm')) return 'permanencia';
+  if (n.includes('pós') || n.includes('pos') || n.includes('manut')) return 'pos_manutencao';
+  return 'saida';
+}
+
 function _emojiTipoLimpeza(nome) {
   const n = (nome || '').toLowerCase();
   if (n.includes('saída') || n.includes('saida') || n.includes('checkout')) return '🛏';
@@ -1414,7 +1421,7 @@ async function concluirChecklist() {
     apartment_id: selectedAptoId,
     hotel_id:     currentUser.hotelId,
     usuario_id:   currentUser.id,
-    tipo_limpeza: _checklistTipoSelecionado || 'Saída (checkout)',
+    tipo_limpeza: _tipoLimpezaEnum(_checklistTipoSelecionado),
     respostas,
     obs_geral:    obsGeral || null,
   });

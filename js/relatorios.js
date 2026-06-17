@@ -104,13 +104,13 @@ async function _relCarregarDados(hotelId) {
       .select('id, numero, tipo, status, departamento, prioridade, apartment_id, responsavel_user_id, prazo, resolved_at, resolved_by, created_at, updated_at')
       .eq('hotel_id', hotelId).order('created_at', { ascending: false }),
     supabaseClient.from('pendencias_retrabalho')
-      .select('id, apartment_id, motivo, obs, status, criado_por, created_at, updated_at')
+      .select('id, apartment_id, motivo, obs, status, criado_por, resolvido_por, resolvido_at, created_at')
       .eq('hotel_id', hotelId).order('created_at', { ascending: false }),
     supabaseClient.from('user_profiles')
       .select('user_id, nome, perfil, ativo').eq('hotel_id', hotelId).eq('ativo', true),
     supabaseClient.from('apartment_status_history')
       .select('id, apartment_id, status_anterior, status_novo, alterado_por, obs, created_at')
-      .eq('hotel_id', hotelId).order('created_at', { ascending: false }).limit(5000),
+      .order('created_at', { ascending: false }).limit(5000),
     supabaseClient.from('conferencia_supervisora_checklists')
       .select('id, apartment_id, respostas, obs, resultado, usuario_id, created_at')
       .eq('hotel_id', hotelId).order('created_at', { ascending: false }).limit(3000),
@@ -1211,7 +1211,7 @@ function _relAbaRetrabalhos(el) {
     return [
       _fmtDt(r.created_at), a?(a.numero||'—'):'—', r.motivo||'—', r.obs||'—',
       r.status||'aberta', a&&a.maid_id?_relNome(a.maid_id):'—', _relNome(r.criado_por),
-      r.updated_at&&r.status&&['concluido','resolvido'].includes(r.status)?_fmtDt(r.updated_at):'—',
+      r.resolvido_at?_fmtDt(r.resolvido_at):'—',
     ];
   });
 
