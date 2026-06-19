@@ -209,12 +209,16 @@ async function _fetchChamados() {
         // Verifica se este chamado é direcionado ao usuário atual
         const _ehMeuChamado = (() => {
           if (perfil === 'camareira' && c.departamento === 'governanca') {
-            // Limpeza: notifica somente a camareira atribuída ao apartamento
             const aptoDoC = Array.isArray(aptos) ? aptos.find(a => a.id === c.apartment_id) : null;
-            return aptoDoC?.camareira_id === currentUser.id;
+            // Se apto não tem camareira atribuída → notifica todas as camareiras
+            if (!aptoDoC?.camareira_id) return true;
+            // Senão, somente a atribuída
+            return aptoDoC.camareira_id === currentUser.id;
           }
           if (perfil === 'manutencao' && c.departamento === 'manutencao') {
-            // Manutenção: notifica somente quem está como responsável no chamado
+            // Se chamado sem responsável → notifica todos de manutenção
+            if (!c.responsavel_user_id) return true;
+            // Senão, somente o responsável
             return c.responsavel_user_id === currentUser.id;
           }
           return false;

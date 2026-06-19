@@ -1328,6 +1328,23 @@ tr:last-child td { border-bottom: none; }
   </div>
 </div>
 
+<!-- ====== NOTIFICAÇÃO: APTO SUJO ATRIBUÍDO ====== -->
+<div id="notif-apto-sujo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border-radius:16px;padding:28px 24px;max-width:360px;width:92%;box-shadow:0 24px 64px rgba(0,0,0,0.35);text-align:center;">
+    <div style="font-size:44px;margin-bottom:8px;">🧹</div>
+    <div style="font-size:13px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">Apartamento Atribuído</div>
+    <div style="font-size:15px;font-weight:700;margin-bottom:4px;color:#e67e22;">🟠 Para Limpar</div>
+    <div id="notif-apto-sujo-numero" style="font-size:36px;font-weight:800;color:#e67e22;margin-bottom:4px;font-family:monospace;"></div>
+    <div id="notif-apto-sujo-andar" style="font-size:13px;color:var(--text2);margin-bottom:16px;"></div>
+    <button onclick="_ackAptoSujo()"
+      style="width:100%;padding:14px;background:#e67e22;color:#fff;border:none;border-radius:10px;
+             font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.3px;">
+      ✓ OK — Entendido
+    </button>
+    <div id="notif-apto-sujo-fila" style="font-size:11px;color:var(--text3);margin-top:10px;"></div>
+  </div>
+</div>
+
 <!-- Modal Reprovar Limpeza -->
 <div class="modal-overlay" id="modal-reprovacao">
   <div class="modal" style="max-width:440px;">
@@ -2920,6 +2937,33 @@ async function _ackNovoChamado() {
   _processNotifQueue();
 }
 
+// ============ NOTIFICAÇÃO: APTO SUJO ATRIBUÍDO ============
+let _notifSujoQueue   = [];
+let _notifSujoShowing = false;
+
+function _showAptoSujoNotif(apto) {
+  _notifSujoQueue.push(apto);
+  if (!_notifSujoShowing) _processAptoSujoQueue();
+}
+
+function _processAptoSujoQueue() {
+  if (!_notifSujoQueue.length) { _notifSujoShowing = false; return; }
+  _notifSujoShowing = true;
+  const apto = _notifSujoQueue[0];
+  document.getElementById('notif-apto-sujo-numero').textContent = `Apto ${apto.numero}`;
+  document.getElementById('notif-apto-sujo-andar').textContent  = `${apto.andar}º Andar`;
+  const restante = _notifSujoQueue.length - 1;
+  document.getElementById('notif-apto-sujo-fila').textContent =
+    restante > 0 ? `+${restante} outro(s) apartamento(s) aguardando` : '';
+  document.getElementById('notif-apto-sujo').style.display = 'flex';
+}
+
+function _ackAptoSujo() {
+  document.getElementById('notif-apto-sujo').style.display = 'none';
+  _notifSujoQueue.shift();
+  _processAptoSujoQueue();
+}
+
 // ============ MODAL ============
 function openModal(id)  { document.getElementById(id).classList.add('open'); }
 function closeModal(id) {
@@ -2971,11 +3015,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <script src="js/hotels.js?v=20260619g"></script>
-<script src="js/apartments.js?v=20260619o"></script>
+<script src="js/apartments.js?v=20260619r"></script>
 <script src="js/maids.js?v=20260619g"></script>
 <script src="js/users.js?v=20260619g"></script>
 <script src="js/permissions.js?v=20260619g"></script>
-<script src="js/chamados.js?v=20260619q"></script>
+<script src="js/chamados.js?v=20260619r"></script>
 <script src="js/config.js?v=20260619n"></script>
 <script src="js/dashboard.js?v=20260619g"></script>
 <script src="js/relatorios.js?v=20260619p"></script>

@@ -5,9 +5,11 @@
 // ================================================================
 
 let _editingAptoId  = null;
-let _aptoViewHotelId = null; // hotel selecionado na visualização (admin_global)
-let _checklistOrigemStatus = null; // status anterior ao abrir o checklist de limpeza (para cancelar reverter)
-let _limpandoOrfaosVerificado = false; // garante que a limpeza de órfãos roda só uma vez por sessão
+let _aptoViewHotelId = null;
+let _checklistOrigemStatus = null;
+let _limpandoOrfaosVerificado = false;
+let _aptosCarregados    = false;          // true após primeira carga de aptos
+let _aptosCamAnterior   = new Map();      // aptoId → camareira_id anterior (detecta atribuição)
 
 // ── SINCRONIZAR COM SUPABASE ──────────────────────────────────
 
@@ -57,6 +59,22 @@ async function syncApartamentos() {
     status_at:    a.updated_at  || null,
     avId:         (i % 6) + 1,
   }));
+
+  // Detecta atribuição de apto sujo para a camareira logada
+  if (_aptosCarregados && currentUser?.perfil === 'camareira') {
+    aptos.forEach(apto => {
+      if (apto.status !== 'sujo') return;
+      if (apto.camareira_id !== currentUser.id) return;
+      const anterior = _aptosCamAnterior.get(apto.id);
+      if (anterior === undefined) return; // primeira carga — não notifica
+      if (anterior === currentUser.id) return; // já era meu antes
+      // Mudou para mim agora → notifica
+      if (typeof _showAptoSujoNotif === 'function') _showAptoSujoNotif(apto);
+    });
+  }
+  // Atualiza mapa de camareira anterior para o próximo sync
+  aptos.forEach(a => _aptosCamAnterior.set(a.id, a.camareira_id));
+  _aptosCarregados = true;
 
   // Sincroniza equipe do mesmo hotel via user_profiles
   try { await _syncEquipe(hotelId); } catch (e) { console.warn('syncEquipe:', e.message); equipe = []; }
