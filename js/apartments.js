@@ -60,17 +60,19 @@ async function syncApartamentos() {
     avId:         (i % 6) + 1,
   }));
 
-  // Detecta atribuição de apto sujo para a camareira logada
+  // Detecta atribuição de aptos sujos para a camareira logada — exibe lista única
   if (_aptosCarregados && currentUser?.perfil === 'camareira') {
-    aptos.forEach(apto => {
-      if (apto.status !== 'sujo') return;
-      if (apto.camareira_id !== currentUser.id) return;
+    const novosAtribuidos = aptos.filter(apto => {
+      if (apto.status !== 'sujo') return false;
+      if (apto.camareira_id !== currentUser.id) return false;
       const anterior = _aptosCamAnterior.get(apto.id);
-      if (anterior === undefined) return; // primeira carga — não notifica
-      if (anterior === currentUser.id) return; // já era meu antes
-      // Mudou para mim agora → notifica
-      if (typeof _showAptoSujoNotif === 'function') _showAptoSujoNotif(apto);
+      if (anterior === undefined) return false; // primeira carga — não notifica
+      if (anterior === currentUser.id) return false; // já era meu antes
+      return true;
     });
+    if (novosAtribuidos.length && typeof _showAptosSujosAtribuidos === 'function') {
+      _showAptosSujosAtribuidos(novosAtribuidos);
+    }
   }
   // Atualiza mapa de camareira anterior para o próximo sync
   aptos.forEach(a => _aptosCamAnterior.set(a.id, a.camareira_id));
