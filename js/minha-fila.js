@@ -84,6 +84,17 @@ function _mfBadgeApto(a) {
   return '';
 }
 
+// Bloco destacado de Status Apto para usar nos cards da fila
+function _mfAptoBlock(a) {
+  if (!a.status_apto) return '';
+  const op  = (typeof _statusAptoOpcoes !== 'undefined' ? _statusAptoOpcoes : []).find(o => o.nome === a.status_apto);
+  const cor = op?.cor || '#6b7280';
+  return `<div style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;
+    padding:2px 8px;border-radius:6px;background:${cor}22;color:${cor};border:1px solid ${cor}55;margin-top:5px;">
+    🏠 ${a.status_apto}
+  </div>`;
+}
+
 // ── CAMAREIRA: fila de limpeza ────────────────────────────────
 
 function _mfRenderCamareira(el) {
@@ -127,7 +138,7 @@ function _mfRenderCamareira(el) {
             ${a.tipo} &nbsp;·&nbsp; ${a.andar}º andar &nbsp;·&nbsp; ${a.leitos} leito${a.leitos !== 1 ? 's' : ''}
           </div>
           ${_camLineCam(a)}
-          ${_mfBadgeApto(a) ? `<div style="margin-top:5px;">${_mfBadgeApto(a)}</div>` : ''}
+          ${_mfAptoBlock(a)}
         </div>
         <span class="badge badge-${a.status}" style="flex-shrink:0;">${_STATUS_LABELS?.[a.status] || a.status}</span>
       </div>
@@ -172,7 +183,7 @@ function _mfRenderCamareira(el) {
             ${a.tipo} &nbsp;·&nbsp; ${a.andar}º andar &nbsp;·&nbsp; ${a.leitos} leito${a.leitos !== 1 ? 's' : ''}
           </div>
           ${_camLineCam(a)}
-          ${_mfBadgeApto(a) ? `<div style="margin-top:5px;">${_mfBadgeApto(a)}</div>` : ''}
+          ${_mfAptoBlock(a)}
         </div>
         <span class="badge badge-${a.status}" style="flex-shrink:0;">${_STATUS_LABELS?.[a.status] || a.status}</span>
       </div>
@@ -194,7 +205,7 @@ function _mfRenderCamareira(el) {
           <div style="font-size:22px;font-weight:800;line-height:1;">${a.numero}</div>
           <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} &nbsp;·&nbsp; ${a.andar}º andar</div>
           ${_camLineCam(a)}
-          ${_mfBadgeApto(a) ? `<div style="margin-top:5px;">${_mfBadgeApto(a)}</div>` : ''}
+          ${_mfAptoBlock(a)}
         </div>
         <span class="badge badge-sujo" style="flex-shrink:0;">Sujo</span>
       </div>
@@ -280,7 +291,7 @@ function _mfRenderGestor(el) {
       <div style="font-size:22px;font-weight:800;line-height:1;">${a.numero}</div>
       <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} · ${a.andar}º andar</div>
       ${_camLine(a)}
-      ${_mfBadgeApto(a) ? `<div style="margin-top:5px;">${_mfBadgeApto(a)}</div>` : ''}
+      ${_mfAptoBlock(a)}
     </div>`;
 
   // ── Painel de contadores ──
