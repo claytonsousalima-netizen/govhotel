@@ -147,7 +147,7 @@ async function _fetchChamados() {
     .from('work_orders')
     .select(`
       id, numero, tipo, categoria, prioridade, status,
-      solicitante, hospede, descricao, prazo, created_at,
+      solicitante, hospede, descricao, prazo, created_at, criado_por,
       departamento, responsavel_user_id,
       hotel_id, hotels(nome),
       apartment_id, apartments(numero, status_apto, status_governanca_manual)
@@ -200,6 +200,7 @@ async function _fetchChamados() {
     status_apto:         c.apartments?.status_apto || null,
     status_gov:          c.apartments?.status_governanca_manual || null,
     created_at:          c.created_at,
+    criado_por:          c.criado_por || null,
   }));
 
   chamados = _chamadosCache;
