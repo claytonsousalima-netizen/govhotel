@@ -855,6 +855,22 @@ async function confirmarGerarLote() {
   if (currentPage === 'kanban') renderKanban();
 }
 
+// Mapeamento: status operacional → status_governanca_manual (sincronização automática)
+function _govSyncParaStatus(status) {
+  const mapa = {
+    sujo:        'Sujo',
+    limpando:    'Sujo',
+    pausado:     'Sujo',
+    reprovado:   'Sujo',
+    conferencia: 'Sujo',
+    limpo:       'Limpo',
+    livre:       'Limpo',
+    manutencao:  'Manutenção',
+    // ocupado e bloqueado não sincronizam Gov automaticamente
+  };
+  return mapa[status] ?? null;
+}
+
 // ── ALTERAR STATUS (com escrita no Supabase + histórico) ──────
 // Função global — usada pelo mapa, kanban, minha fila e cadastro
 window.mudarStatusApto = async function mudarStatusApto(id, novoStatus, obs) {
@@ -868,10 +884,13 @@ window.mudarStatusApto = async function mudarStatusApto(id, novoStatus, obs) {
     }
 
     const statusAnterior = apto.status;
+    const novoGov = _govSyncParaStatus(novoStatus);
+    const payload = { status: novoStatus };
+    if (novoGov !== null) payload.status_governanca_manual = novoGov;
 
     const { error } = await supabaseClient
       .from('apartments')
-      .update({ status: novoStatus })
+      .update(payload)
       .eq('id', id);
 
     if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
@@ -887,6 +906,7 @@ window.mudarStatusApto = async function mudarStatusApto(id, novoStatus, obs) {
     if (histErr) console.warn('Histórico status:', histErr.message);
 
     apto.status = novoStatus;
+    if (novoGov !== null) apto.status_gov = novoGov;
     const label = (_STATUS_LABELS && _STATUS_LABELS[novoStatus]) || novoStatus;
     toast('Apto ' + apto.numero + ' → ' + label, 'success');
 
