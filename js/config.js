@@ -72,7 +72,6 @@ async function _recarregarTodasSections() {
     renderConfigChecklist(),
     renderConfigMotivosPausa(),
     renderConfigMotivosCancel(),
-    renderConfigSupervisoraChecklist(),
     (typeof renderConfigAptoTiposCats === 'function' ? renderConfigAptoTiposCats() : Promise.resolve()),
   ]);
 }
@@ -982,96 +981,6 @@ async function _delMotivosCancel(id) {
   toast('Excluído!', 'success'); await renderConfigMotivosCancel();
 }
 
-// ── CHECKLIST DA SUPERVISORA ─────────────────────────────────
-let _supClCache = [];
-
-async function renderConfigSupervisoraChecklist() {
-  const el = document.getElementById('config-supervisora-checklist');
-  if (!el) return;
-  const hotelId = _cfgHotelId();
-  let q = supabaseClient.from('supervisora_checklist_items').select('*').order('ordem');
-  if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
-  const { data, error } = await q;
-  if (error) { el.innerHTML = `<div style="color:var(--danger);font-size:12px;">Erro: ${error.message}</div>`; return; }
-  _supClCache = data || [];
-  el.innerHTML = `
-    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:flex-end;">
-      <input type="text" id="new-supcl-nome" placeholder="Novo item de conferência..."
-        style="flex:1;min-width:180px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;"
-        onkeydown="if(event.key==='Enter') _addSupCl()">
-      <label style="display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap;">
-        <input type="checkbox" id="new-supcl-obrig" checked> Obrigatório
-      </label>
-      <button class="btn btn-primary btn-sm" onclick="_addSupCl()">+ Adicionar</button>
-    </div>
-    <div id="supcl-lista">${_supClCache.map(m => _rowSupCl(m)).join('')}</div>`;
-}
-
-function _rowSupCl(m) {
-  return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);gap:8px;" id="supcl-row-${m.id}">
-    <div style="display:flex;align-items:center;gap:6px;flex:1;">
-      <span style="font-size:12px;color:var(--text3);">${m.hotel_id?'🏨':'🌐'}</span>
-      <span style="font-size:13px;${!m.ativo?'text-decoration:line-through;color:var(--text3);':''}" id="supcl-text-${m.id}">${m.nome}</span>
-      ${m.obrigatorio?'<span style="color:var(--danger);font-size:11px;font-weight:700;">*</span>':''}
-      ${!m.ativo?'<span class="badge badge-bloqueado" style="font-size:10px;">Inativo</span>':''}
-    </div>
-    <div id="supcl-edit-${m.id}" style="display:none;flex:1;gap:8px;align-items:center;">
-      <input type="text" id="supcl-input-${m.id}" value="${m.nome}"
-        style="flex:1;padding:5px 8px;border:1.5px solid var(--primary-light);border-radius:var(--radius-sm);font-size:13px;"
-        onkeydown="if(event.key==='Enter') _saveSupCl('${m.id}')">
-      <label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;">
-        <input type="checkbox" id="supcl-obrig-${m.id}" ${m.obrigatorio?'checked':''}> Obrig.
-      </label>
-    </div>
-    <div style="display:flex;gap:4px;flex-shrink:0;">
-      <button class="btn btn-ghost btn-xs" id="supcl-btn-edit-${m.id}" onclick="_editSupCl('${m.id}')" title="Editar">✏️</button>
-      <button class="btn btn-ghost btn-xs" id="supcl-btn-save-${m.id}" style="display:none;" onclick="_saveSupCl('${m.id}')" title="Salvar">💾</button>
-      <button class="btn btn-ghost btn-xs" id="supcl-btn-cancel-${m.id}" style="display:none;" onclick="renderConfigSupervisoraChecklist()" title="Cancelar">✕</button>
-      <button class="btn btn-ghost btn-xs" onclick="_toggleSupCl('${m.id}',${m.ativo})" title="${m.ativo?'Inativar':'Ativar'}">${m.ativo?'⏸':'▶'}</button>
-      ${m.hotel_id?`<button class="btn btn-ghost btn-xs" style="color:var(--danger);" onclick="_delSupCl('${m.id}')" title="Excluir">🗑</button>`:''}
-    </div>
-  </div>`;
-}
-function _editSupCl(id) {
-  document.getElementById(`supcl-text-${id}`).closest('div').style.display = 'none';
-  const editDiv = document.getElementById(`supcl-edit-${id}`);
-  editDiv.style.display = 'flex';
-  document.getElementById(`supcl-btn-edit-${id}`).style.display = 'none';
-  document.getElementById(`supcl-btn-save-${id}`).style.display = '';
-  document.getElementById(`supcl-btn-cancel-${id}`).style.display = '';
-  document.getElementById(`supcl-input-${id}`)?.focus();
-}
-async function _saveSupCl(id) {
-  const nome = document.getElementById(`supcl-input-${id}`)?.value.trim();
-  const obrigatorio = document.getElementById(`supcl-obrig-${id}`)?.checked ?? true;
-  if (!nome) { toast('Informe o nome', 'error'); return; }
-  const { error } = await supabaseClient.from('supervisora_checklist_items').update({ nome, obrigatorio }).eq('id', id);
-  if (error) { toast('Erro: ' + error.message, 'error'); return; }
-  toast('Salvo!', 'success'); await renderConfigSupervisoraChecklist();
-}
-async function _addSupCl() {
-  const nome = document.getElementById('new-supcl-nome')?.value.trim();
-  const obrigatorio = document.getElementById('new-supcl-obrig')?.checked ?? true;
-  if (!nome) { toast('Informe o nome do item', 'error'); return; }
-  if (_cfgBlocked()) { toast('Selecione um hotel para editar configurações', 'error'); return; }
-  const hotel_id = _cfgHotelId();
-  const { error } = await supabaseClient.from('supervisora_checklist_items').insert([{ nome, obrigatorio, hotel_id, ativo: true, ordem: (_supClCache.length || 0) + 1 }]);
-  if (error) { toast('Erro: ' + error.message, 'error'); return; }
-  const input = document.getElementById('new-supcl-nome');
-  if (input) input.value = '';
-  toast('Adicionado!', 'success'); await renderConfigSupervisoraChecklist();
-}
-async function _toggleSupCl(id, ativo) {
-  await supabaseClient.from('supervisora_checklist_items').update({ ativo: !ativo }).eq('id', id);
-  await renderConfigSupervisoraChecklist();
-}
-async function _delSupCl(id) {
-  if (!confirm('Excluir este item do checklist da supervisora?')) return;
-  await supabaseClient.from('supervisora_checklist_items').delete().eq('id', id);
-  toast('Excluído!', 'success'); await renderConfigSupervisoraChecklist();
-}
-
-
 // ── REPLICAR CONFIG DO HOTEL GRAN ESTANPLAZA ─────────────────
 async function _replicarConfigGranEstanplaza(novoHotelId) {
   if (!novoHotelId) return;
@@ -1091,7 +1000,6 @@ async function _replicarConfigGranEstanplaza(novoHotelId) {
     { tabela: 'tipos_limpeza',             colunas: ['nome', 'ativo', 'ordem'] },
     { tabela: 'motivos_pausa',             colunas: ['nome', 'ativo', 'ordem'] },
     { tabela: 'motivos_cancelamento',      colunas: ['nome', 'ativo', 'ordem'] },
-    { tabela: 'supervisora_checklist_items', colunas: ['nome', 'obrigatorio', 'ativo', 'ordem'] },
   ];
 
   for (const { tabela, colunas } of tabelas) {
