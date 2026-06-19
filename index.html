@@ -1971,8 +1971,15 @@ tr:last-child td { border-bottom: none; }
           </div>
         </div>
       </div>
-      <div id="checklist-progress" style="margin-bottom:16px;"></div>
+      <div id="checklist-progress"></div>
       <ul class="checklist" id="checklist-items"></ul>
+      <div id="checklist-confirmacao-wrap" style="margin-top:16px;padding:12px 14px;background:var(--surface2);border:2px solid var(--border);border-radius:var(--radius-sm);display:flex;align-items:flex-start;gap:10px;cursor:pointer;" onclick="document.getElementById('checklist-confirmacao').click()">
+        <input type="checkbox" id="checklist-confirmacao" onchange="_toggleConfirmacaoChecklist()" style="width:20px;height:20px;flex-shrink:0;margin-top:1px;cursor:pointer;">
+        <label id="checklist-confirmacao-label" for="checklist-confirmacao" style="font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;line-height:1.4;">
+          Confirmo que <strong>todos os itens acima foram verificados</strong> e o apartamento está pronto para conferência.
+        </label>
+      </div>
+      <div id="checklist-confirmacao-required" style="display:none;font-size:12px;color:var(--danger);margin-top:4px;">⚠️ Confirmação obrigatória para concluir a limpeza.</div>
       <div class="form-row single" style="margin-top:16px;">
         <div class="field"><label>Observações <span id="checklist-obs-required" style="display:none;color:var(--danger)">*obrigatório para pausar</span></label><textarea id="checklist-obs" placeholder="Anotações sobre o quarto..."></textarea></div>
       </div>
@@ -2805,23 +2812,20 @@ const CHECKLIST_PADRAO = [
 ];
 
 function renderChecklist() {
-  const done  = checklistState.filter(i => i.done).length;
-  const total = checklistState.length;
-  const pct   = Math.round((done/total)*100);
-  document.getElementById('checklist-progress').innerHTML = `
-    <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
-      <span style="font-weight:600;">Progresso: ${done}/${total} itens</span>
-      <span style="color:var(--accent);font-weight:700;">${pct}%</span>
-    </div>
-    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;"></div></div>`;
-  document.getElementById('checklist-items').innerHTML = checklistState.map((item,i) => `
-    <li class="checklist-item">
-      <div class="check-circle ${item.done?'done':''}" onclick="toggleCheck(${i})">${item.done?'✓':''}</div>
-      <span style="${item.done?'text-decoration:line-through;color:var(--text3);':''}">${item.label}</span>
+  document.getElementById('checklist-progress').innerHTML = '';
+  document.getElementById('checklist-items').innerHTML = checklistState.map(item => `
+    <li class="checklist-item" style="pointer-events:none;">
+      <span style="display:inline-block;width:18px;height:18px;border:2px solid var(--border);border-radius:4px;margin-right:8px;flex-shrink:0;"></span>
+      <span>${item.label}</span>
     </li>`).join('');
 }
 
-function toggleCheck(i) { checklistState[i].done = !checklistState[i].done; renderChecklist(); }
+function _toggleConfirmacaoChecklist() {
+  const cb  = document.getElementById('checklist-confirmacao');
+  const lbl = document.getElementById('checklist-confirmacao-label');
+  if (!cb) return;
+  lbl.style.color = cb.checked ? 'var(--success)' : 'var(--text2)';
+}
 async function _carregarMotivosCancelModal() {
   const sel = document.getElementById('cancelar-motivo');
   const obs = document.getElementById('cancelar-obs');
@@ -3003,12 +3007,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <script src="js/hotels.js?v=20260619g"></script>
-<script src="js/apartments.js?v=20260619v"></script>
+<script src="js/apartments.js?v=20260619aa"></script>
 <script src="js/maids.js?v=20260619g"></script>
 <script src="js/users.js?v=20260619g"></script>
 <script src="js/permissions.js?v=20260619g"></script>
 <script src="js/chamados.js?v=20260619r"></script>
-<script src="js/config.js?v=20260619u"></script>
+<script src="js/config.js?v=20260619aa"></script>
 <script src="js/dashboard.js?v=20260619g"></script>
 <script src="js/relatorios.js?v=20260619z"></script>
 <script src="js/minha-fila.js?v=20260619g"></script>

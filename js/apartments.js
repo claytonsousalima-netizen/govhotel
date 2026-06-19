@@ -1446,11 +1446,15 @@ async function abrirChecklistApp(id) {
 }
 
 async function concluirChecklist() {
-  const done = checklistState.filter(i => i.done).length;
-  if (done < checklistState.length * 0.8) { toast('Complete pelo menos 80% dos itens', 'error'); return; }
+  const confirmado = document.getElementById('checklist-confirmacao')?.checked;
+  if (!confirmado) {
+    document.getElementById('checklist-confirmacao-required').style.display = '';
+    document.getElementById('checklist-confirmacao-wrap').style.borderColor = 'var(--danger)';
+    return;
+  }
 
   const obsGeral  = (document.getElementById('checklist-obs')?.value || '').trim();
-  const respostas = checklistState.map(i => ({ item: i.label, resposta: i.done ? 'conforme' : 'nao_conforme' }));
+  const respostas = checklistState.map(i => ({ item: i.label, resposta: 'conforme' }));
 
   const isPerm = (typeof _checklistTipoSelecionado !== 'undefined') &&
     (_checklistTipoSelecionado || '').toLowerCase().includes('perm');

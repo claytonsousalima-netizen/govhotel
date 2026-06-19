@@ -404,6 +404,14 @@ async function abrirChecklistApp(id) {
   if (pessoasEl) pessoasEl.value = '';
   const bagagemEl = document.getElementById('checklist-perm-bagagem');
   if (bagagemEl) bagagemEl.value = '';
+  const confirmCb = document.getElementById('checklist-confirmacao');
+  if (confirmCb) confirmCb.checked = false;
+  const confirmReq = document.getElementById('checklist-confirmacao-required');
+  if (confirmReq) confirmReq.style.display = 'none';
+  const confirmWrap = document.getElementById('checklist-confirmacao-wrap');
+  if (confirmWrap) confirmWrap.style.borderColor = 'var(--border)';
+  const confirmLbl = document.getElementById('checklist-confirmacao-label');
+  if (confirmLbl) confirmLbl.style.color = 'var(--text2)';
 
   const hotelId = currentUser?.hotelId;
   let query = supabaseClient.from('checklist_templates').select('nome').eq('ativo', true).order('ordem');
