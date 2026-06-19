@@ -334,9 +334,9 @@ async function openAptoForm(id = null) {
     if (el) el.value = '';
   });
   document.getElementById('ca-leitos').value = '2';
-  document.getElementById('ca-status').value = 'livre';
   await _populateAptoTipoSelect();
   await _populateAptoCatSelect();
+  _populateCaStatusSelects();
 
   // Seletor de hotel — visível apenas para admin_global
   const hotelWrap = document.getElementById('ca-hotel-wrap');
@@ -360,7 +360,10 @@ async function openAptoForm(id = null) {
       document.getElementById('ca-leitos').value = a.leitos;
       await _populateAptoTipoSelect(a.tipo);
       await _populateAptoCatSelect(a.categoria);
-      document.getElementById('ca-status').value = a.status;
+      const caStatusApto = document.getElementById('ca-status-apto');
+      const caStatusGov  = document.getElementById('ca-status-gov');
+      if (caStatusApto) caStatusApto.value = a.status_apto || '';
+      if (caStatusGov)  caStatusGov.value  = a.status_gov  || '';
       document.getElementById('ca-obs').value    = a.obs || '';
       _selectedCamId = a.camareira_id || null;
       if (_formHotelId === null) _formHotelId = a.hotel_id;
@@ -386,6 +389,19 @@ async function _populateCaHotelSelect() {
     ).join('');
 }
 
+function _populateCaStatusSelects() {
+  const selApto = document.getElementById('ca-status-apto');
+  const selGov  = document.getElementById('ca-status-gov');
+  if (selApto) {
+    selApto.innerHTML = '<option value="">— Selecione —</option>' +
+      _statusAptoOpcoes.map(o => `<option value="${o.nome}">${o.nome}</option>`).join('');
+  }
+  if (selGov) {
+    selGov.innerHTML = '<option value="">— Selecione —</option>' +
+      _statusGovOpcoes.map(o => `<option value="${o.nome}">${o.nome}</option>`).join('');
+  }
+}
+
 // Override do salvarCadastroApto do inline script
 async function salvarCadastroApto() {
   if (!requireWrite('apartments')) return;
@@ -394,7 +410,8 @@ async function salvarCadastroApto() {
   const leitos    = parseInt(document.getElementById('ca-leitos').value);
   const tipo      = document.getElementById('ca-tipo').value;
   const categoria = document.getElementById('ca-categoria').value;
-  const status    = document.getElementById('ca-status').value;
+  const status_apto = document.getElementById('ca-status-apto')?.value || null;
+  const status_gov  = document.getElementById('ca-status-gov')?.value  || null;
   const maid_id   = document.getElementById('ca-camareira').value || null;
   const obs       = document.getElementById('ca-obs').value.trim() || null;
 
@@ -409,7 +426,10 @@ async function salvarCadastroApto() {
   const btn = document.getElementById('btn-salvar-apto');
   if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
 
-  const payload = { numero, andar, leitos, tipo, categoria, status, maid_id, obs, hotel_id };
+  const payload = { numero, andar, leitos, tipo, categoria, maid_id, obs, hotel_id,
+    status_apto: status_apto || null,
+    status_governanca_manual: status_gov || null,
+  };
 
   let error;
   if (_editingAptoId) {
@@ -2043,8 +2063,8 @@ function renderMapa() {
 
       const _bApto = _badgeStatusApto(a);
       const _bGov  = _badgeStatusGov(a);
-      const _extraBadges = (_bApto || _bGov)
-        ? `<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:4px;">${_bApto}${_bGov}</div>` : '';
+      const _extraBadges = (_bGov || _bApto)
+        ? `<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:4px;">${_bGov}${_bApto}</div>` : '';
 
       if (_loteMode) {
         const bloqueado   = _LOTE_STATUS_BLOQUEADOS.has(a.status);
@@ -2057,7 +2077,6 @@ function renderMapa() {
           <div class="apto-status-icon">${icon}</div>
           <div class="apto-num">${a.numero}</div>
           <div class="apto-tipo">${a.tipo}</div>
-          <span class="badge badge-${a.status}" style="font-size:10px;">${lbl}</span>
           ${_extraBadges}
         </div>`;
       } else {
@@ -2069,7 +2088,6 @@ function renderMapa() {
           <div class="apto-status-icon">${icon}</div>
           <div class="apto-num">${a.numero}</div>
           <div class="apto-tipo">${a.tipo}</div>
-          <span class="badge badge-${a.status}" style="font-size:10px;">${lbl}</span>
           ${_extraBadges}
           ${_camNome
             ? `<div style="font-size:9px;color:var(--text2);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">👤 ${_camNome}</div>`
@@ -2172,7 +2190,7 @@ function renderAptoKanban() {
             ${temChamado ? '<span style="font-size:10px;color:var(--danger);" title="Chamado aberto">📋</span>' : ''}
           </div>
           <div class="kanban-detail">${a.tipo} · ${a.andar}º andar</div>
-          ${(_kbApto || _kbGov) ? `<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:4px;">${_kbApto}${_kbGov}</div>` : ''}
+          ${(_kbGov || _kbApto) ? `<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:4px;">${_kbGov}${_kbApto}</div>` : ''}
           ${cam ? `<div style="font-size:11px;color:var(--text3);margin-top:4px;">👤 ${cam.nome}</div>` : ''}
           ${a.prioridade ? '<div style="font-size:10px;font-weight:700;color:var(--danger);margin-top:2px;">⚠️ PRIORIDADE</div>' : ''}
         </div>`;

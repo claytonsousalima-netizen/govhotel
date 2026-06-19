@@ -1739,20 +1739,14 @@ tr:last-child td { border-bottom: none; }
         <div class="field"><label>Categoria</label><select id="ca-categoria"></select></div>
       </div>
       <div class="form-row">
-        <div class="field"><label>Status</label>
-          <select id="ca-status">
-            <option value="sujo">Sujo</option>
-            <option value="limpando">Em limpeza</option>
-            <option value="pausado">Pausado</option>
-            <option value="conferencia">Aguard. conferência</option>
-            <option value="limpo">Limpo</option>
-            <option value="reprovado">Reprovado</option>
-            <option value="bloqueado">Bloqueado</option>
-            <option value="livre">Livre</option>
-            <option value="ocupado">Ocupado</option>
-            <option value="manutencao">Manutenção</option>
-          </select>
+        <div class="field"><label>Status Apto</label>
+          <select id="ca-status-apto"><option value="">— Selecione —</option></select>
         </div>
+        <div class="field"><label>Status Governança</label>
+          <select id="ca-status-gov"><option value="">— Selecione —</option></select>
+        </div>
+      </div>
+      <div class="form-row">
         <div class="field"><label>Camareira responsável</label>
           <select id="ca-camareira"><option value="">Não atribuída</option></select>
         </div>
@@ -3080,7 +3074,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <script src="js/hotels.js?v=20260619g"></script>
-<script src="js/apartments.js?v=20260619ae"></script>
+<script src="js/apartments.js?v=20260619af"></script>
 <script src="js/maids.js?v=20260619g"></script>
 <script src="js/users.js?v=20260619g"></script>
 <script src="js/permissions.js?v=20260619g"></script>
