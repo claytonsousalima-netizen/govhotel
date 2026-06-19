@@ -201,29 +201,39 @@ async function _fetchChamados() {
 
   chamados = _chamadosCache;
 
-  // Detecta novos chamados e notifica camareira/manutenção
+  // Detecta novos chamados e notifica somente quem está atribuído ao apartamento
   if (_chamadosIniciado) {
     const perfil = currentUser?.perfil;
     if (perfil === 'camareira' || perfil === 'manutencao') {
       _chamadosCache.forEach(c => {
-        // Notifica chamado novo (INSERT) — departamento compatível
+        // Verifica se este chamado é direcionado ao usuário atual
+        const _ehMeuChamado = (() => {
+          if (perfil === 'camareira' && c.departamento === 'governanca') {
+            // Limpeza: notifica somente a camareira atribuída ao apartamento
+            const aptoDoC = Array.isArray(aptos) ? aptos.find(a => a.id === c.apartment_id) : null;
+            return aptoDoC?.camareira_id === currentUser.id;
+          }
+          if (perfil === 'manutencao' && c.departamento === 'manutencao') {
+            // Manutenção: notifica somente quem está como responsável no chamado
+            return c.responsavel_user_id === currentUser.id;
+          }
+          return false;
+        })();
+
+        // Notifica chamado novo (INSERT) — somente se atribuído a mim
         if (!_chamadosKnownIds.has(c.id)) {
-          if (c.criado_por !== currentUser.id) {
-            const deptOk = perfil === 'camareira'
-              ? c.departamento === 'governanca'
-              : c.departamento === 'manutencao';
-            if (deptOk && typeof _showNovoChamadoNotif === 'function') {
-              _showNovoChamadoNotif(c);
-            }
+          if (c.criado_por !== currentUser.id && _ehMeuChamado) {
+            if (typeof _showNovoChamadoNotif === 'function') _showNovoChamadoNotif(c);
           }
         }
+
         // Notifica atribuição direta (UPDATE responsavel_user_id → currentUser.id)
         const anteriorResp = _chamadosResponsavelMap.get(c.id);
         const atualResp    = c.responsavel_user_id || null;
         if (
-          _chamadosKnownIds.has(c.id) &&          // chamado já existia
-          anteriorResp !== currentUser.id &&       // antes não era para mim
-          atualResp    === currentUser.id &&       // agora é para mim
+          _chamadosKnownIds.has(c.id) &&
+          anteriorResp !== currentUser.id &&
+          atualResp    === currentUser.id &&
           typeof _showNovoChamadoNotif === 'function'
         ) {
           _showNovoChamadoNotif(c, 'atribuido');
