@@ -1543,8 +1543,24 @@ async function concluirChecklist() {
 
   const isPerm = (typeof _checklistTipoSelecionado !== 'undefined') &&
     (_checklistTipoSelecionado || '').toLowerCase().includes('perm');
+
+  if (isPerm) {
+    const _pVal = parseInt(document.getElementById('checklist-perm-pessoas')?.value);
+    const _bVal = document.getElementById('checklist-perm-bagagem')?.value;
+    if (!_pVal || _pVal < 1) {
+      toast('Qtd. Pessoas é obrigatório para Permanência (mínimo 1)', 'error');
+      document.getElementById('checklist-perm-pessoas')?.focus();
+      return;
+    }
+    if (_bVal === '' || _bVal === null || _bVal === undefined) {
+      toast('Qtd. Bagagem é obrigatório para Permanência', 'error');
+      document.getElementById('checklist-perm-bagagem')?.focus();
+      return;
+    }
+  }
+
   const qtdPessoas = isPerm ? (parseInt(document.getElementById('checklist-perm-pessoas')?.value) || null) : null;
-  const qtdBagagem = isPerm ? (parseInt(document.getElementById('checklist-perm-bagagem')?.value) || null) : null;
+  const qtdBagagem = isPerm ? (parseInt(document.getElementById('checklist-perm-bagagem')?.value) ?? null) : null;
 
   const { error: ckErr } = await supabaseClient.from('limpeza_checklists').insert({
     apartment_id: selectedAptoId,
@@ -2241,20 +2257,12 @@ function renderAptoKanban() {
       ${items.map(a => {
         const cam        = equipe.find(e => e.id === a.camareira_id);
         const temChamado = _aptosComChamadoAberto.has(a.id);
-        // Gov destacado no kanban
-        const _kbGovBlock = (() => {
-          const _OP = { limpando:'🧹 Limpando', pausado:'⏸ Pausado', conferencia:'🔍 Aguard. conf.', reprovado:'❌ Reprovado' };
-          if (_OP[a.status]) return `<div style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:5px;background:#dbeafe;color:#1d4ed8;text-align:center;margin-top:5px;">${_OP[a.status]}</div>`;
-          if (!a.status_gov) return '';
-          const op = _statusGovOpcoes.find(o => o.nome === a.status_gov);
-          const cor = op?.cor || '#6b7280';
-          return `<div style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:5px;background:${cor}22;color:${cor};border:1px solid ${cor}55;text-align:center;margin-top:5px;">🏛 ${a.status_gov}</div>`;
-        })();
+        // Status Apto no kanban (Gov removido — colunas já classificam o fluxo)
         const _kbAptoLine = (() => {
           if (!a.status_apto) return '';
-          const op = _statusAptoOpcoes.find(o => o.nome === a.status_apto);
+          const op  = _statusAptoOpcoes.find(o => o.nome === a.status_apto);
           const cor = op?.cor || '#6b7280';
-          return `<div style="font-size:9px;font-weight:700;color:${cor};text-align:center;margin-top:2px;">🏠 ${a.status_apto}</div>`;
+          return `<div style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:5px;background:${cor}22;color:${cor};border:1px solid ${cor}55;text-align:center;margin-top:5px;">🏠 ${a.status_apto}</div>`;
         })();
         return `<div class="kanban-item" onclick="openAptoDetail('${a.id}')">
           <div class="kanban-apto">
@@ -2262,7 +2270,6 @@ function renderAptoKanban() {
             ${temChamado ? '<span style="font-size:10px;color:var(--danger);" title="Chamado aberto">📋</span>' : ''}
           </div>
           <div class="kanban-detail">${a.tipo} · ${a.andar}º andar</div>
-          ${_kbGovBlock}
           ${_kbAptoLine}
           ${cam ? `<div style="font-size:11px;color:var(--text3);margin-top:4px;">👤 ${cam.nome}</div>` : ''}
           ${a.prioridade ? '<div style="font-size:10px;font-weight:700;color:var(--danger);margin-top:2px;">⚠️ PRIORIDADE</div>' : ''}
