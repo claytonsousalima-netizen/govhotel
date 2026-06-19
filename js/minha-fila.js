@@ -78,6 +78,12 @@ async function _mfSelecionarHotel(hotelId) {
   await renderMinhaFila();
 }
 
+// ── helper: badge Status Apto (global _badgeStatusApto pode não estar carregado) ──
+function _mfBadgeApto(a) {
+  if (typeof _badgeStatusApto === 'function') return _badgeStatusApto(a);
+  return '';
+}
+
 // ── CAMAREIRA: fila de limpeza ────────────────────────────────
 
 function _mfRenderCamareira(el) {
@@ -121,6 +127,7 @@ function _mfRenderCamareira(el) {
             ${a.tipo} &nbsp;·&nbsp; ${a.andar}º andar &nbsp;·&nbsp; ${a.leitos} leito${a.leitos !== 1 ? 's' : ''}
           </div>
           ${_camLineCam(a)}
+          ${_mfBadgeApto(a) ? `<div style="margin-top:5px;">${_mfBadgeApto(a)}</div>` : ''}
         </div>
         <span class="badge badge-${a.status}" style="flex-shrink:0;">${_STATUS_LABELS?.[a.status] || a.status}</span>
       </div>
@@ -165,6 +172,7 @@ function _mfRenderCamareira(el) {
             ${a.tipo} &nbsp;·&nbsp; ${a.andar}º andar &nbsp;·&nbsp; ${a.leitos} leito${a.leitos !== 1 ? 's' : ''}
           </div>
           ${_camLineCam(a)}
+          ${_mfBadgeApto(a) ? `<div style="margin-top:5px;">${_mfBadgeApto(a)}</div>` : ''}
         </div>
         <span class="badge badge-${a.status}" style="flex-shrink:0;">${_STATUS_LABELS?.[a.status] || a.status}</span>
       </div>
@@ -186,6 +194,7 @@ function _mfRenderCamareira(el) {
           <div style="font-size:22px;font-weight:800;line-height:1;">${a.numero}</div>
           <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} &nbsp;·&nbsp; ${a.andar}º andar</div>
           ${_camLineCam(a)}
+          ${_mfBadgeApto(a) ? `<div style="margin-top:5px;">${_mfBadgeApto(a)}</div>` : ''}
         </div>
         <span class="badge badge-sujo" style="flex-shrink:0;">Sujo</span>
       </div>
@@ -251,7 +260,6 @@ function _mfRenderGestor(el) {
   const reprovados   = aptos.filter(a => a.status === 'reprovado');
   const limpandoApts = aptos.filter(a => a.status === 'limpando');
   const pausadoApts  = aptos.filter(a => a.status === 'pausado');
-  const limpando     = [...limpandoApts, ...pausadoApts];
   const sujos        = aptos.filter(a => a.status === 'sujo');
   const limpos       = aptos.filter(a => a.status === 'limpo');
   const livres       = aptos.filter(a => a.status === 'livre');
@@ -260,13 +268,20 @@ function _mfRenderGestor(el) {
   const manutencao   = aptos.filter(a => a.status === 'manutencao');
   const podeAprovar  = ['admin_global','admin_hotel','gestor','supervisora','governanta'].includes(currentUser?.perfil);
 
-  // linha de responsável padronizada para todos os cards
   const _camLine = a => {
     const cam = (typeof equipe !== 'undefined' ? equipe : []).find(e => e.id === a.camareira_id);
     return cam
       ? `<div style="font-size:11px;color:var(--text3);margin-top:3px;">🧹 ${cam.nome}</div>`
       : `<div style="font-size:11px;font-weight:700;color:var(--danger);margin-top:3px;">👤 Sem responsável</div>`;
   };
+
+  const _aptoInfo = a => `
+    <div>
+      <div style="font-size:22px;font-weight:800;line-height:1;">${a.numero}</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} · ${a.andar}º andar</div>
+      ${_camLine(a)}
+      ${_mfBadgeApto(a) ? `<div style="margin-top:5px;">${_mfBadgeApto(a)}</div>` : ''}
+    </div>`;
 
   // ── Painel de contadores ──
   let html = `
@@ -341,11 +356,7 @@ function _mfRenderGestor(el) {
       html += `
       <div class="card" style="margin-bottom:10px;border-left:4px solid #8e44ad;padding:14px 16px;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px;">
-          <div>
-            <div style="font-size:22px;font-weight:800;line-height:1;">${a.numero}</div>
-            <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} · ${a.andar}º andar</div>
-            ${_camLine(a)}
-          </div>
+          ${_aptoInfo(a)}
           <span class="badge badge-conferencia" style="flex-shrink:0;">Aguard. conf.</span>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
@@ -374,15 +385,12 @@ function _mfRenderGestor(el) {
     reprovados.forEach(a => {
       html += `
       <div class="card" style="margin-bottom:10px;border-left:4px solid var(--danger);padding:14px 16px;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
-          <div>
-            <div style="font-size:22px;font-weight:800;line-height:1;">${a.numero}</div>
-            <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} · ${a.andar}º andar</div>
-            ${_camLine(a)}
-          </div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px;">
+          ${_aptoInfo(a)}
           <span class="badge badge-reprovado" style="flex-shrink:0;">Reprovado</span>
         </div>
-        <div style="margin-top:10px;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="btn btn-primary btn-sm" onclick="mfAcao('${a.id}','relimpar')">▶ Re-limpeza</button>
           <button class="btn btn-ghost btn-sm" onclick="openAptoDetail('${a.id}')">👁 Ver detalhes</button>
         </div>
       </div>`;
@@ -392,7 +400,6 @@ function _mfRenderGestor(el) {
 
   // ── Para limpar (Sujos) — sem responsável primeiro ──
   if (sujos.length) {
-    // Ordenar: sem camareira primeiro, depois com camareira
     const sujosOrdenados = [...sujos].sort((a, b) => {
       if (!a.camareira_id && b.camareira_id) return -1;
       if (a.camareira_id && !b.camareira_id) return 1;
@@ -410,15 +417,12 @@ function _mfRenderGestor(el) {
       const semResp = !a.camareira_id;
       html += `
       <div class="card" style="margin-bottom:10px;border-left:4px solid ${semResp ? 'var(--danger)' : '#e67e22'};padding:14px 16px;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
-          <div>
-            <div style="font-size:22px;font-weight:800;line-height:1;">${a.numero}</div>
-            <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} · ${a.andar}º andar</div>
-            ${_camLine(a)}
-          </div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px;">
+          ${_aptoInfo(a)}
           <span class="badge badge-sujo" style="flex-shrink:0;">Sujo</span>
         </div>
-        <div style="margin-top:10px;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="btn btn-primary btn-sm" onclick="mfAcao('${a.id}','iniciar')">▶ Iniciar limpeza</button>
           <button class="btn btn-ghost btn-sm" onclick="openAptoDetail('${a.id}')">👁 Ver detalhes</button>
         </div>
       </div>`;
@@ -439,15 +443,11 @@ function _mfRenderGestor(el) {
     limpandoApts.forEach(a => {
       html += `
       <div class="card" style="margin-bottom:10px;border-left:4px solid #2e86c1;padding:14px 16px;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
-          <div>
-            <div style="font-size:22px;font-weight:800;line-height:1;">${a.numero}</div>
-            <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} · ${a.andar}º andar</div>
-            ${_camLine(a)}
-          </div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px;">
+          ${_aptoInfo(a)}
           <span class="badge badge-limpando" style="flex-shrink:0;">Limpando</span>
         </div>
-        <div style="margin-top:10px;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
           <button class="btn btn-ghost btn-sm" onclick="openAptoDetail('${a.id}')">👁 Ver detalhes</button>
         </div>
       </div>`;
@@ -468,16 +468,13 @@ function _mfRenderGestor(el) {
     pausadoApts.forEach(a => {
       html += `
       <div class="card" style="margin-bottom:10px;border-left:4px solid #f39c12;padding:14px 16px;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
-          <div>
-            <div style="font-size:22px;font-weight:800;line-height:1;">${a.numero}</div>
-            <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} · ${a.andar}º andar</div>
-            ${_camLine(a)}
-            ${a.obs ? `<div style="font-size:11px;color:var(--text3);margin-top:3px;font-style:italic;">${a.obs}</div>` : ''}
-          </div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px;">
+          ${_aptoInfo(a)}
           <span class="badge badge-pausado" style="flex-shrink:0;">Pausado</span>
         </div>
-        <div style="margin-top:10px;">
+        ${a.obs ? `<div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-style:italic;">${a.obs}</div>` : ''}
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="btn btn-primary btn-sm" onclick="mfAcao('${a.id}','retomar')">▶ Retomar</button>
           <button class="btn btn-ghost btn-sm" onclick="openAptoDetail('${a.id}')">👁 Ver detalhes</button>
         </div>
       </div>`;
@@ -500,16 +497,12 @@ function _mfRenderGestor(el) {
     bloqueados.forEach(a => {
       html += `
       <div class="card" style="margin-bottom:10px;border-left:4px solid #7f8c8d;padding:14px 16px;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
-          <div>
-            <div style="font-size:22px;font-weight:800;line-height:1;">${a.numero}</div>
-            <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} · ${a.andar}º andar</div>
-            ${_camLine(a)}
-            ${a.obs ? `<div style="font-size:11px;color:var(--text3);margin-top:3px;font-style:italic;">${a.obs}</div>` : ''}
-          </div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px;">
+          ${_aptoInfo(a)}
           <span class="badge badge-bloqueado" style="flex-shrink:0;">Bloqueado</span>
         </div>
-        <div style="margin-top:10px;">
+        ${a.obs ? `<div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-style:italic;">${a.obs}</div>` : ''}
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
           <button class="btn btn-ghost btn-sm" onclick="openAptoDetail('${a.id}')">👁 Ver detalhes</button>
         </div>
       </div>`;
@@ -532,16 +525,12 @@ function _mfRenderGestor(el) {
     manutencao.forEach(a => {
       html += `
       <div class="card" style="margin-bottom:10px;border-left:4px solid #e67e22;padding:14px 16px;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
-          <div>
-            <div style="font-size:22px;font-weight:800;line-height:1;">${a.numero}</div>
-            <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} · ${a.andar}º andar</div>
-            ${_camLine(a)}
-            ${a.obs ? `<div style="font-size:11px;color:var(--text3);margin-top:3px;font-style:italic;">${a.obs}</div>` : ''}
-          </div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px;">
+          ${_aptoInfo(a)}
           <span class="badge" style="background:#fdebd0;color:#b9770e;flex-shrink:0;">🔧 Manutenção</span>
         </div>
-        <div style="margin-top:10px;">
+        ${a.obs ? `<div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-style:italic;">${a.obs}</div>` : ''}
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
           <button class="btn btn-ghost btn-sm" onclick="openAptoDetail('${a.id}')">👁 Ver detalhes</button>
         </div>
       </div>`;
@@ -562,15 +551,11 @@ function _mfRenderGestor(el) {
     limpos.forEach(a => {
       html += `
       <div class="card" style="margin-bottom:10px;border-left:4px solid #1abc9c;padding:14px 16px;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
-          <div>
-            <div style="font-size:22px;font-weight:800;line-height:1;">${a.numero}</div>
-            <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} · ${a.andar}º andar</div>
-            ${_camLine(a)}
-          </div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px;">
+          ${_aptoInfo(a)}
           <span class="badge badge-limpo" style="flex-shrink:0;">Limpo</span>
         </div>
-        <div style="margin-top:10px;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
           <button class="btn btn-ghost btn-sm" onclick="openAptoDetail('${a.id}')">👁 Ver detalhes</button>
         </div>
       </div>`;
@@ -578,7 +563,7 @@ function _mfRenderGestor(el) {
     html += `</div>`;
   }
 
-  // ── Livres ──
+  // ── Vagos (livres) — sem botão externo ──
   if (livres.length) {
     html += `<div id="mf-sec-livres" style="margin-bottom:24px;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;
@@ -592,15 +577,8 @@ function _mfRenderGestor(el) {
       html += `
       <div class="card" style="margin-bottom:10px;border-left:4px solid var(--success);padding:14px 16px;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
-          <div>
-            <div style="font-size:22px;font-weight:800;line-height:1;">${a.numero}</div>
-            <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} · ${a.andar}º andar</div>
-            ${_camLine(a)}
-          </div>
+          ${_aptoInfo(a)}
           <span class="badge badge-livre" style="flex-shrink:0;">Vago</span>
-        </div>
-        <div style="margin-top:10px;">
-          <button class="btn btn-ghost btn-sm" onclick="openAptoDetail('${a.id}')">👁 Ver detalhes</button>
         </div>
       </div>`;
     });
@@ -620,16 +598,12 @@ function _mfRenderGestor(el) {
     ocupados.forEach(a => {
       html += `
       <div class="card" style="margin-bottom:10px;border-left:4px solid #7f8c8d;padding:14px 16px;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
-          <div>
-            <div style="font-size:22px;font-weight:800;line-height:1;">${a.numero}</div>
-            <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} · ${a.andar}º andar</div>
-            ${_camLine(a)}
-            ${a.obs ? `<div style="font-size:11px;color:var(--text3);margin-top:3px;font-style:italic;">${a.obs}</div>` : ''}
-          </div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px;">
+          ${_aptoInfo(a)}
           <span class="badge badge-ocupado" style="flex-shrink:0;">Ocupado</span>
         </div>
-        <div style="margin-top:10px;">
+        ${a.obs ? `<div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-style:italic;">${a.obs}</div>` : ''}
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
           <button class="btn btn-ghost btn-sm" onclick="openAptoDetail('${a.id}')">👁 Ver detalhes</button>
         </div>
       </div>`;
