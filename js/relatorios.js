@@ -6,7 +6,7 @@
 let _relHotelId = null;
 let _relAba     = 'executivo';
 let _relData    = null;
-let _relFiltros = { dtIni:'', dtFim:'', andar:'', camareira:'', status:'', apto:'', tipo:'', prioridade:'' };
+let _relFiltros = { dtIni:'', dtFim:'', andar:'', camareira:'', status:'', apto:'', tipo:'', prioridade:'', situacaoPausa:'' };
 
 // ── Entrada ──────────────────────────────────────────────────────
 
@@ -1457,7 +1457,12 @@ function _relAbaPausas(el) {
     });
   });
 
-  pausas.sort((a, b) => {
+  // Filtro por situação da pausa
+  let pausasFiltradas = pausas;
+  if (f.situacaoPausa === 'aberto')     pausasFiltradas = pausas.filter(p => !p.fim && p.durMin === null);
+  if (f.situacaoPausa === 'finalizada') pausasFiltradas = pausas.filter(p => p.fim !== null || p.durMin !== null);
+
+  pausasFiltradas.sort((a, b) => {
     if (!a.inicio && !b.inicio) return 0;
     if (!a.inicio) return 1;
     if (!b.inicio) return -1;
@@ -1473,10 +1478,10 @@ function _relAbaPausas(el) {
     return `<span style="color:var(--danger);font-weight:600;">${Math.floor(m/60)}h ${m%60}min</span>`;
   };
 
-  const totalMin = pausas.reduce((s, p) => s + (p.durMin || 0), 0);
-  const emAberto = pausas.filter(p => p.durMin === null && !p.fim).length;
+  const totalMin = pausasFiltradas.reduce((s, p) => s + (p.durMin || 0), 0);
+  const emAberto = pausas.filter(p => p.durMin === null && !p.fim).length; // sempre conta o total real
 
-  const rows = pausas.map(p => [
+  const rows = pausasFiltradas.map(p => [
     `<strong>${p.numero}</strong>`, `${p.andar}º`,
     fmt(p.inicio), fmt(p.fim),
     fmtD(p.durMin, p.fim),
@@ -1494,9 +1499,17 @@ function _relAbaPausas(el) {
     </div>
   </div>
   <div class="card" style="padding:14px 18px;">
-    <div class="card-title" style="margin-bottom:12px;">⏸ Histórico de Pausas por Apartamento</div>
-    ${pausas.length === 0
-      ? '<p style="color:var(--text3);text-align:center;padding:32px;">Nenhuma pausa encontrada no período.</p>'
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+      <div class="card-title" style="margin:0;">⏸ Histórico de Pausas por Apartamento</div>
+      <select onchange="_relFiltro('situacaoPausa',this.value)"
+        style="padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text1);font-size:13px;cursor:pointer;">
+        <option value=""   ${f.situacaoPausa===''          ?'selected':''}>Todas as situações</option>
+        <option value="aberto"    ${f.situacaoPausa==='aberto'    ?'selected':''}>⏳ Em aberto (${emAberto})</option>
+        <option value="finalizada" ${f.situacaoPausa==='finalizada'?'selected':''}>✅ Finalizadas</option>
+      </select>
+    </div>
+    ${pausasFiltradas.length === 0
+      ? '<p style="color:var(--text3);text-align:center;padding:32px;">Nenhuma pausa encontrada.</p>'
       : _relTable(['Apto','Andar','Início da Pausa','Fim da Pausa','Duração','Quem Pausou','Retomado por','Observação'], rows, 9999)}
   </div>`;
 }
