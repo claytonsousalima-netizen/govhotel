@@ -1346,21 +1346,7 @@ const _TIPOS_LIMPEZA_FALLBACK = [
   { nome: 'Pós-manutenção' },
 ];
 
-async function _renderTipoLimpezaBtns() {
-  const wrap = document.getElementById('checklist-tipo-btns');
-  if (!wrap) return;
-
-  let tipos = _TIPOS_LIMPEZA_FALLBACK;
-  try {
-    const hotelId = currentUser?.hotelId;
-    let q = supabaseClient.from('tipos_limpeza').select('id, nome').eq('ativo', true).order('ordem');
-    if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
-    const { data } = await q;
-    if (data?.length) tipos = data;
-  } catch (e) {
-    console.warn('Tipos de limpeza: usando fallback.', e);
-  }
-
+function _buildTipoBtns(wrap, tipos) {
   _checklistTipoSelecionado = tipos[0].nome;
   wrap.innerHTML = tipos.map((t, i) =>
     `<button type="button" id="cl-tipo-btn-${i}"
@@ -1370,6 +1356,25 @@ async function _renderTipoLimpezaBtns() {
       ${_emojiTipoLimpeza(t.nome)} ${t.nome || 'Tipo'}
     </button>`
   ).join('');
+}
+
+async function _renderTipoLimpezaBtns() {
+  const wrap = document.getElementById('checklist-tipo-btns');
+  if (!wrap) return;
+
+  // Renderiza fallback imediatamente (síncrono) — garante que botões aparecem
+  _buildTipoBtns(wrap, _TIPOS_LIMPEZA_FALLBACK);
+
+  // Tenta carregar tipos do banco e substitui se houver dados
+  try {
+    const hotelId = currentUser?.hotelId;
+    let q = supabaseClient.from('tipos_limpeza').select('id, nome').eq('ativo', true).order('ordem');
+    if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
+    const { data } = await q;
+    if (data?.length) _buildTipoBtns(wrap, data);
+  } catch (e) {
+    console.warn('Tipos de limpeza: mantendo fallback.', e);
+  }
 }
 
 function _selecionarTipoLimpeza(nome, idx, total) {
