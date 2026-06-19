@@ -188,6 +188,17 @@ async function _relCarregarDados(hotelId) {
   const aptoById = {};
   aptos.forEach(a => { aptoById[a.id] = a; });
 
+  // Resolve nomes de usuários do histórico não encontrados na equipe do hotel
+  // (ex: admin_global que não tem hotel_id, usuários de outros hotéis)
+  const uidsNaoResolvidos = [...new Set(
+    history.filter(h => h.alterado_por && !userNames[h.alterado_por]).map(h => h.alterado_por)
+  )];
+  if (uidsNaoResolvidos.length) {
+    const { data: extraUsers } = await supabaseClient
+      .from('user_profiles').select('user_id, nome').in('user_id', uidsNaoResolvidos);
+    (extraUsers || []).forEach(u => { userNames[u.user_id] = u.nome; });
+  }
+
   // Sessões de limpeza calculadas do histórico
   const sessoes = _relCalcSessoes(history, aptoById);
   console.log('[Relatórios] Sessões calculadas:', sessoes.length, '— com tempo:', sessoes.filter(s=>s.durBruta!=null).length);
@@ -1454,18 +1465,21 @@ function _relAbaPausas(el) {
   });
 
   const fmt  = d => d ? new Date(d).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '—';
-  const fmtD = m => m === null ? '<span style="color:var(--warning);font-weight:600;">Em aberto</span>'
-    : m < 30 ? `<span style="color:var(--success)">${m} min</span>`
-    : m < 60 ? `<span style="color:var(--warning);font-weight:600;">${m} min</span>`
-    : `<span style="color:var(--danger);font-weight:600;">${Math.floor(m/60)}h ${m%60}min</span>`;
+  const fmtD = (m, temFim) => {
+    if (m === null && !temFim) return '<span style="color:var(--warning);font-weight:600;">Em aberto</span>';
+    if (m === null &&  temFim) return '<span style="color:var(--text3);">Desconhecida</span>';
+    if (m < 30) return `<span style="color:var(--success)">${m} min</span>`;
+    if (m < 60) return `<span style="color:var(--warning);font-weight:600;">${m} min</span>`;
+    return `<span style="color:var(--danger);font-weight:600;">${Math.floor(m/60)}h ${m%60}min</span>`;
+  };
 
   const totalMin = pausas.reduce((s, p) => s + (p.durMin || 0), 0);
-  const emAberto = pausas.filter(p => p.durMin === null).length;
+  const emAberto = pausas.filter(p => p.durMin === null && !p.fim).length;
 
   const rows = pausas.map(p => [
     `<strong>${p.numero}</strong>`, `${p.andar}º`,
     fmt(p.inicio), fmt(p.fim),
-    fmtD(p.durMin),
+    fmtD(p.durMin, p.fim),
     p.quem, p.retomadoPor,
     `<span style="font-size:11px;">${p.obs}</span>`,
   ]);
