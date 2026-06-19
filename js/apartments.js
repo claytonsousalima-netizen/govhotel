@@ -1972,7 +1972,6 @@ function renderMapa() {
     html += '</div></div>';
   });
 
-  const container = document.getElementById('mapa-container');
   if (container) {
     container.innerHTML = html ||
       '<p style="color:var(--text3);text-align:center;padding:48px;">Nenhum apartamento encontrado com os filtros aplicados.</p>';
