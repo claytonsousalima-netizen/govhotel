@@ -1687,17 +1687,27 @@ function _atualizarContadorMapa() {
 
 async function selecionarHotelMapa(hotelId) {
   _aptoViewHotelId = hotelId || null;
+
+  const container = document.getElementById('mapa-container');
+  const mf        = document.getElementById('mapa-filters');
+
   if (!hotelId) {
+    // Limpa tudo diretamente — sem chamar renderMapa
     aptos = [];
-    renderMapa();
+    if (container) container.innerHTML =
+      '<p style="color:var(--text3);text-align:center;padding:48px;">Selecione um hotel para visualizar o mapa.</p>';
+    if (mf) mf.style.display = 'none';
     _atualizarContadorMapa();
     return;
   }
-  const container = document.getElementById('mapa-container');
+
+  // Hotel selecionado: carrega mapa
+  if (mf) mf.style.display = 'none';
   if (container) container.innerHTML =
     '<p style="color:var(--text3);text-align:center;padding:48px;">Carregando mapa...</p>';
   try {
     await syncApartamentos();
+    if (mf) mf.style.display = '';
     renderMapa();
     _atualizarContadorMapa();
   } catch(e) {
