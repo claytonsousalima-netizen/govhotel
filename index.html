@@ -2017,7 +2017,7 @@ tr:last-child td { border-bottom: none; }
       </div>
       <div id="checklist-confirmacao-required" style="display:none;font-size:12px;color:var(--danger);margin-top:4px;">⚠️ Confirmação obrigatória para concluir a limpeza.</div>
       <div class="form-row single" style="margin-top:16px;">
-        <div class="field"><label>Observações <span id="checklist-obs-required" style="display:none;color:var(--danger)">*obrigatório para pausar</span></label><textarea id="checklist-obs" placeholder="Anotações sobre o quarto..."></textarea></div>
+        <div class="field"><label>Observações</label><textarea id="checklist-obs" placeholder="Anotações sobre o quarto..."></textarea></div>
       </div>
     </div>
     <div class="modal-footer">
@@ -2938,17 +2938,8 @@ async function cancelarLimpeza() {
 }
 
 async function pausarLimpezaChecklist() {
-  const obsVal = (document.getElementById('checklist-obs')?.value || '').trim();
-  if (!obsVal) {
-    const req = document.getElementById('checklist-obs-required');
-    if (req) req.style.display = 'inline';
-    document.getElementById('checklist-obs')?.focus();
-    toast('Informe uma observação antes de pausar', 'error');
-    return;
-  }
   closeModal('modal-checklist');
-  const obs = `Limpeza pausada por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')} — ${obsVal}`;
-  await mudarStatusApto(selectedAptoId, 'pausado', obs);
+  await abrirModalPausa(selectedAptoId);
 }
 
 // concluirChecklist() implementada em js/apartments.js (salva checklist no banco e envia para conferência)
