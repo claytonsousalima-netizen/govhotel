@@ -1467,6 +1467,7 @@ async function concluirChecklist() {
     usuario_id:   currentUser.id,
     tipo_limpeza: _tipoLimpezaEnum(_checklistTipoSelecionado),
     respostas,
+    confirmacao_geral: true,
     obs_geral:    obsGeral || null,
     ...(qtdPessoas !== null ? { qtd_pessoas: qtdPessoas } : {}),
     ...(qtdBagagem !== null ? { qtd_bagagem: qtdBagagem } : {}),
