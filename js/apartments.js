@@ -10,6 +10,8 @@ let _checklistOrigemStatus = null;
 let _limpandoOrfaosVerificado = false;
 let _aptosCarregados    = false;          // true após primeira carga de aptos
 let _aptosCamAnterior   = new Map();      // aptoId → camareira_id anterior (detecta atribuição)
+let _statusAptoOpcoes   = [];             // opções de Status Apto (do banco)
+let _statusGovOpcoes    = [];             // opções de Status Governança (do banco)
 
 // ── SINCRONIZAR COM SUPABASE ──────────────────────────────────
 
@@ -49,6 +51,8 @@ async function syncApartamentos() {
     tipo:         a.tipo        || 'Standard',
     categoria:    a.categoria   || 'Regular',
     status:       a.status,
+    status_apto:  a.status_apto || null,
+    status_gov:   a.status_governanca_manual || null,
     leitos:       a.leitos      || 2,
     camareira_id: a.maid_id     || null,
     obs:          a.obs         || '',
@@ -77,6 +81,9 @@ async function syncApartamentos() {
   // Atualiza mapa de camareira anterior para o próximo sync
   aptos.forEach(a => _aptosCamAnterior.set(a.id, a.camareira_id));
   _aptosCarregados = true;
+
+  // Carrega opções de Status Apto e Status Governança (uma vez por sessão é suficiente)
+  if (!_statusAptoOpcoes.length && !_statusGovOpcoes.length) await _loadStatusOpcoes();
 
   // Sincroniza equipe do mesmo hotel via user_profiles
   try { await _syncEquipe(hotelId); } catch (e) { console.warn('syncEquipe:', e.message); equipe = []; }
@@ -880,41 +887,54 @@ window.mudarStatusApto = async function mudarStatusApto(id, novoStatus, obs) {
 // Status que só podem ser atribuídos pelo fluxo — bloqueados no modal manual
 const _TS_BLOQUEADOS_MANUAL = new Set(['limpando','pausado','conferencia','limpo','reprovado']);
 
+function _popularSelectsTrocarStatus() {
+  const selApto = document.getElementById('ts-status-apto');
+  const selGov  = document.getElementById('ts-status-gov');
+  if (selApto) selApto.innerHTML = '<option value="">— Não alterar —</option>' +
+    (_statusAptoOpcoes||[]).map(o=>`<option value="${o.nome}">${o.nome}</option>`).join('');
+  if (selGov) selGov.innerHTML = '<option value="">— Não alterar —</option>' +
+    (_statusGovOpcoes||[]).map(o=>`<option value="${o.nome}">${o.nome}</option>`).join('');
+}
+
 async function salvarTrocarStatus() {
   const aptoNum    = document.getElementById('ts-apto').value;
   const novoStatus = document.getElementById('ts-status').value;
+  const novoApto   = document.getElementById('ts-status-apto')?.value || '';
+  const novoGov    = document.getElementById('ts-status-gov')?.value  || '';
   const obs        = document.getElementById('ts-obs')?.value?.trim() || null;
-  if (!aptoNum)    { toast('Selecione um apartamento', 'error'); return; }
-  if (!novoStatus) { toast('Selecione o novo status', 'error'); return; }
+  if (!aptoNum) { toast('Selecione um apartamento', 'error'); return; }
+  if (!novoStatus && !novoApto && !novoGov) { toast('Selecione ao menos um status para alterar', 'error'); return; }
 
   const apto = aptos.find(a => a.numero === aptoNum);
   if (!apto) { toast('Apartamento não encontrado', 'error'); return; }
 
-  // Bloqueia status que devem vir somente do fluxo operacional
-  if (_TS_BLOQUEADOS_MANUAL.has(novoStatus)) {
-    toast('Este status é definido exclusivamente pelo fluxo de limpeza/conferência', 'error'); return;
-  }
-
-  // Se o apto está em fluxo ativo, exige confirmação de gestor+
-  const _PODE_INTERROMPER = new Set(['admin_global','admin_hotel','gestor','supervisora','governanta']);
-  if (_TS_BLOQUEADOS_MANUAL.has(apto.status)) {
-    if (!_PODE_INTERROMPER.has(currentUser?.perfil)) {
-      toast('Interromper o fluxo de limpeza requer perfil Gestor ou superior', 'error'); return;
+  if (novoStatus) {
+    if (_TS_BLOQUEADOS_MANUAL.has(novoStatus)) {
+      toast('Este status é definido exclusivamente pelo fluxo de limpeza/conferência', 'error'); return;
     }
-    if (!obs) { toast('Informe o motivo para interromper o fluxo de limpeza', 'error'); return; }
-    if (!confirm(`Atenção: o apto ${aptoNum} está em fluxo ativo ("${apto.status}"). Alterar manualmente pode perder o histórico. Confirma?`)) return;
+    const _PODE_INTERROMPER = new Set(['admin_global','admin_hotel','gestor','supervisora','governanta']);
+    if (_TS_BLOQUEADOS_MANUAL.has(apto.status)) {
+      if (!_PODE_INTERROMPER.has(currentUser?.perfil)) {
+        toast('Interromper o fluxo de limpeza requer perfil Gestor ou superior', 'error'); return;
+      }
+      if (!obs) { toast('Informe o motivo para interromper o fluxo de limpeza', 'error'); return; }
+      if (!confirm(`Atenção: o apto ${aptoNum} está em fluxo ativo ("${apto.status}"). Alterar manualmente pode perder o histórico. Confirma?`)) return;
+    }
   }
 
   closeModal('modal-trocar-status');
-  await window.mudarStatusApto(apto.id, novoStatus, obs || `Status alterado manualmente por ${currentUser.nome}`);
+  if (novoApto)   await mudarStatusAptoField(apto.id, 'status_apto', novoApto);
+  if (novoGov)    await mudarStatusAptoField(apto.id, 'status_gov',  novoGov);
+  if (novoStatus) await window.mudarStatusApto(apto.id, novoStatus, obs || `Status alterado manualmente por ${currentUser.nome}`);
+  else if (novoApto || novoGov) toast('Status atualizado!', 'success');
 }
 
 function alterarStatusRapido(id) {
   const apto = aptos.find(a => a.id === id);
   if (!apto) return;
-  // Preenche o select do modal-trocar-status e abre
   const sel = document.getElementById('ts-apto');
   if (sel) sel.value = apto.numero;
+  _popularSelectsTrocarStatus();
   openModal('modal-trocar-status');
 }
 
@@ -1489,6 +1509,49 @@ async function cancelarChecklistLimpeza() {
   await mudarStatusApto(selectedAptoId, status, obs);
 }
 
+// ── STATUS APTO / GOVERNANÇA ──────────────────────────────────
+
+async function _loadStatusOpcoes() {
+  const hotelId = _aptoViewHotelId || currentUser?.hotelId;
+  if (!hotelId) return;
+  const [saoRes, sgoRes] = await Promise.all([
+    supabaseClient.from('status_apto_opcoes').select('*').eq('ativo', true).order('ordem'),
+    supabaseClient.from('status_governanca_opcoes').select('*').eq('ativo', true).order('ordem'),
+  ]);
+  _statusAptoOpcoes = (saoRes.data || []).filter(o => !o.hotel_id || o.hotel_id === hotelId);
+  _statusGovOpcoes  = (sgoRes.data || []).filter(o => !o.hotel_id || o.hotel_id === hotelId);
+}
+
+function _badgeStatusApto(apto) {
+  if (!apto.status_apto) return '';
+  const op  = _statusAptoOpcoes.find(o => o.nome === apto.status_apto);
+  const cor = op?.cor || '#6b7280';
+  return `<span style="display:inline-block;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;background:${cor}22;color:${cor};border:1px solid ${cor}55;white-space:nowrap;">🏠 ${apto.status_apto}</span>`;
+}
+
+function _badgeStatusGov(apto) {
+  const _OP = { limpando:'🧹 Limpando', pausado:'⏸ Pausado', conferencia:'🔍 Aguard. conf.', reprovado:'❌ Reprovado' };
+  if (_OP[apto.status]) return `<span style="display:inline-block;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;background:#dbeafe;color:#1d4ed8;border:1px solid #93c5fd;white-space:nowrap;">${_OP[apto.status]}</span>`;
+  if (!apto.status_gov) return '';
+  const op  = _statusGovOpcoes.find(o => o.nome === apto.status_gov);
+  const cor = op?.cor || '#6b7280';
+  return `<span style="display:inline-block;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;background:${cor}22;color:${cor};border:1px solid ${cor}55;white-space:nowrap;">🏛 ${apto.status_gov}</span>`;
+}
+
+async function mudarStatusAptoField(id, campo, valor) {
+  const dbCampo = campo === 'status_apto' ? 'status_apto' : 'status_governanca_manual';
+  const { error } = await supabaseClient.from('apartments').update({ [dbCampo]: valor || null }).eq('id', id);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  const apto = aptos.find(a => a.id === id);
+  if (apto) {
+    if (campo === 'status_apto') apto.status_apto = valor || null;
+    else apto.status_gov = valor || null;
+  }
+  if (currentPage === 'mapa')   renderMapa();
+  if (currentPage === 'kanban') renderAptoKanban();
+  toast('Status atualizado!', 'success');
+}
+
 // ── MAPA COM SELETOR DE HOTEL (admin_global) ──────────────────
 
 function _garantirBotoesMapa() {
@@ -1515,7 +1578,7 @@ function _garantirBotoesMapa() {
     btnAlt.id = 'btn-alterar-status-header';
     btnAlt.className = 'btn btn-outline btn-sm';
     btnAlt.textContent = '🔄 Alterar Status';
-    btnAlt.onclick = () => _loteMode ? _abrirModalLote() : openModal('modal-trocar-status');
+    btnAlt.onclick = () => { if (_loteMode) { _abrirModalLote(); } else { _popularSelectsTrocarStatus(); openModal('modal-trocar-status'); } };
     container.appendChild(btnAlt);
 
     const btnLote = document.createElement('button');
@@ -1978,6 +2041,11 @@ function renderMapa() {
       const lbl  = _STATUS_LABELS[a.status] || a.status;
       const temChamado = _aptosComChamadoAberto.has(a.id);
 
+      const _bApto = _badgeStatusApto(a);
+      const _bGov  = _badgeStatusGov(a);
+      const _extraBadges = (_bApto || _bGov)
+        ? `<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:4px;">${_bApto}${_bGov}</div>` : '';
+
       if (_loteMode) {
         const bloqueado   = _LOTE_STATUS_BLOQUEADOS.has(a.status);
         const selecionado = _loteSelected.has(a.id);
@@ -1990,6 +2058,7 @@ function renderMapa() {
           <div class="apto-num">${a.numero}</div>
           <div class="apto-tipo">${a.tipo}</div>
           <span class="badge badge-${a.status}" style="font-size:10px;">${lbl}</span>
+          ${_extraBadges}
         </div>`;
       } else {
         const _tempo = typeof _tempoStatus === 'function' ? _tempoStatus(a.status_at) : '';
@@ -2001,6 +2070,7 @@ function renderMapa() {
           <div class="apto-num">${a.numero}</div>
           <div class="apto-tipo">${a.tipo}</div>
           <span class="badge badge-${a.status}" style="font-size:10px;">${lbl}</span>
+          ${_extraBadges}
           ${_camNome
             ? `<div style="font-size:9px;color:var(--text2);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">👤 ${_camNome}</div>`
             : '<div style="font-size:9px;color:var(--danger);font-weight:700;margin-top:3px;">Sem responsável</div>'}
@@ -2094,12 +2164,15 @@ function renderAptoKanban() {
       ${items.map(a => {
         const cam        = equipe.find(e => e.id === a.camareira_id);
         const temChamado = _aptosComChamadoAberto.has(a.id);
+        const _kbApto = _badgeStatusApto(a);
+        const _kbGov  = _badgeStatusGov(a);
         return `<div class="kanban-item" onclick="openAptoDetail('${a.id}')">
           <div class="kanban-apto">
             ${a.numero}
             ${temChamado ? '<span style="font-size:10px;color:var(--danger);" title="Chamado aberto">📋</span>' : ''}
           </div>
           <div class="kanban-detail">${a.tipo} · ${a.andar}º andar</div>
+          ${(_kbApto || _kbGov) ? `<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:4px;">${_kbApto}${_kbGov}</div>` : ''}
           ${cam ? `<div style="font-size:11px;color:var(--text3);margin-top:4px;">👤 ${cam.nome}</div>` : ''}
           ${a.prioridade ? '<div style="font-size:10px;font-weight:700;color:var(--danger);margin-top:2px;">⚠️ PRIORIDADE</div>' : ''}
         </div>`;

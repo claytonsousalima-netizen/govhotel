@@ -72,6 +72,8 @@ async function _recarregarTodasSections() {
     renderConfigChecklist(),
     renderConfigMotivosPausa(),
     renderConfigMotivosCancel(),
+    renderConfigStatusApto(),
+    renderConfigStatusGov(),
     (typeof renderConfigAptoTiposCats === 'function' ? renderConfigAptoTiposCats() : Promise.resolve()),
   ]);
 }
@@ -979,6 +981,125 @@ async function _delMotivosCancel(id) {
   if (!confirm('Excluir este motivo de cancelamento?')) return;
   await supabaseClient.from('motivos_cancelamento').delete().eq('id', id);
   toast('Excluído!', 'success'); await renderConfigMotivosCancel();
+}
+
+// ── STATUS APTO ──────────────────────────────────────────────
+let _statusAptoCache = [];
+async function renderConfigStatusApto() {
+  const el = document.getElementById('config-status-apto');
+  if (!el) return;
+  const hotelId = _cfgHotelId();
+  let q = supabaseClient.from('status_apto_opcoes').select('*').order('ordem');
+  if (hotelId) q = q.eq('hotel_id', hotelId);
+  const { data } = await q;
+  _statusAptoCache = data || [];
+  el.innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:flex-end;">
+      <input type="text" id="new-sao-nome" placeholder="Ex: Ocupado, Vago, Bloqueado..."
+        style="flex:1;min-width:140px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;"
+        onkeydown="if(event.key==='Enter') _addStatusApto()">
+      <input type="color" id="new-sao-cor" value="#6b7280" title="Cor do badge" style="width:38px;height:36px;border:1.5px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;">
+      <button class="btn btn-primary btn-sm" onclick="_addStatusApto()">+ Adicionar</button>
+    </div>
+    <div>${_statusAptoCache.map(o => _rowStatusOpcao(o, 'sao')).join('')}</div>`;
+}
+
+// ── STATUS GOVERNANÇA ─────────────────────────────────────────
+let _statusGovCache = [];
+async function renderConfigStatusGov() {
+  const el = document.getElementById('config-status-gov');
+  if (!el) return;
+  const hotelId = _cfgHotelId();
+  let q = supabaseClient.from('status_governanca_opcoes').select('*').order('ordem');
+  if (hotelId) q = q.eq('hotel_id', hotelId);
+  const { data } = await q;
+  _statusGovCache = data || [];
+  el.innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:flex-end;">
+      <input type="text" id="new-sgo-nome" placeholder="Ex: Limpo, Sujo, Não Perturbe..."
+        style="flex:1;min-width:140px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;"
+        onkeydown="if(event.key==='Enter') _addStatusGov()">
+      <input type="color" id="new-sgo-cor" value="#6b7280" title="Cor do badge" style="width:38px;height:36px;border:1.5px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;">
+      <button class="btn btn-primary btn-sm" onclick="_addStatusGov()">+ Adicionar</button>
+    </div>
+    <div>${_statusGovCache.map(o => _rowStatusOpcao(o, 'sgo')).join('')}</div>`;
+}
+
+function _rowStatusOpcao(o, prefix) {
+  const cor = o.cor || '#6b7280';
+  return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);gap:8px;" id="${prefix}-row-${o.id}">
+    <div style="display:flex;align-items:center;gap:8px;flex:1;">
+      <span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${cor};flex-shrink:0;"></span>
+      <span id="${prefix}-text-${o.id}" style="font-size:13px;${!o.ativo?'text-decoration:line-through;color:var(--text3);':''}">${o.nome}</span>
+      ${!o.ativo?'<span class="badge badge-bloqueado" style="font-size:10px;">Inativo</span>':''}
+    </div>
+    <div id="${prefix}-edit-${o.id}" style="display:none;flex:1;gap:8px;align-items:center;">
+      <input type="text" id="${prefix}-input-${o.id}" value="${o.nome}"
+        style="flex:1;padding:5px 8px;border:1.5px solid var(--primary-light);border-radius:var(--radius-sm);font-size:13px;"
+        onkeydown="if(event.key==='Enter') _saveStatusOpcao('${o.id}','${prefix}')">
+      <input type="color" id="${prefix}-cor-${o.id}" value="${cor}" style="width:32px;height:30px;border:1.5px solid var(--border);border-radius:4px;cursor:pointer;">
+    </div>
+    <div style="display:flex;gap:4px;flex-shrink:0;">
+      <button class="btn btn-ghost btn-xs" id="${prefix}-btn-edit-${o.id}" onclick="_editStatusOpcao('${o.id}','${prefix}')" title="Editar">✏️</button>
+      <button class="btn btn-ghost btn-xs" id="${prefix}-btn-save-${o.id}" style="display:none;" onclick="_saveStatusOpcao('${o.id}','${prefix}')" title="Salvar">💾</button>
+      <button class="btn btn-ghost btn-xs" id="${prefix}-btn-cancel-${o.id}" style="display:none;" onclick="${prefix==='sao'?'renderConfigStatusApto':'renderConfigStatusGov'}()" title="Cancelar">✕</button>
+      <button class="btn btn-ghost btn-xs" onclick="_toggleStatusOpcao('${o.id}','${prefix}',${o.ativo})" title="${o.ativo?'Inativar':'Ativar'}">${o.ativo?'⏸':'▶'}</button>
+      <button class="btn btn-ghost btn-xs" style="color:var(--danger);" onclick="_delStatusOpcao('${o.id}','${prefix}')" title="Excluir">🗑</button>
+    </div>
+  </div>`;
+}
+function _editStatusOpcao(id, prefix) {
+  document.getElementById(`${prefix}-text-${id}`).closest('div').style.display = 'none';
+  document.getElementById(`${prefix}-edit-${id}`).style.display = 'flex';
+  document.getElementById(`${prefix}-btn-edit-${id}`).style.display = 'none';
+  document.getElementById(`${prefix}-btn-save-${id}`).style.display = '';
+  document.getElementById(`${prefix}-btn-cancel-${id}`).style.display = '';
+  document.getElementById(`${prefix}-input-${id}`)?.focus();
+}
+async function _saveStatusOpcao(id, prefix) {
+  const tabela = prefix === 'sao' ? 'status_apto_opcoes' : 'status_governanca_opcoes';
+  const nome = document.getElementById(`${prefix}-input-${id}`)?.value.trim();
+  const cor  = document.getElementById(`${prefix}-cor-${id}`)?.value || '#6b7280';
+  if (!nome) { toast('Informe o nome', 'error'); return; }
+  const { error } = await supabaseClient.from(tabela).update({ nome, cor }).eq('id', id);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  toast('Salvo!', 'success');
+  prefix === 'sao' ? await renderConfigStatusApto() : await renderConfigStatusGov();
+  if (typeof _loadStatusOpcoes === 'function') await _loadStatusOpcoes();
+}
+async function _addStatusApto() {
+  const nome = document.getElementById('new-sao-nome')?.value.trim();
+  const cor  = document.getElementById('new-sao-cor')?.value || '#6b7280';
+  if (!nome) { toast('Informe o nome', 'error'); return; }
+  if (_cfgBlocked()) { toast('Selecione um hotel', 'error'); return; }
+  const { error } = await supabaseClient.from('status_apto_opcoes').insert([{ nome, cor, hotel_id: _cfgHotelId(), ativo: true, ordem: (_statusAptoCache.length || 0) + 1 }]);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  document.getElementById('new-sao-nome').value = '';
+  toast('Adicionado!', 'success'); await renderConfigStatusApto();
+  if (typeof _loadStatusOpcoes === 'function') await _loadStatusOpcoes();
+}
+async function _addStatusGov() {
+  const nome = document.getElementById('new-sgo-nome')?.value.trim();
+  const cor  = document.getElementById('new-sgo-cor')?.value || '#6b7280';
+  if (!nome) { toast('Informe o nome', 'error'); return; }
+  if (_cfgBlocked()) { toast('Selecione um hotel', 'error'); return; }
+  const { error } = await supabaseClient.from('status_governanca_opcoes').insert([{ nome, cor, hotel_id: _cfgHotelId(), ativo: true, ordem: (_statusGovCache.length || 0) + 1 }]);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  document.getElementById('new-sgo-nome').value = '';
+  toast('Adicionado!', 'success'); await renderConfigStatusGov();
+  if (typeof _loadStatusOpcoes === 'function') await _loadStatusOpcoes();
+}
+async function _toggleStatusOpcao(id, prefix, ativo) {
+  const tabela = prefix === 'sao' ? 'status_apto_opcoes' : 'status_governanca_opcoes';
+  await supabaseClient.from(tabela).update({ ativo: !ativo }).eq('id', id);
+  prefix === 'sao' ? await renderConfigStatusApto() : await renderConfigStatusGov();
+}
+async function _delStatusOpcao(id, prefix) {
+  if (!confirm('Excluir este status?')) return;
+  const tabela = prefix === 'sao' ? 'status_apto_opcoes' : 'status_governanca_opcoes';
+  await supabaseClient.from(tabela).delete().eq('id', id);
+  toast('Excluído!', 'success');
+  prefix === 'sao' ? await renderConfigStatusApto() : await renderConfigStatusGov();
 }
 
 // ── REPLICAR CONFIG DO HOTEL GRAN ESTANPLAZA ─────────────────
