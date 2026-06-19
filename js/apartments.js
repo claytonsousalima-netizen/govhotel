@@ -1690,24 +1690,27 @@ async function selecionarHotelMapa(hotelId) {
 
   const container = document.getElementById('mapa-container');
   const mf        = document.getElementById('mapa-filters');
+  const ma        = document.getElementById('mapa-filtros-avancados');
 
   if (!hotelId) {
-    // Limpa tudo diretamente — sem chamar renderMapa
     aptos = [];
+    _aptosComChamadoAberto.clear();
     if (container) container.innerHTML =
       '<p style="color:var(--text3);text-align:center;padding:48px;">Selecione um hotel para visualizar o mapa.</p>';
     if (mf) mf.style.display = 'none';
+    if (ma) ma.innerHTML = '';
     _atualizarContadorMapa();
     return;
   }
 
-  // Hotel selecionado: carrega mapa
   if (mf) mf.style.display = 'none';
   if (container) container.innerHTML =
     '<p style="color:var(--text3);text-align:center;padding:48px;">Carregando mapa...</p>';
   try {
     await syncApartamentos();
+    await _carregarChamadosAbertosAptos(hotelId);
     if (mf) mf.style.display = '';
+    _renderFiltrosBar('mapa-filtros-avancados');
     renderMapa();
     _atualizarContadorMapa();
   } catch(e) {
@@ -2284,15 +2287,4 @@ async function _cfgDelete(tabela, id) {
 
 // renderConfigAptoTiposCats() chamada diretamente por renderConfig() em index.html
 
-// ── PATCH: selecionarHotelMapa — recarrega chamados e filtros
-const _origSelecionarHotelMapa = selecionarHotelMapa;
-async function selecionarHotelMapa(hotelId) {
-  await _origSelecionarHotelMapa(hotelId);
-  if (hotelId) {
-    await _carregarChamadosAbertosAptos(hotelId);
-    _renderFiltrosBar('mapa-filtros-avancados');
-  } else {
-    _aptosComChamadoAberto.clear();
-    document.getElementById('mapa-filtros-avancados').innerHTML = '';
-  }
-}
+// (patch removido — lógica fundida em selecionarHotelMapa acima)
