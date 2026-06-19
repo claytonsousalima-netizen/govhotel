@@ -1688,21 +1688,22 @@ function _atualizarContadorMapa() {
 async function selecionarHotelMapa(hotelId) {
   _aptoViewHotelId = hotelId || null;
   if (!hotelId) {
-    _mapaSetSemHotel();
+    aptos = [];
+    renderMapa();
+    _atualizarContadorMapa();
     return;
   }
-  _mapaSetLoading(true);
+  const container = document.getElementById('mapa-container');
+  if (container) container.innerHTML =
+    '<p style="color:var(--text3);text-align:center;padding:48px;">Carregando mapa...</p>';
   try {
     await syncApartamentos();
-    _mapaSetLoading(false);
     renderMapa();
     _atualizarContadorMapa();
   } catch(e) {
     console.warn('selecionarHotelMapa:', e.message);
-    document.getElementById('mapa-container').innerHTML =
-      '<p style="color:var(--danger);text-align:center;padding:48px;">Erro ao carregar apartamentos. Tente novamente.</p>';
-  } finally {
-    _mapaSetLoading(false);
+    if (container) container.innerHTML =
+      '<p style="color:var(--danger);text-align:center;padding:48px;">Erro ao carregar. Tente novamente.</p>';
   }
 }
 
@@ -1912,6 +1913,17 @@ function _reaplicarFiltros() {
 
 // ── OVERRIDE: renderMapa (com filtros) ───────────────────────
 function renderMapa() {
+  const container = document.getElementById('mapa-container');
+  const mf = document.getElementById('mapa-filters');
+
+  if (currentUser?.perfil === 'admin_global' && !_aptoViewHotelId) {
+    if (container) container.innerHTML =
+      '<p style="color:var(--text3);text-align:center;padding:48px;">Selecione um hotel para visualizar o mapa.</p>';
+    if (mf) mf.style.display = 'none';
+    return;
+  }
+
+  if (mf) mf.style.display = '';
   const lista   = _filtrarAptos(aptos);
   const andares = [...new Set(lista.map(a => a.andar))].sort((a, b) => a - b);
   let html = '';
