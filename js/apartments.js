@@ -59,7 +59,7 @@ async function syncApartamentos() {
   }));
 
   // Sincroniza equipe do mesmo hotel via user_profiles
-  await _syncEquipe(hotelId);
+  try { await _syncEquipe(hotelId); } catch (e) { console.warn('syncEquipe:', e.message); equipe = []; }
 
   // Atualiza badge do menu (confCount depende de aptos frescos)
   if (typeof buildSidebar === 'function') buildSidebar();
@@ -67,7 +67,7 @@ async function syncApartamentos() {
   // Na primeira carga da sessão, reverte apts em limpando órfãos (sem processo ativo)
   if (!_limpandoOrfaosVerificado) {
     _limpandoOrfaosVerificado = true;
-    await _limparLimpandoOrfaos();
+    try { await _limparLimpandoOrfaos(); } catch (e) { console.warn('limparOrfaos:', e.message); }
   }
 }
 
@@ -109,28 +109,33 @@ async function _popularCamareiraSelect(selectedId, hotelId) {
 }
 
 async function _syncEquipe(hotelId) {
-  const { data } = await supabaseClient
-    .from('user_profiles')
-    .select('user_id, nome, perfil, ativo, turnos(label)')
-    .in('perfil', ['camareira', 'manutencao'])
-    .eq('hotel_id', hotelId)
-    .eq('ativo', true)
-    .order('nome');
+  try {
+    const { data } = await supabaseClient
+      .from('user_profiles')
+      .select('user_id, nome, perfil, ativo, turno_id')
+      .in('perfil', ['camareira', 'manutencao'])
+      .eq('hotel_id', hotelId)
+      .eq('ativo', true)
+      .order('nome');
 
-  const cargoMap = { camareira: 'Camareira', manutencao: 'Manutenção' };
-  equipe = (data || []).map((u, i) => ({
-    id:         u.user_id,
-    user_id:    u.user_id,
-    nome:       u.nome,
-    cargo:      cargoMap[u.perfil] || u.perfil,
-    andar:      'Todos',
-    turno:      u.turnos?.label || '—',
-    status:     'ativo',
-    hotel_id:   hotelId,
-    aptos_hoje: 0,
-    avId:       (i % 6) + 1,
-    _source:    'user_profiles',
-  }));
+    const cargoMap = { camareira: 'Camareira', manutencao: 'Manutenção' };
+    equipe = (data || []).map((u, i) => ({
+      id:         u.user_id,
+      user_id:    u.user_id,
+      nome:       u.nome,
+      cargo:      cargoMap[u.perfil] || u.perfil,
+      andar:      'Todos',
+      turno:      '—',
+      status:     'ativo',
+      hotel_id:   hotelId,
+      aptos_hoje: 0,
+      avId:       (i % 6) + 1,
+      _source:    'user_profiles',
+    }));
+  } catch (e) {
+    console.warn('_syncEquipe:', e.message);
+    equipe = [];
+  }
 }
 
 // ── RENDER PÁGINA PRINCIPAL ───────────────────────────────────
