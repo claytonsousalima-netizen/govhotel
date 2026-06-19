@@ -855,7 +855,7 @@ async function confirmarGerarLote() {
   if (currentPage === 'kanban') renderKanban();
 }
 
-// Mapeamento: status operacional → status_governanca_manual (sincronização automática)
+// Mapeamento: status operacional → status_governanca_manual e status_apto (sincronização automática)
 function _govSyncParaStatus(status) {
   const mapa = {
     sujo:        'Sujo',
@@ -867,6 +867,22 @@ function _govSyncParaStatus(status) {
     livre:       'Limpo',
     manutencao:  'Manutenção',
     // ocupado e bloqueado não sincronizam Gov automaticamente
+  };
+  return mapa[status] ?? null;
+}
+
+function _aptoSyncParaStatus(status) {
+  const mapa = {
+    livre:       'Vago',
+    sujo:        'Vago',
+    limpando:    'Vago',
+    pausado:     'Vago',
+    conferencia: 'Vago',
+    limpo:       'Vago',
+    reprovado:   'Vago',
+    ocupado:     'Ocupado',
+    bloqueado:   'Bloqueado',
+    manutencao:  'Bloqueado',
   };
   return mapa[status] ?? null;
 }
@@ -884,9 +900,11 @@ window.mudarStatusApto = async function mudarStatusApto(id, novoStatus, obs) {
     }
 
     const statusAnterior = apto.status;
-    const novoGov = _govSyncParaStatus(novoStatus);
-    const payload = { status: novoStatus };
-    if (novoGov !== null) payload.status_governanca_manual = novoGov;
+    const novoGov  = _govSyncParaStatus(novoStatus);
+    const novoApto = _aptoSyncParaStatus(novoStatus);
+    const payload  = { status: novoStatus };
+    if (novoGov  !== null) payload.status_governanca_manual = novoGov;
+    if (novoApto !== null) payload.status_apto              = novoApto;
 
     const { error } = await supabaseClient
       .from('apartments')
@@ -906,7 +924,8 @@ window.mudarStatusApto = async function mudarStatusApto(id, novoStatus, obs) {
     if (histErr) console.warn('Histórico status:', histErr.message);
 
     apto.status = novoStatus;
-    if (novoGov !== null) apto.status_gov = novoGov;
+    if (novoGov  !== null) apto.status_gov  = novoGov;
+    if (novoApto !== null) apto.status_apto = novoApto;
     const label = (_STATUS_LABELS && _STATUS_LABELS[novoStatus]) || novoStatus;
     toast('Apto ' + apto.numero + ' → ' + label, 'success');
 
