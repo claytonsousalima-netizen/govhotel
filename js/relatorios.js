@@ -1336,11 +1336,11 @@ function _relAbaEquipe(el) {
 // ── 14. PAUSAS ───────────────────────────────────────────────────
 
 function _relAbaPausas(el) {
-  const { history, aptos, equipe } = _relData;
+  const { history, aptos, userNames } = _relData;
   const f = _relFiltros;
 
   const aptoMap  = Object.fromEntries(aptos.map(a => [a.id, a]));
-  const userMap  = Object.fromEntries(equipe.map(u => [u.user_id, u.nome]));
+  const userMap  = userNames; // inclui todos os usuários resolvidos, incluindo admin_global
 
   // Pega todos os eventos de pausa e de saída de pausa em ordem cronológica por apto
   const byApto = {};
