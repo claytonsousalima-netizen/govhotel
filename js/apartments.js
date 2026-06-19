@@ -10,6 +10,7 @@ let _checklistOrigemStatus = null;
 let _limpandoOrfaosVerificado = false;
 let _aptosCarregados    = false;          // true após primeira carga de aptos
 let _aptosCamAnterior   = new Map();      // aptoId → camareira_id anterior (detecta atribuição)
+let _aptosStatusAnterior = new Map();     // aptoId → status anterior (detecta reprovado)
 let _statusAptoOpcoes   = [];             // opções de Status Apto (do banco)
 let _statusGovOpcoes    = [];             // opções de Status Governança (do banco)
 
@@ -64,22 +65,28 @@ async function syncApartamentos() {
     avId:         (i % 6) + 1,
   }));
 
-  // Detecta atribuição de aptos sujos para a camareira logada — exibe lista única
+  // Detecta atribuição de aptos sujos/reprovados para a camareira logada
   if (_aptosCarregados && currentUser?.perfil === 'camareira') {
-    const novosAtribuidos = aptos.filter(apto => {
-      if (apto.status !== 'sujo') return false;
-      if (apto.camareira_id !== currentUser.id) return false;
-      const anterior = _aptosCamAnterior.get(apto.id);
-      if (anterior === undefined) return false; // primeira carga — não notifica
-      if (anterior === currentUser.id) return false; // já era meu antes
-      return true;
+    const novosSujos     = [];
+    const novosReprovados = [];
+    aptos.forEach(apto => {
+      if (apto.camareira_id !== currentUser.id) return;
+      const anteriorCam    = _aptosCamAnterior.get(apto.id);
+      const anteriorStatus = _aptosStatusAnterior.get(apto.id);
+      if (anteriorCam === undefined) return; // primeira carga — não notifica
+      // Sujo: apto ficou atribuído a mim agora (era de outro ou sem responsável)
+      if (apto.status === 'sujo' && anteriorCam !== currentUser.id) novosSujos.push(apto);
+      // Reprovado: status mudou para reprovado neste ciclo
+      if (apto.status === 'reprovado' && anteriorStatus !== 'reprovado') novosReprovados.push(apto);
     });
-    if (novosAtribuidos.length && typeof _showAptosSujosAtribuidos === 'function') {
-      _showAptosSujosAtribuidos(novosAtribuidos);
-    }
+    if (novosSujos.length     && typeof _showAptosSujosAtribuidos     === 'function') _showAptosSujosAtribuidos(novosSujos);
+    if (novosReprovados.length && typeof _showAptosReprovadosAtribuidos === 'function') _showAptosReprovadosAtribuidos(novosReprovados);
   }
-  // Atualiza mapa de camareira anterior para o próximo sync
-  aptos.forEach(a => _aptosCamAnterior.set(a.id, a.camareira_id));
+  // Atualiza mapas de estado para o próximo sync
+  aptos.forEach(a => {
+    _aptosCamAnterior.set(a.id, a.camareira_id);
+    _aptosStatusAnterior.set(a.id, a.status);
+  });
   _aptosCarregados = true;
 
   // Carrega opções de Status Apto e Status Governança (uma vez por sessão é suficiente)
@@ -2478,3 +2485,48 @@ async function _cfgDelete(tabela, id) {
 // renderConfigAptoTiposCats() chamada diretamente por renderConfig() em index.html
 
 // (patch removido — lógica fundida em selecionarHotelMapa acima)
+
+// ── NOTIFICAÇÕES: SOM + WEB NOTIFICATION API ─────────────────
+
+function _tocarSomNotif(urgente) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const notas = urgente
+      ? [[880, 0, 0.12], [660, 0.13, 0.12], [880, 0.26, 0.18]]
+      : [[660, 0, 0.14], [880, 0.15, 0.22]];
+    notas.forEach(([freq, inicio, dur]) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.28, ctx.currentTime + inicio);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + inicio + dur);
+      osc.start(ctx.currentTime + inicio);
+      osc.stop(ctx.currentTime + inicio + dur + 0.05);
+    });
+  } catch (e) {}
+}
+
+function _webNotif(titulo, corpo, urgente) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  try {
+    const icon = window.location.origin + window.location.pathname.replace(/[^/]*$/, '') + 'favicon.ico';
+    const n = new Notification(titulo, { body: corpo, icon, tag: 'govhotel', renotify: true });
+    setTimeout(() => n.close(), urgente ? 12000 : 8000);
+  } catch (e) {}
+}
+
+// Ponto único de disparo: som + web notification + visual
+function _notifCamareira(titulo, corpo, urgente) {
+  _tocarSomNotif(urgente);
+  _webNotif(titulo, corpo, urgente);
+}
+
+async function solicitarPermissaoNotificacao() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'default') {
+    await Notification.requestPermission();
+  }
+}

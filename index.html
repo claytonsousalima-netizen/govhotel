@@ -1322,9 +1322,9 @@ tr:last-child td { border-bottom: none; }
 <!-- ====== NOTIFICAÇÃO: APTOS SUJOS ATRIBUÍDOS ====== -->
 <div id="notif-apto-sujo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:center;justify-content:center;">
   <div style="background:var(--surface);border-radius:16px;padding:28px 24px;max-width:380px;width:92%;box-shadow:0 24px 64px rgba(0,0,0,0.35);text-align:center;">
-    <div style="font-size:44px;margin-bottom:8px;">🧹</div>
-    <div style="font-size:13px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px;">Apartamentos Atribuídos para Você</div>
-    <div style="font-size:14px;font-weight:600;color:#e67e22;margin-bottom:12px;">🟠 Aguardando limpeza</div>
+    <div id="notif-apto-sujo-icon" style="font-size:44px;margin-bottom:8px;">🧹</div>
+    <div id="notif-apto-sujo-titulo" style="font-size:13px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px;">Apartamentos Atribuídos para Você</div>
+    <div id="notif-apto-sujo-sub" style="font-size:14px;font-weight:600;color:#e67e22;margin-bottom:12px;">🟠 Aguardando limpeza</div>
     <div id="notif-apto-sujo-lista" style="max-height:220px;overflow-y:auto;margin-bottom:16px;text-align:left;border:1px solid var(--border);border-radius:10px;padding:8px 4px;"></div>
     <button onclick="_ackAptoSujo()"
       style="width:100%;padding:14px;background:#e67e22;color:#fff;border:none;border-radius:10px;
@@ -2155,6 +2155,11 @@ function startApp() {
   openPage(startPage);
 
   document.dispatchEvent(new Event('govhotel:ready'));
+
+  // Solicita permissão de notificação para camareira
+  if (currentUser.perfil === 'camareira' && typeof solicitarPermissaoNotificacao === 'function') {
+    solicitarPermissaoNotificacao();
+  }
 }
 
 // ============ RESTRIÇÕES DE PERFIL NO UI ============
@@ -2899,6 +2904,12 @@ let _notifShowing = false;
 function _showNovoChamadoNotif(rec, tipo) {
   _notifQueue.push({ rec, tipo: tipo || 'novo' });
   if (!_notifShowing) _processNotifQueue();
+  if (typeof _notifCamareira === 'function') {
+    const urgente = rec.prioridade === 'urgente' || rec.prioridade === 'alta';
+    const titulo  = tipo === 'atribuido' ? '📋 Chamado Atribuído a Você' : '🧹 Novo Chamado Aberto';
+    const corpo   = `${rec.numero ? rec.numero + ' · ' : ''}Apto ${rec.apto || ''}${rec.categoria ? ' — ' + rec.categoria : ''}`;
+    _notifCamareira(titulo, corpo, urgente);
+  }
 }
 
 function _processNotifQueue() {
@@ -2951,16 +2962,38 @@ async function _ackNovoChamado() {
 }
 
 // ============ NOTIFICAÇÃO: APTOS SUJOS ATRIBUÍDOS ============
+function _notifAptoModal(icon, titulo, sub, corSub, rows) {
+  document.getElementById('notif-apto-sujo-icon').textContent  = icon;
+  document.getElementById('notif-apto-sujo-titulo').textContent = titulo;
+  const subEl = document.getElementById('notif-apto-sujo-sub');
+  subEl.textContent  = sub;
+  subEl.style.color  = corSub;
+  document.getElementById('notif-apto-sujo-lista').innerHTML = rows;
+  document.getElementById('notif-apto-sujo').style.display = 'flex';
+}
+
 function _showAptosSujosAtribuidos(lista) {
   if (!lista || !lista.length) return;
   const rows = lista.map(a =>
     `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid var(--border);">
        <span style="font-size:20px;font-weight:800;color:#e67e22;font-family:monospace;">Apto ${a.numero}</span>
        <span style="font-size:13px;color:var(--text2);">${a.andar}º Andar</span>
-     </div>`
-  ).join('');
-  document.getElementById('notif-apto-sujo-lista').innerHTML = rows;
-  document.getElementById('notif-apto-sujo').style.display = 'flex';
+     </div>`).join('');
+  _notifAptoModal('🧹', 'Apartamentos Atribuídos para Você', '🟠 Aguardando limpeza', '#e67e22', rows);
+  if (typeof _notifCamareira === 'function')
+    _notifCamareira('🧹 Limpeza Atribuída', `Para limpar: ${lista.map(a=>'Apto '+a.numero).join(', ')}`, false);
+}
+
+function _showAptosReprovadosAtribuidos(lista) {
+  if (!lista || !lista.length) return;
+  const rows = lista.map(a =>
+    `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid var(--border);">
+       <span style="font-size:20px;font-weight:800;color:#e74c3c;font-family:monospace;">Apto ${a.numero}</span>
+       <span style="font-size:13px;color:var(--text2);">${a.andar}º Andar</span>
+     </div>`).join('');
+  _notifAptoModal('❌', 'Limpeza Reprovada — Re-limpeza Necessária', '❌ Reprovado pelo gestor', '#e74c3c', rows);
+  if (typeof _notifCamareira === 'function')
+    _notifCamareira('❌ Limpeza Reprovada', `Re-limpeza necessária: ${lista.map(a=>'Apto '+a.numero).join(', ')}`, true);
 }
 
 function _ackAptoSujo() {
@@ -3018,7 +3051,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <script src="js/hotels.js?v=20260619g"></script>
-<script src="js/apartments.js?v=20260619an"></script>
+<script src="js/apartments.js?v=20260619ao"></script>
 <script src="js/maids.js?v=20260619g"></script>
 <script src="js/users.js?v=20260619g"></script>
 <script src="js/permissions.js?v=20260619g"></script>
