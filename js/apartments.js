@@ -2061,10 +2061,22 @@ function renderMapa() {
       const lbl  = _STATUS_LABELS[a.status] || a.status;
       const temChamado = _aptosComChamadoAberto.has(a.id);
 
-      const _bApto = _badgeStatusApto(a);
-      const _bGov  = _badgeStatusGov(a);
-      const _extraBadges = (_bGov || _bApto)
-        ? `<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:4px;">${_bGov}${_bApto}</div>` : '';
+      // Status Gov — bloco destacado (full-width) no card
+      const _bGovCard = (() => {
+        const _OP = { limpando:'🧹 Limpando', pausado:'⏸ Pausado', conferencia:'🔍 Aguard. conf.', reprovado:'❌ Reprovado' };
+        if (_OP[a.status]) return `<div style="font-size:10px;font-weight:700;padding:3px 6px;border-radius:6px;background:#dbeafe;color:#1d4ed8;text-align:center;margin-top:5px;">${_OP[a.status]}</div>`;
+        if (!a.status_gov) return '';
+        const op = _statusGovOpcoes.find(o => o.nome === a.status_gov);
+        const cor = op?.cor || '#6b7280';
+        return `<div style="font-size:10px;font-weight:700;padding:3px 6px;border-radius:6px;background:${cor}22;color:${cor};border:1px solid ${cor}55;text-align:center;margin-top:5px;">🏛 ${a.status_gov}</div>`;
+      })();
+      // Status Apto — linha pequena abaixo
+      const _bAptoCard = (() => {
+        if (!a.status_apto) return '';
+        const op = _statusAptoOpcoes.find(o => o.nome === a.status_apto);
+        const cor = op?.cor || '#6b7280';
+        return `<div style="font-size:9px;font-weight:700;color:${cor};text-align:center;margin-top:2px;">🏠 ${a.status_apto}</div>`;
+      })();
 
       if (_loteMode) {
         const bloqueado   = _LOTE_STATUS_BLOQUEADOS.has(a.status);
@@ -2077,7 +2089,8 @@ function renderMapa() {
           <div class="apto-status-icon">${icon}</div>
           <div class="apto-num">${a.numero}</div>
           <div class="apto-tipo">${a.tipo}</div>
-          ${_extraBadges}
+          ${_bGovCard}
+          ${_bAptoCard}
         </div>`;
       } else {
         const _tempo = typeof _tempoStatus === 'function' ? _tempoStatus(a.status_at) : '';
@@ -2088,7 +2101,8 @@ function renderMapa() {
           <div class="apto-status-icon">${icon}</div>
           <div class="apto-num">${a.numero}</div>
           <div class="apto-tipo">${a.tipo}</div>
-          ${_extraBadges}
+          ${_bGovCard}
+          ${_bAptoCard}
           ${_camNome
             ? `<div style="font-size:9px;color:var(--text2);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">👤 ${_camNome}</div>`
             : '<div style="font-size:9px;color:var(--danger);font-weight:700;margin-top:3px;">Sem responsável</div>'}
@@ -2182,15 +2196,29 @@ function renderAptoKanban() {
       ${items.map(a => {
         const cam        = equipe.find(e => e.id === a.camareira_id);
         const temChamado = _aptosComChamadoAberto.has(a.id);
-        const _kbApto = _badgeStatusApto(a);
-        const _kbGov  = _badgeStatusGov(a);
+        // Gov destacado no kanban
+        const _kbGovBlock = (() => {
+          const _OP = { limpando:'🧹 Limpando', pausado:'⏸ Pausado', conferencia:'🔍 Aguard. conf.', reprovado:'❌ Reprovado' };
+          if (_OP[a.status]) return `<div style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:5px;background:#dbeafe;color:#1d4ed8;text-align:center;margin-top:5px;">${_OP[a.status]}</div>`;
+          if (!a.status_gov) return '';
+          const op = _statusGovOpcoes.find(o => o.nome === a.status_gov);
+          const cor = op?.cor || '#6b7280';
+          return `<div style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:5px;background:${cor}22;color:${cor};border:1px solid ${cor}55;text-align:center;margin-top:5px;">🏛 ${a.status_gov}</div>`;
+        })();
+        const _kbAptoLine = (() => {
+          if (!a.status_apto) return '';
+          const op = _statusAptoOpcoes.find(o => o.nome === a.status_apto);
+          const cor = op?.cor || '#6b7280';
+          return `<div style="font-size:9px;font-weight:700;color:${cor};text-align:center;margin-top:2px;">🏠 ${a.status_apto}</div>`;
+        })();
         return `<div class="kanban-item" onclick="openAptoDetail('${a.id}')">
           <div class="kanban-apto">
             ${a.numero}
             ${temChamado ? '<span style="font-size:10px;color:var(--danger);" title="Chamado aberto">📋</span>' : ''}
           </div>
           <div class="kanban-detail">${a.tipo} · ${a.andar}º andar</div>
-          ${(_kbGov || _kbApto) ? `<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:4px;">${_kbGov}${_kbApto}</div>` : ''}
+          ${_kbGovBlock}
+          ${_kbAptoLine}
           ${cam ? `<div style="font-size:11px;color:var(--text3);margin-top:4px;">👤 ${cam.nome}</div>` : ''}
           ${a.prioridade ? '<div style="font-size:10px;font-weight:700;color:var(--danger);margin-top:2px;">⚠️ PRIORIDADE</div>' : ''}
         </div>`;
