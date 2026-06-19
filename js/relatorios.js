@@ -1281,6 +1281,58 @@ function _relAbaRetrabalhos(el) {
       <span>Apto ${_relAptoNum(id)}</span><span class="badge badge-andamento">${n}</span></div>`).join('')
     || '<p style="font-size:12px;color:var(--text3);">—</p>';
 
+  // ── Ranking por camareira ─────────────────────────────────────
+  const camRanking = {}; // uid → { reprovacoes, retrabalhos }
+
+  // Reprovações: rastreia quem fez o limpando anterior a cada reprovado no histórico
+  const byAptoH = {};
+  _relData.history.forEach(h => {
+    if (!byAptoH[h.apartment_id]) byAptoH[h.apartment_id] = [];
+    byAptoH[h.apartment_id].push(h);
+  });
+  Object.values(byAptoH).forEach(evs => evs.sort((a,b) => a.created_at.localeCompare(b.created_at)));
+  Object.values(byAptoH).forEach(evs => {
+    evs.forEach((ev, i) => {
+      if (ev.status_novo !== 'reprovado') return;
+      for (let k = i - 1; k >= 0; k--) {
+        if (evs[k].status_novo === 'limpando' && evs[k].alterado_por) {
+          const uid = evs[k].alterado_por;
+          if (!camRanking[uid]) camRanking[uid] = { reprovacoes: 0, retrabalhos: 0 };
+          camRanking[uid].reprovacoes++;
+          break;
+        }
+      }
+    });
+  });
+
+  // Retrabalhos: agrupa pelo maid_id atual do apartamento
+  retrabalhos.forEach(r => {
+    const a = _relData.aptoById[r.apartment_id];
+    const uid = a?.maid_id;
+    if (!uid) return;
+    if (!camRanking[uid]) camRanking[uid] = { reprovacoes: 0, retrabalhos: 0 };
+    camRanking[uid].retrabalhos++;
+  });
+
+  const rankingEntries = Object.entries(camRanking)
+    .map(([uid, d]) => ({ nome: _relNome(uid), reprovacoes: d.reprovacoes, retrabalhos: d.retrabalhos, total: d.reprovacoes + d.retrabalhos }))
+    .sort((a, b) => b.total - a.total);
+
+  const rankingHtml = rankingEntries.length === 0
+    ? '<p style="font-size:12px;color:var(--text3);">—</p>'
+    : rankingEntries.map((r, i) => {
+        const medal = i === 0 ? '🔴' : i === 1 ? '🟠' : i === 2 ? '🟡' : '⚪';
+        return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border2);">
+          <span style="font-size:14px;">${medal}</span>
+          <span style="flex:1;font-size:12px;font-weight:600;">${r.nome}</span>
+          <span title="Reprovações" style="font-size:11px;color:var(--danger);font-weight:700;min-width:28px;text-align:center;">${r.reprovacoes > 0 ? '❌ '+r.reprovacoes : ''}</span>
+          <span title="Retrabalhos" style="font-size:11px;color:var(--warning);font-weight:700;min-width:28px;text-align:center;">${r.retrabalhos > 0 ? '🔁 '+r.retrabalhos : ''}</span>
+          <span style="font-size:12px;font-weight:800;min-width:22px;text-align:right;">${r.total}</span>
+        </div>`;
+      }).join('');
+
+  // ─────────────────────────────────────────────────────────────
+
   const rows = retrabalhos.slice(0,200).map(r=>{
     const a = _relData.aptoById[r.apartment_id];
     return [
@@ -1296,9 +1348,14 @@ function _relAbaRetrabalhos(el) {
       ${_relCard('Concluídos', concluidos,'','s-green')}
       ${_relCard('Total', retrabalhos.length,'no período','s-blue')}
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;">
       <div class="card"><div class="card-title" style="margin-bottom:8px;">Motivos mais comuns</div>${_rankList(motivoCnt)}</div>
       <div class="card"><div class="card-title" style="margin-bottom:8px;">Aptos com mais retrabalho</div>${aptoHtml}</div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:4px;">🏆 Ranking por camareira</div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:8px;">❌ reprovações &nbsp;🔁 retrabalhos &nbsp;Total</div>
+        ${rankingHtml}
+      </div>
     </div>
     <div class="card"><div class="card-title" style="margin-bottom:10px;">Retrabalhos (${retrabalhos.length})</div>
       ${_relTable(['Data','Apto','Motivo','Obs','Status','Camareira','Aberto por','Data conclusão'], rows)}
