@@ -1027,7 +1027,9 @@ async function abrirChecklistSupervisora() {
   let q = supabaseClient.from('checklist_templates').select('id, nome').eq('ativo', true).order('ordem');
   if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
   const { data } = await q;
-  _supChecklistAtivo = (data || []).map(d => ({ ...d, obrigatorio: true }));
+  const itensDb = data?.length ? data
+    : (typeof CHECKLIST_PADRAO !== 'undefined' ? CHECKLIST_PADRAO.map(n => ({ nome: n })) : []);
+  _supChecklistAtivo = itensDb.map(d => ({ ...d, obrigatorio: true }));
 
   const container = document.getElementById('sup-cl-items');
   if (container) {
