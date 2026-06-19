@@ -1384,6 +1384,47 @@ function _relAbaPausas(el) {
     }
   });
 
+  // Retomadas órfãs: existe evento status_anterior='pausado' mas o evento status_novo='pausado'
+  // nunca foi gravado (INSERT falhou por constraint antiga). Mostra o que existe.
+  const pausasAptoIds = new Set(pausas.map(p => p.numero));
+  Object.entries(byApto).forEach(([aptoId, evs]) => {
+    const apto = aptoMap[aptoId];
+    if (!apto) return;
+    if (f.andar && String(apto.andar) !== String(f.andar)) return;
+    if (f.apto  && !String(apto.numero||'').toLowerCase().includes(f.apto.toLowerCase())) return;
+
+    // Índices dos eventos de pausa gravados para este apto
+    const pausaIdxSet = new Set(evs.reduce((acc, ev, i) => { if (ev.status_novo === 'pausado') acc.push(i); return acc; }, []));
+
+    evs.forEach((ev, j) => {
+      if (ev.status_anterior !== 'pausado') return;
+      // Verifica se existe um evento de pausa antes deste que "cobre" esta retomada
+      let coberto = false;
+      for (let k = j - 1; k >= 0; k--) {
+        if (evs[k].status_novo === 'pausado') { coberto = true; break; }
+        if (evs[k].status_anterior === 'pausado') break; // outra retomada antes
+      }
+      if (coberto) return; // já contabilizado no loop principal
+
+      // Filtros de data na retomada (único timestamp que temos)
+      if (f.dtIni && ev.created_at.slice(0,10) < f.dtIni) return;
+      if (f.dtFim && ev.created_at.slice(0,10) > f.dtFim) return;
+      if (f.camareira) return; // sem registro de quem pausou, não dá para filtrar
+
+      pausas.push({
+        numero:      apto.numero,
+        andar:       apto.andar,
+        inicio:      null,
+        fim:         new Date(ev.created_at),
+        durMin:      null,
+        quem:        '—',
+        retomadoPor: userMap[ev.alterado_por] || ev.alterado_por || '—',
+        obs:         '⚠️ Registro de início não encontrado — retomada em ' + new Date(ev.created_at).toLocaleString('pt-BR'),
+        statusRetomada: ev.status_novo || '—',
+      });
+    });
+  });
+
   // Aptos atualmente pausados sem registro de pausa no histórico (insert falhou silenciosamente)
   const aptosComPausaHistorico = new Set(pausas.map(p => p.numero));
   aptos.forEach(apto => {

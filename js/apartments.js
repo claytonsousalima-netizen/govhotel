@@ -849,14 +849,15 @@ window.mudarStatusApto = async function mudarStatusApto(id, novoStatus, obs) {
 
     if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
 
-    // Histórico
-    supabaseClient.from('apartment_status_history').insert({
+    // Histórico — awaited para garantir que o registro não se perca
+    const { error: histErr } = await supabaseClient.from('apartment_status_history').insert({
       apartment_id:    id,
       status_anterior: statusAnterior,
       status_novo:     novoStatus,
       alterado_por:    currentUser.id,
       obs:             obs || null,
-    }).then(({ error }) => { if (error) console.warn('Histórico status:', error.message); });
+    });
+    if (histErr) console.warn('Histórico status:', histErr.message);
 
     apto.status = novoStatus;
     const label = (_STATUS_LABELS && _STATUS_LABELS[novoStatus]) || novoStatus;
