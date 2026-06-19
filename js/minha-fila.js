@@ -104,9 +104,9 @@ function _mfRenderCamareira(el) {
   // limpando é estado transitório (modal aberto) — não aparece na fila
   const statusUrgencia = { reprovado:0, pausado:1, sujo:2, conferencia:3 };
 
-  // 1. Minha atribuição — qualquer status operacional com meu maid_id
+  // 1. Minha atribuição — apenas sujos atribuídos a mim
   const meusAptos = aptos
-    .filter(a => a.camareira_id === uid && a.status in statusUrgencia)
+    .filter(a => a.camareira_id === uid && a.status === 'sujo')
     .sort((a, b) => (statusUrgencia[a.status] ?? 9) - (statusUrgencia[b.status] ?? 9));
 
   const meusIds = new Set(meusAptos.map(a => a.id));
