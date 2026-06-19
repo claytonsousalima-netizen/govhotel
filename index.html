@@ -2649,7 +2649,26 @@ async function openAptoDetail(id) {
     <div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap;">
       <div style="flex:1;min-width:200px;">
         <div style="font-size:40px;text-align:center;padding:16px;background:var(--bg);border-radius:var(--radius);margin-bottom:12px;">${_STATUS_ICONS[apto.status]||'❓'}</div>
-        <div style="text-align:center;"><span class="badge badge-${apto.status}">${_STATUS_LABELS[apto.status]||apto.status}</span></div>
+        ${(() => {
+          const _OP = { limpando:'🧹 Limpando', pausado:'⏸ Pausado', conferencia:'🔍 Aguard. conf.', reprovado:'❌ Reprovado' };
+          const govHtml = _OP[apto.status]
+            ? `<div style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:7px;background:#dbeafe;color:#1d4ed8;text-align:center;margin-bottom:6px;">${_OP[apto.status]}</div>`
+            : (() => {
+                const g = apto.status_gov;
+                if (!g) return '';
+                const op = (_statusGovOpcoes||[]).find(o=>o.nome===g);
+                const cor = op?.cor||'#6b7280';
+                return `<div style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:7px;background:${cor}22;color:${cor};border:1px solid ${cor}55;text-align:center;margin-bottom:6px;">🏛 ${g}</div>`;
+              })();
+          const aptoHtml = (() => {
+            const sa = apto.status_apto;
+            if (!sa) return '';
+            const op = (_statusAptoOpcoes||[]).find(o=>o.nome===sa);
+            const cor = op?.cor||'#6b7280';
+            return `<div style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:7px;background:${cor}22;color:${cor};border:1px solid ${cor}55;text-align:center;">🏠 ${sa}</div>`;
+          })();
+          return govHtml + aptoHtml;
+        })()}
       </div>
       <div style="flex:2;min-width:200px;">
         <table style="width:100%;font-size:13px;">
@@ -3074,7 +3093,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <script src="js/hotels.js?v=20260619g"></script>
-<script src="js/apartments.js?v=20260619ai"></script>
+<script src="js/apartments.js?v=20260619aj"></script>
 <script src="js/maids.js?v=20260619g"></script>
 <script src="js/users.js?v=20260619g"></script>
 <script src="js/permissions.js?v=20260619g"></script>

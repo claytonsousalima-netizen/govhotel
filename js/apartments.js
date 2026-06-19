@@ -1411,6 +1411,12 @@ async function renderAppCamareira() {
               <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} &nbsp;·&nbsp; ${a.andar}º andar &nbsp;·&nbsp; ${a.leitos} leito${a.leitos!==1?'s':''}</div>
               ${camLineApto}
               ${a.prioridade ? `<div style="font-size:11px;font-weight:700;color:var(--danger);margin-top:4px;">⚠️ PRIORIDADE</div>` : ''}
+              ${(() => {
+                if (!a.status_apto) return '';
+                const op  = (_statusAptoOpcoes||[]).find(o => o.nome === a.status_apto);
+                const cor = op?.cor || '#6b7280';
+                return `<div style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;background:${cor}22;color:${cor};border:1px solid ${cor}55;margin-top:5px;">🏠 ${a.status_apto}</div>`;
+              })()}
             </div>
             <span class="badge ${g.badge}" style="flex-shrink:0;">${LABEL[a.status]||a.status}</span>
           </div>
