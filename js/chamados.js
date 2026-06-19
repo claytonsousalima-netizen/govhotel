@@ -11,6 +11,7 @@ let _chamadoDetalheId = null;
 let _chamadosKnownIds      = new Set(); // IDs já vistos — evita notificar chamados antigos
 let _chamadosIniciado      = false;     // false até a primeira _fetchChamados() concluir
 let _chamadosResponsavelMap = new Map(); // chamadoId → responsavel_user_id anterior
+let _chamadosAutoAssumidos  = new Set(); // IDs assumidos pelo próprio usuário — sem notificar
 
 const _GOV_STATUS = {
   aberto:     { label:'Aberto',       badge:'badge-sujo'        },
@@ -232,16 +233,19 @@ async function _fetchChamados() {
         }
 
         // Notifica atribuição direta (UPDATE responsavel_user_id → currentUser.id)
+        // Ignora se foi o próprio usuário que assumiu (auto-atribuição)
         const anteriorResp = _chamadosResponsavelMap.get(c.id);
         const atualResp    = c.responsavel_user_id || null;
         if (
           _chamadosKnownIds.has(c.id) &&
           anteriorResp !== currentUser.id &&
           atualResp    === currentUser.id &&
+          !_chamadosAutoAssumidos.has(c.id) &&
           typeof _showNovoChamadoNotif === 'function'
         ) {
           _showNovoChamadoNotif(c, 'atribuido');
         }
+        _chamadosAutoAssumidos.delete(c.id);
       });
     }
   }
@@ -690,9 +694,10 @@ async function assumirChamado(id) {
   // Avança para andamento se ainda estiver aberto
   if (c.status === 'aberto') payload.status = 'andamento';
 
+  _chamadosAutoAssumidos.add(id); // marca para não notificar no próximo sync
   const { error } = await supabaseClient
     .from('work_orders').update(payload).eq('id', id);
-  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  if (error) { _chamadosAutoAssumidos.delete(id); toast('Erro: ' + error.message, 'error'); return; }
 
   await _gravarHistorico(id, c.hotel_id, 'responsavel',
     `Chamado assumido por ${currentUser.nome}.`);
