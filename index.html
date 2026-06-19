@@ -7,6 +7,10 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Gov Estancorp — Governança & Limpeza</title>
+<meta name="theme-color" content="#1d4ed8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GovEstancorp">
 
 <!-- Supabase JS SDK -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -434,8 +438,8 @@ tr:last-child td { border-bottom: none; }
   /* Formulários — 3 colunas vira 1 coluna */
   .form-row.three { grid-template-columns: 1fr; }
 
-  /* Campos de formulário — fonte e altura maiores para toque */
-  .field input, .field select, .field textarea { padding: 11px 12px; font-size: 14px; min-height: 44px; }
+  /* Campos de formulário — font-size 16px evita zoom automático no iOS */
+  .field input, .field select, .field textarea { padding: 11px 12px; font-size: 16px; min-height: 44px; }
   .field select { min-height: 44px; }
 
   /* Barra de busca — flexível, não trava em 200px */
@@ -2998,6 +3002,12 @@ function _showAptosReprovadosAtribuidos(lista) {
 
 function _ackAptoSujo() {
   document.getElementById('notif-apto-sujo').style.display = 'none';
+  // Reseta para padrão sujo (caso tenha sido usado para reprovado)
+  document.getElementById('notif-apto-sujo-icon').textContent   = '🧹';
+  document.getElementById('notif-apto-sujo-titulo').textContent = 'Apartamentos Atribuídos para Você';
+  const sub = document.getElementById('notif-apto-sujo-sub');
+  sub.textContent = '🟠 Aguardando limpeza';
+  sub.style.color = '#e67e22';
 }
 
 // ============ MODAL ============
@@ -3051,7 +3061,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <script src="js/hotels.js?v=20260619g"></script>
-<script src="js/apartments.js?v=20260619ao"></script>
+<script src="js/apartments.js?v=20260619ap"></script>
 <script src="js/maids.js?v=20260619g"></script>
 <script src="js/users.js?v=20260619g"></script>
 <script src="js/permissions.js?v=20260619g"></script>

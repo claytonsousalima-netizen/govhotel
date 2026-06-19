@@ -2488,6 +2488,27 @@ async function _cfgDelete(tabela, id) {
 
 // ── NOTIFICAÇÕES: SOM + WEB NOTIFICATION API ─────────────────
 
+// Unlock AudioContext no primeiro toque — necessário no iOS Safari
+let _audioCtxUnlocked = false;
+(function _unlockAudio() {
+  const unlock = () => {
+    if (_audioCtxUnlocked) return;
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const buf = ctx.createBuffer(1, 1, 22050);
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(ctx.destination);
+      src.start(0);
+      ctx.resume().then(() => { _audioCtxUnlocked = true; });
+    } catch (e) {}
+    document.removeEventListener('touchstart', unlock, true);
+    document.removeEventListener('click',      unlock, true);
+  };
+  document.addEventListener('touchstart', unlock, { capture: true, once: true });
+  document.addEventListener('click',      unlock, { capture: true, once: true });
+})();
+
 function _tocarSomNotif(urgente) {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
