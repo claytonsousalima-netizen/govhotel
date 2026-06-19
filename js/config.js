@@ -393,11 +393,17 @@ async function abrirChecklistApp(id) {
     : `Limpeza — Apto ${apto.numero}`;
   document.getElementById('checklist-title').textContent = titulo;
 
-  // Limpa estado de pausa e Permanência
+  // Limpa estado de pausa, observação e campos de Permanência
   const obsEl = document.getElementById('checklist-obs');
   if (obsEl) obsEl.value = '';
   const reqEl = document.getElementById('checklist-obs-required');
   if (reqEl) reqEl.style.display = 'none';
+  const permFields = document.getElementById('checklist-permanencia-fields');
+  if (permFields) permFields.style.display = 'none';
+  const pessoasEl = document.getElementById('checklist-perm-pessoas');
+  if (pessoasEl) pessoasEl.value = '';
+  const bagagemEl = document.getElementById('checklist-perm-bagagem');
+  if (bagagemEl) bagagemEl.value = '';
 
   const hotelId = currentUser?.hotelId;
   let query = supabaseClient.from('checklist_templates').select('nome').eq('ativo', true).order('ordem');
