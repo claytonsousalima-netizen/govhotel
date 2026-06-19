@@ -1022,31 +1022,13 @@ async function abrirModalCancelarLimpeza(id) {
   if (!apto || apto.status !== 'limpando') {
     toast('Cancelamento só é possível durante limpeza ativa', 'error'); return;
   }
-  const sel   = document.getElementById('cancelar-motivo');
-  const obsEl = document.getElementById('cancelar-obs');
-  if (obsEl) obsEl.value = '';
   closeModal('modal-apto-detail');
-
-  if (sel) {
-    sel.innerHTML = '<option value="">Carregando...</option>';
-    const hotelId = currentUser.hotelId;
-    let q = supabaseClient.from('motivos_cancelamento').select('id, nome').eq('ativo', true).order('ordem');
-    if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
-    const { data } = await q;
-    sel.innerHTML = '<option value="">Selecione o motivo *</option>' +
-      (data || []).map(m => `<option value="${m.nome}">${m.nome}</option>`).join('');
-  }
-
   openModal('modal-cancelar-limpeza');
-  if (sel) sel.focus();
 }
 
 async function cancelarLimpeza() {
-  const motivo = document.getElementById('cancelar-motivo')?.value || '';
-  const obs    = (document.getElementById('cancelar-obs')?.value || '').trim();
-  if (!motivo) { toast('Selecione o motivo do cancelamento', 'error'); return; }
   closeModal('modal-cancelar-limpeza');
-  const texto = `Limpeza cancelada por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}: ${motivo}${obs ? ' — ' + obs : ''}`;
+  const texto = `Limpeza cancelada por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
   await mudarStatusApto(selectedAptoId, 'sujo', texto);
 }
 
