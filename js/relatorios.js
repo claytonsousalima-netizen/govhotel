@@ -134,7 +134,7 @@ async function _relCarregarDados(hotelId) {
       .select('id, apartment_id, motivo, obs, status, criado_por, resolvido_por, resolvido_at, created_at')
       .eq('hotel_id', hotelId).order('created_at', { ascending: false }),
     supabaseClient.from('user_profiles')
-      .select('user_id, nome, perfil, ativo').eq('hotel_id', hotelId).eq('ativo', true),
+      .select('user_id, nome, perfil, ativo').eq('hotel_id', hotelId),
     supabaseClient.from('apartment_status_history')
       .select('id, apartment_id, status_anterior, status_novo, alterado_por, obs, created_at')
       .order('created_at', { ascending: false }).limit(5000),
@@ -1299,11 +1299,12 @@ function _relAbaRetrabalhos(el) {
 function _relAbaEquipe(el) {
   const { equipe, aptos } = _relData;
   const f = _relFiltros;
-  let lista = equipe;
+  const ativos = equipe.filter(u => u.ativo !== false);
+  let lista = equipe; // tabela mostra todos (ativos e inativos)
   if (f.camareira) lista = lista.filter(u=>u.user_id===f.camareira);
 
   const perfilCnt = {};
-  equipe.forEach(u=>{ perfilCnt[u.perfil]=(perfilCnt[u.perfil]||0)+1; });
+  ativos.forEach(u=>{ perfilCnt[u.perfil]=(perfilCnt[u.perfil]||0)+1; });
   const distHtml = Object.entries(perfilCnt).sort((a,b)=>b[1]-a[1])
     .map(([p,c])=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid var(--border2);">
       <span>${p}</span><span style="font-weight:700;">${c}</span></div>`).join('');
@@ -1314,7 +1315,7 @@ function _relAbaEquipe(el) {
   ]);
 
   el.innerHTML = `<div style="display:grid;grid-template-columns:1fr 2fr;gap:16px;align-items:start;">
-    <div class="card"><div class="card-title" style="margin-bottom:10px;">Por perfil (${equipe.length} ativos)</div>
+    <div class="card"><div class="card-title" style="margin-bottom:10px;">Por perfil (${ativos.length} ativos)</div>
       ${distHtml||'<p style="font-size:12px;color:var(--text3);">—</p>'}</div>
     <div class="card"><div class="card-title" style="margin-bottom:10px;">Membros da equipe</div>
       ${_relTable(['Nome','Perfil','Situação','Aptos atribuídos'], rows, 9999)}</div>
