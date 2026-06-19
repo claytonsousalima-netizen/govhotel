@@ -1383,7 +1383,33 @@ function _relAbaPausas(el) {
     }
   });
 
-  pausas.sort((a, b) => b.inicio - a.inicio);
+  // Aptos atualmente pausados sem registro de pausa no histórico (insert falhou silenciosamente)
+  const aptosComPausaHistorico = new Set(pausas.map(p => p.numero));
+  aptos.forEach(apto => {
+    if (apto.status !== 'pausado') return;
+    if (aptosComPausaHistorico.has(apto.numero)) return;
+    if (f.andar && String(apto.andar) !== String(f.andar)) return;
+    if (f.apto  && !String(apto.numero||'').toLowerCase().includes(f.apto.toLowerCase())) return;
+    if (f.camareira) return; // sem registro, não dá para filtrar por camareira
+    pausas.push({
+      numero:      apto.numero,
+      andar:       apto.andar,
+      inicio:      null,
+      fim:         null,
+      durMin:      null,
+      quem:        '—',
+      retomadoPor: '—',
+      obs:         '⚠️ Sem registro de início (apto atualmente pausado)',
+      statusRetomada: 'em aberto',
+    });
+  });
+
+  pausas.sort((a, b) => {
+    if (!a.inicio && !b.inicio) return 0;
+    if (!a.inicio) return 1;
+    if (!b.inicio) return -1;
+    return b.inicio - a.inicio;
+  });
 
   const fmt  = d => d ? new Date(d).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '—';
   const fmtD = m => m === null ? '<span style="color:var(--warning);font-weight:600;">Em aberto</span>'
