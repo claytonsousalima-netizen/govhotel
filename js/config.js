@@ -679,22 +679,30 @@ async function renderConfigParametrosLimpeza() {
   const { data } = await supabaseClient
     .from('hotel_config').select('chave, valor')
     .eq('hotel_id', hotelId)
-    .in('chave', ['tempo_padrao_saida', 'tempo_padrao_permanencia']);
+    .in('chave', ['tempo_padrao_saida','tempo_padrao_permanencia','tempo_padrao_faxina','tempo_padrao_pos_manutencao']);
   const map = Object.fromEntries((data || []).map(r => [r.chave, r.valor]));
-  if (inpS) inpS.value = map['tempo_padrao_saida']      || '45';
-  if (inpP) inpP.value = map['tempo_padrao_permanencia'] || '25';
+  if (inpS) inpS.value = map['tempo_padrao_saida']           || '45';
+  if (inpP) inpP.value = map['tempo_padrao_permanencia']     || '25';
+  const inpF = document.getElementById('cfg-tempo-faxina');
+  const inpM = document.getElementById('cfg-tempo-pos-manutencao');
+  if (inpF) inpF.value = map['tempo_padrao_faxina']          || '60';
+  if (inpM) inpM.value = map['tempo_padrao_pos_manutencao']  || '30';
 }
 
 async function _salvarParametrosLimpeza() {
   if (_cfgBlocked()) { toast('Selecione um hotel para editar configurações', 'error'); return; }
   const saida = parseInt(document.getElementById('cfg-tempo-saida')?.value);
   const perm  = parseInt(document.getElementById('cfg-tempo-permanencia')?.value);
-  if (!saida || saida < 1 || !perm || perm < 1) { toast('Valores inválidos (mínimo 1 min)', 'error'); return; }
+  const fax   = parseInt(document.getElementById('cfg-tempo-faxina')?.value);
+  const pos   = parseInt(document.getElementById('cfg-tempo-pos-manutencao')?.value);
+  if (!saida||saida<1||!perm||perm<1||!fax||fax<1||!pos||pos<1) { toast('Valores inválidos (mínimo 1 min)', 'error'); return; }
   const hotelId = _cfgHotelId();
   if (!hotelId) { toast('Hotel não identificado', 'error'); return; }
   const { error } = await supabaseClient.from('hotel_config').upsert([
-    { hotel_id: hotelId, chave: 'tempo_padrao_saida',       valor: String(saida) },
-    { hotel_id: hotelId, chave: 'tempo_padrao_permanencia', valor: String(perm)  },
+    { hotel_id: hotelId, chave: 'tempo_padrao_saida',            valor: String(saida) },
+    { hotel_id: hotelId, chave: 'tempo_padrao_permanencia',      valor: String(perm)  },
+    { hotel_id: hotelId, chave: 'tempo_padrao_faxina',           valor: String(fax)   },
+    { hotel_id: hotelId, chave: 'tempo_padrao_pos_manutencao',   valor: String(pos)   },
   ], { onConflict: 'hotel_id,chave' });
   if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
   toast('Parâmetros de tempo salvos!', 'success');

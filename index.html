@@ -938,12 +938,20 @@ tr:last-child td { border-bottom: none; }
               </div>
             </div>
             <div class="field" style="margin-bottom:12px;">
-              <label>Tempo padrão limpeza saída (min)</label>
+              <label>Tempo padrão — Saída / Checkout (min)</label>
               <input type="number" id="cfg-tempo-saida" min="1" max="999" placeholder="45">
             </div>
             <div class="field" style="margin-bottom:12px;">
-              <label>Tempo padrão limpeza permanência (min)</label>
+              <label>Tempo padrão — Permanência (min)</label>
               <input type="number" id="cfg-tempo-permanencia" min="1" max="999" placeholder="25">
+            </div>
+            <div class="field" style="margin-bottom:12px;">
+              <label>Tempo padrão — Faxina (min)</label>
+              <input type="number" id="cfg-tempo-faxina" min="1" max="999" placeholder="60">
+            </div>
+            <div class="field" style="margin-bottom:12px;">
+              <label>Tempo padrão — Pós-manutenção (min)</label>
+              <input type="number" id="cfg-tempo-pos-manutencao" min="1" max="999" placeholder="30">
             </div>
             <button class="btn btn-success btn-sm" onclick="_salvarParametrosLimpeza()">Salvar parâmetros</button>
           </div>
@@ -2963,14 +2971,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <script src="js/hotels.js?v=20260619g"></script>
-<script src="js/apartments.js?v=20260619m"></script>
+<script src="js/apartments.js?v=20260619n"></script>
 <script src="js/maids.js?v=20260619g"></script>
 <script src="js/users.js?v=20260619g"></script>
 <script src="js/permissions.js?v=20260619g"></script>
 <script src="js/chamados.js?v=20260619g"></script>
-<script src="js/config.js?v=20260619h"></script>
+<script src="js/config.js?v=20260619n"></script>
 <script src="js/dashboard.js?v=20260619g"></script>
-<script src="js/relatorios.js?v=20260619g"></script>
+<script src="js/relatorios.js?v=20260619n"></script>
 <script src="js/minha-fila.js?v=20260619g"></script>
 </body>
 </html>

@@ -268,6 +268,7 @@ function _relRenderShell() {
     { id:'timeline',        label:'📅 Linha do Tempo' },
     { id:'retrabalhos',     label:'🔁 Retrabalhos' },
     { id:'equipe',          label:'👥 Equipe' },
+    { id:'pausas',          label:'⏸ Pausas' },
   ];
 
   const { aptos, equipe, chamados, avisos } = _relData;
@@ -331,7 +332,7 @@ function _relLimparFiltros() {
 }
 
 const _REL_ABAS = ['executivo','gargalos','resumo','status','sem-resp','tempo-limpeza',
-  'produtividade','qualidade','checklists','chamados','timeline','retrabalhos','equipe'];
+  'produtividade','qualidade','checklists','chamados','timeline','retrabalhos','equipe','pausas'];
 
 function _relAbrirAba(id) {
   _relAba = id;
@@ -345,7 +346,8 @@ function _relAbrirAba(id) {
     executivo: _relAbaExecutivo, gargalos: _relAbaGargalos, resumo: _relAbaResumo,
     status: _relAbaStatus, 'sem-resp': _relAbaSemResp, 'tempo-limpeza': _relAbaTempoLimpeza,
     produtividade: _relAbaProdutividade, qualidade: _relAbaQualidade, checklists: _relAbaChecklists,
-    chamados: _relAbaChamados, timeline: _relAbaTimeline, retrabalhos: _relAbaRetrabalhos, equipe: _relAbaEquipe,
+    chamados: _relAbaChamados, timeline: _relAbaTimeline, retrabalhos: _relAbaRetrabalhos,
+    equipe: _relAbaEquipe, pausas: _relAbaPausas,
   };
   if (map[id]) map[id](el);
 }
@@ -1316,6 +1318,104 @@ function _relAbaEquipe(el) {
       ${distHtml||'<p style="font-size:12px;color:var(--text3);">—</p>'}</div>
     <div class="card"><div class="card-title" style="margin-bottom:10px;">Membros da equipe</div>
       ${_relTable(['Nome','Perfil','Situação','Aptos atribuídos'], rows, 9999)}</div>
+  </div>`;
+}
+
+// ── 14. PAUSAS ───────────────────────────────────────────────────
+
+function _relAbaPausas(el) {
+  const { history, aptos, equipe } = _relData;
+  const f = _relFiltros;
+
+  const aptoMap  = Object.fromEntries(aptos.map(a => [a.id, a]));
+  const userMap  = Object.fromEntries(equipe.map(u => [u.user_id, u.nome]));
+
+  // Pega todos os eventos de pausa e de saída de pausa em ordem cronológica por apto
+  const byApto = {};
+  history.forEach(h => {
+    if (!byApto[h.apartment_id]) byApto[h.apartment_id] = [];
+    byApto[h.apartment_id].push(h);
+  });
+  Object.values(byApto).forEach(evs => evs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at)));
+
+  const pausas = [];
+  Object.entries(byApto).forEach(([aptoId, evs]) => {
+    const apto = aptoMap[aptoId];
+    if (!apto) return;
+    if (f.andar  && String(apto.andar) !== String(f.andar)) return;
+    if (f.apto   && !String(apto.numero||'').toLowerCase().includes(f.apto.toLowerCase())) return;
+
+    for (let i = 0; i < evs.length; i++) {
+      const ev = evs[i];
+      if (ev.status_novo !== 'pausado') continue;
+
+      // Filtros de data no evento de pausa
+      if (f.dtIni && ev.created_at < f.dtIni) continue;
+      if (f.dtFim && ev.created_at.slice(0,10) > f.dtFim) continue;
+
+      // Filtro de camareira (quem pausou)
+      if (f.camareira && ev.alterado_por !== f.camareira) continue;
+
+      // Encontra próximo evento do mesmo apto que sai do pausado
+      let fimEv = null;
+      for (let j = i + 1; j < evs.length; j++) {
+        if (evs[j].status_anterior === 'pausado') { fimEv = evs[j]; break; }
+      }
+
+      const inicio   = new Date(ev.created_at);
+      const fim      = fimEv ? new Date(fimEv.created_at) : null;
+      const durMs    = fim ? fim - inicio : null;
+      const durMin   = durMs !== null ? Math.round(durMs / 60000) : null;
+      const quem     = userMap[ev.alterado_por] || ev.alterado_por || '—';
+      const retomadoPor = fimEv ? (userMap[fimEv.alterado_por] || fimEv.alterado_por || '—') : '—';
+
+      pausas.push({
+        numero:      apto.numero,
+        andar:       apto.andar,
+        inicio:      inicio,
+        fim:         fim,
+        durMin,
+        quem,
+        retomadoPor,
+        obs:         ev.obs || '—',
+        statusRetomada: fimEv ? fimEv.status_novo : 'em aberto',
+      });
+    }
+  });
+
+  pausas.sort((a, b) => b.inicio - a.inicio);
+
+  const fmt  = d => d ? new Date(d).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '—';
+  const fmtD = m => m === null ? '<span style="color:var(--warning);font-weight:600;">Em aberto</span>'
+    : m < 30 ? `<span style="color:var(--success)">${m} min</span>`
+    : m < 60 ? `<span style="color:var(--warning);font-weight:600;">${m} min</span>`
+    : `<span style="color:var(--danger);font-weight:600;">${Math.floor(m/60)}h ${m%60}min</span>`;
+
+  const totalMin = pausas.reduce((s, p) => s + (p.durMin || 0), 0);
+  const emAberto = pausas.filter(p => p.durMin === null).length;
+
+  const rows = pausas.map(p => [
+    `<strong>${p.numero}</strong>`, `${p.andar}º`,
+    fmt(p.inicio), fmt(p.fim),
+    fmtD(p.durMin),
+    p.quem, p.retomadoPor,
+    `<span style="font-size:11px;">${p.obs}</span>`,
+  ]);
+
+  el.innerHTML = `
+  <div class="card" style="padding:14px 18px;margin-bottom:16px;">
+    <div style="display:flex;gap:24px;flex-wrap:wrap;">
+      <div><div style="font-size:22px;font-weight:700;">${pausas.length}</div><div style="font-size:12px;color:var(--text3);">Total de pausas</div></div>
+      <div><div style="font-size:22px;font-weight:700;color:var(--warning);">${emAberto}</div><div style="font-size:12px;color:var(--text3);">Em aberto</div></div>
+      <div><div style="font-size:22px;font-weight:700;">${totalMin >= 60 ? Math.floor(totalMin/60)+'h '+(totalMin%60)+'min' : totalMin+' min'}</div><div style="font-size:12px;color:var(--text3);">Tempo total pausado</div></div>
+      <div><div style="font-size:22px;font-weight:700;">${pausas.length ? Math.round(pausas.filter(p=>p.durMin!==null).reduce((s,p)=>s+p.durMin,0)/(pausas.filter(p=>p.durMin!==null).length||1))+' min' : '—'}</div><div style="font-size:12px;color:var(--text3);">Duração média</div></div>
+    </div>
+  </div>
+  <div class="card" style="padding:14px 18px;">
+    <div class="card-title" style="margin-bottom:12px;">⏸ Histórico de Pausas por Apartamento</div>
+    ${pausas.length === 0
+      ? '<p style="color:var(--text3);text-align:center;padding:32px;">Nenhuma pausa encontrada no período.</p>'
+      : _relTable(['Apto','Andar','Início da Pausa','Fim da Pausa','Duração','Quem Pausou','Retomado por','Observação'], rows, 9999)}
   </div>`;
 }
 
