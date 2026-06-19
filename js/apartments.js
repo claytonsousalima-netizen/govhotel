@@ -1024,15 +1024,15 @@ async function abrirChecklistSupervisora() {
   if (obsEl) obsEl.value = '';
 
   const hotelId = apto?.hotel_id || currentUser.hotelId;
-  let q = supabaseClient.from('supervisora_checklist_items').select('*').eq('ativo', true).order('ordem');
+  let q = supabaseClient.from('checklist_templates').select('id, nome').eq('ativo', true).order('ordem');
   if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
   const { data } = await q;
-  _supChecklistAtivo = data || [];
+  _supChecklistAtivo = (data || []).map(d => ({ ...d, obrigatorio: true }));
 
   const container = document.getElementById('sup-cl-items');
   if (container) {
     if (!_supChecklistAtivo.length) {
-      container.innerHTML = '<p style="font-size:13px;color:var(--text3);">Nenhum item configurado. Adicione itens em Configurações → Checklist da Supervisora.</p>';
+      container.innerHTML = '<p style="font-size:13px;color:var(--text3);">Nenhum item configurado. Adicione itens em Configurações → Checklist de Limpeza.</p>';
     } else {
       container.innerHTML = _supChecklistAtivo.map((item, i) => `
         <div style="padding:10px 0;border-bottom:1px solid var(--border);">
