@@ -1617,18 +1617,17 @@ async function initMapaAdmin() {
         if (!aptos.length || aptos[0]?.hotel_id !== _aptoViewHotelId) {
           await syncApartamentos();
         }
+        _mapaSetLoading(false);
         renderMapa();
         _atualizarContadorMapa();
       } catch(e) {
         console.warn('initMapaAdmin sync:', e.message);
+        _mapaSetLoading(false);
         document.getElementById('mapa-container').innerHTML =
           '<p style="color:var(--danger);text-align:center;padding:48px;">Erro ao carregar apartamentos. Tente novamente.</p>';
-      } finally {
-        _mapaSetLoading(false);
       }
     } else {
-      document.getElementById('mapa-container').innerHTML =
-        '<p style="color:var(--text3);text-align:center;padding:48px;">Selecione um hotel para visualizar o mapa.</p>';
+      _mapaSetSemHotel();
     }
   } finally {
     _initMapaEmAndamento = false;
@@ -1638,6 +1637,12 @@ async function initMapaAdmin() {
 function _renderSeletorHotelMapa(listaHotels) {
   const wrap = document.getElementById('mapa-hotel-selector');
   if (!wrap) return;
+  // Igual ao dashboard: só reconstrói se o select ainda não existe
+  if (wrap.querySelector('select')) {
+    const sel = document.getElementById('mapa-hotel-select');
+    if (sel) sel.value = _aptoViewHotelId || '';
+    return;
+  }
   wrap.innerHTML = `
     <div class="card" style="padding:10px 16px;margin-bottom:14px;">
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
@@ -1655,10 +1660,24 @@ function _renderSeletorHotelMapa(listaHotels) {
     </div>`;
 }
 
+function _mapaSetSemHotel() {
+  document.getElementById('mapa-container').innerHTML =
+    '<p style="color:var(--text3);text-align:center;padding:48px;">Selecione um hotel para visualizar o mapa.</p>';
+  const mf = document.getElementById('mapa-filters');
+  if (mf) mf.style.display = 'none';
+  const ma = document.getElementById('mapa-filtros-avancados');
+  if (ma) ma.innerHTML = '';
+  _atualizarContadorMapa();
+}
+
 function _mapaSetLoading(on) {
   const c = document.getElementById('mapa-container');
   if (!c) return;
-  if (on) c.innerHTML = '<p style="color:var(--text3);text-align:center;padding:48px;">Carregando mapa...</p>';
+  if (on) {
+    c.innerHTML = '<p style="color:var(--text3);text-align:center;padding:48px;">Carregando mapa...</p>';
+  }
+  const mf = document.getElementById('mapa-filters');
+  if (mf) mf.style.display = on ? 'none' : '';
 }
 
 function _atualizarContadorMapa() {
@@ -1669,14 +1688,13 @@ function _atualizarContadorMapa() {
 async function selecionarHotelMapa(hotelId) {
   _aptoViewHotelId = hotelId || null;
   if (!hotelId) {
-    document.getElementById('mapa-container').innerHTML =
-      '<p style="color:var(--text3);text-align:center;padding:48px;">Selecione um hotel para visualizar o mapa.</p>';
-    _atualizarContadorMapa();
+    _mapaSetSemHotel();
     return;
   }
   _mapaSetLoading(true);
   try {
     await syncApartamentos();
+    _mapaSetLoading(false);
     renderMapa();
     _atualizarContadorMapa();
   } catch(e) {
