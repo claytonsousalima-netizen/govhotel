@@ -150,7 +150,7 @@ async function _fetchChamados() {
       solicitante, hospede, descricao, prazo, created_at,
       departamento, responsavel_user_id,
       hotel_id, hotels(nome),
-      apartment_id, apartments(numero)
+      apartment_id, apartments(numero, status_apto, status_governanca_manual)
     `)
     .order('created_at', { ascending: false });
 
@@ -197,6 +197,8 @@ async function _fetchChamados() {
     hotel_id:            c.hotel_id,
     hotelNome:           c.hotels?.nome || null,
     apartment_id:        c.apartment_id,
+    status_apto:         c.apartments?.status_apto || null,
+    status_gov:          c.apartments?.status_governanca_manual || null,
     created_at:          c.created_at,
   }));
 
@@ -826,14 +828,30 @@ function renderKanban() {
       ${items.map(c => {
         const pr      = _GOV_PRIO[c.prioridade] || { badge:'badge-limpando', label:c.prioridade };
         const deptIcon = c.departamento === 'manutencao' ? '🔧' : '🧹';
+        const _govHtml = (() => {
+          if (!c.status_gov) return '';
+          const govOpcoes = typeof _statusGovOpcoes !== 'undefined' ? _statusGovOpcoes : [];
+          const op = govOpcoes.find(o => o.nome === c.status_gov);
+          const cor = op?.cor || '#6b7280';
+          return `<div style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:5px;background:${cor}22;color:${cor};border:1px solid ${cor}55;display:inline-block;margin-top:4px;">🏛 ${c.status_gov}</div>`;
+        })();
+        const _aptoHtml = (() => {
+          if (!c.status_apto) return '';
+          const aptoOpcoes = typeof _statusAptoOpcoes !== 'undefined' ? _statusAptoOpcoes : [];
+          const op = aptoOpcoes.find(o => o.nome === c.status_apto);
+          const cor = op?.cor || '#6b7280';
+          return `<div style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:5px;background:${cor}22;color:${cor};border:1px solid ${cor}55;display:inline-block;margin-top:3px;">🏠 ${c.status_apto}</div>`;
+        })();
         return `
-        <div class="kanban-card" style="border-left:3px solid ${col.color};cursor:pointer;"
+        <div class="kanban-card" style="border-left:3px solid ${col.color};cursor:pointer;margin-bottom:10px;border-bottom:1px solid var(--border);"
              onclick="abrirDetalheChamado('${c.id}')">
           ${showHotel && c.hotelNome ? `<div style="font-size:10px;font-weight:700;color:var(--primary);margin-bottom:2px;">🏨 ${c.hotelNome}</div>` : ''}
           ${c.numero ? `<div style="font-size:10px;font-weight:700;color:var(--primary);margin-bottom:2px;">${c.numero}</div>` : ''}
           <div style="font-weight:600;font-size:13px;">${deptIcon} ${c.tipo}</div>
           <div style="font-size:11px;color:var(--text2);margin-top:2px;">Apto ${c.apto}</div>
-          ${c.camareira ? `<div style="font-size:11px;color:var(--text3);">${c.departamento === 'manutencao' ? '🔧' : '🧹'} ${c.camareira}</div>` : ''}
+          ${_govHtml ? `<div>${_govHtml}</div>` : ''}
+          ${_aptoHtml ? `<div>${_aptoHtml}</div>` : ''}
+          ${c.camareira ? `<div style="font-size:11px;color:var(--text3);margin-top:3px;">${c.departamento === 'manutencao' ? '🔧' : '🧹'} ${c.camareira}</div>` : ''}
           <div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap;">
             <span class="badge ${pr.badge}">${pr.label}</span>
             ${_isAtrasado(c) ? _BADGE_ATRASADO : ''}
