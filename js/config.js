@@ -385,7 +385,6 @@ async function abrirChecklistApp(id) {
   const apto = aptos.find(a => a.id === id);
   if (!apto) return;
 
-  // Usa origem salva em _checklistOrigemStatus para título correto (apto já está em 'limpando')
   const origem = (typeof _checklistOrigemStatus !== 'undefined' && _checklistOrigemStatus) || apto.status;
   const titulo = origem === 'reprovado'
     ? `Re-limpeza — Apto ${apto.numero}`
@@ -394,11 +393,22 @@ async function abrirChecklistApp(id) {
     : `Limpeza — Apto ${apto.numero}`;
   document.getElementById('checklist-title').textContent = titulo;
 
+  // Limpa estado de pausa e Permanência
+  const obsEl = document.getElementById('checklist-obs');
+  if (obsEl) obsEl.value = '';
+  const reqEl = document.getElementById('checklist-obs-required');
+  if (reqEl) reqEl.style.display = 'none';
+
   const hotelId = currentUser?.hotelId;
   let query = supabaseClient.from('checklist_templates').select('nome').eq('ativo', true).order('ordem');
   if (hotelId) query = query.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
 
-  const { data } = await query;
+  const [, ckRes] = await Promise.allSettled([
+    (typeof _renderTipoLimpezaBtns === 'function' ? _renderTipoLimpezaBtns() : Promise.resolve()),
+    query
+  ]);
+
+  const { data } = (ckRes.status === 'fulfilled' ? ckRes.value : {}) || {};
   const itens = data?.length
     ? data.map(i => i.nome)
     : (typeof CHECKLIST_PADRAO !== 'undefined' ? CHECKLIST_PADRAO : []);

@@ -1934,10 +1934,24 @@ tr:last-child td { border-bottom: none; }
         <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px;">Qual o tipo de limpeza?</div>
         <div id="checklist-tipo-btns" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
       </div>
+      <!-- Campos extras para Permanência -->
+      <div id="checklist-permanencia-fields" style="display:none;background:var(--surface2);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;border:1px solid var(--border);">
+        <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px;">Informações da Permanência</div>
+        <div class="form-row">
+          <div class="field">
+            <label>Qtd. Pessoas</label>
+            <input type="number" id="checklist-perm-pessoas" min="0" placeholder="0">
+          </div>
+          <div class="field">
+            <label>Qtd. Bagagem</label>
+            <input type="number" id="checklist-perm-bagagem" min="0" placeholder="0">
+          </div>
+        </div>
+      </div>
       <div id="checklist-progress" style="margin-bottom:16px;"></div>
       <ul class="checklist" id="checklist-items"></ul>
       <div class="form-row single" style="margin-top:16px;">
-        <div class="field"><label>Observações</label><textarea id="checklist-obs" placeholder="Anotações sobre o quarto..."></textarea></div>
+        <div class="field"><label>Observações <span id="checklist-obs-required" style="display:none;color:var(--danger)">*obrigatório para pausar</span></label><textarea id="checklist-obs" placeholder="Anotações sobre o quarto..."></textarea></div>
       </div>
     </div>
     <div class="modal-footer">
@@ -2811,8 +2825,16 @@ async function cancelarLimpeza() {
 }
 
 async function pausarLimpezaChecklist() {
+  const obsVal = (document.getElementById('checklist-obs')?.value || '').trim();
+  if (!obsVal) {
+    const req = document.getElementById('checklist-obs-required');
+    if (req) req.style.display = 'inline';
+    document.getElementById('checklist-obs')?.focus();
+    toast('Informe uma observação antes de pausar', 'error');
+    return;
+  }
   closeModal('modal-checklist');
-  const obs = `Limpeza pausada por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
+  const obs = `Limpeza pausada por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')} — ${obsVal}`;
   await mudarStatusApto(selectedAptoId, 'pausado', obs);
 }
 
@@ -2941,12 +2963,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <script src="js/hotels.js?v=20260619g"></script>
-<script src="js/apartments.js?v=20260619g"></script>
+<script src="js/apartments.js?v=20260619i"></script>
 <script src="js/maids.js?v=20260619g"></script>
 <script src="js/users.js?v=20260619g"></script>
 <script src="js/permissions.js?v=20260619g"></script>
 <script src="js/chamados.js?v=20260619g"></script>
-<script src="js/config.js?v=20260619g"></script>
+<script src="js/config.js?v=20260619h"></script>
 <script src="js/dashboard.js?v=20260619g"></script>
 <script src="js/relatorios.js?v=20260619g"></script>
 <script src="js/minha-fila.js?v=20260619g"></script>
