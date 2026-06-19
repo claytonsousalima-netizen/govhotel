@@ -647,7 +647,7 @@ function mfAcao(id, acao) {
   if (acao === 'relimpar') { iniciarLimpeza(); }
   if (acao === 'retomar')  { iniciarLimpeza(); }
   if (acao === 'pausar')   abrirModalPausa(id);
-  if (acao === 'cancelar') { _carregarMotivosCancelModal(); }
+  if (acao === 'cancelar') { abrirModalCancelarLimpeza(id); }
   if (acao === 'concluir') concluirLimpeza();
   if (acao === 'aprovar')  aprovarLimpeza();
   if (acao === 'reprovar') abrirModalReprovacao();

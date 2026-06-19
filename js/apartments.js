@@ -1403,6 +1403,17 @@ async function renderAppCamareira() {
             <span class="badge ${g.badge}" style="flex-shrink:0;">${LABEL[a.status]||a.status}</span>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            ${(() => {
+              switch (a.status) {
+                case 'sujo':      return `<button class="btn btn-primary btn-sm" onclick="selectedAptoId='${a.id}';iniciarLimpeza()">▶ Iniciar limpeza</button>`;
+                case 'reprovado': return `<button class="btn btn-primary btn-sm" onclick="selectedAptoId='${a.id}';iniciarLimpeza()">▶ Re-limpar</button>`;
+                case 'pausado':   return `<button class="btn btn-primary btn-sm" onclick="selectedAptoId='${a.id}';iniciarLimpeza()">▶ Retomar limpeza</button>`;
+                case 'limpando':  return `<button class="btn btn-warning btn-sm" onclick="abrirModalPausa('${a.id}')">⏸ Pausar</button>
+                                          <button class="btn btn-danger btn-sm"  onclick="abrirModalCancelarLimpeza('${a.id}')">🚫 Cancelar</button>
+                                          <button class="btn btn-success btn-sm" onclick="selectedAptoId='${a.id}';concluirLimpeza()">🔍 Enviar conf.</button>`;
+                default: return '';
+              }
+            })()}
             <button class="btn btn-ghost btn-sm" onclick="openAptoDetail('${a.id}')">👁 Ver detalhes</button>
           </div>
         </div>`;
