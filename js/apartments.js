@@ -1225,7 +1225,7 @@ async function renderAppCamareira() {
   document.getElementById('app-aptos-count').textContent = `${todos.length} aptos no hotel`;
 
   const LABEL = {
-    livre:'Livre', sujo:'Sujo', limpando:'Em limpeza', pausado:'Pausado',
+    livre:'Vago', sujo:'Sujo', limpando:'Em limpeza', pausado:'Pausado',
     conferencia:'Aguard. conf.', limpo:'Limpo', reprovado:'Reprovado',
     bloqueado:'Bloqueado', ocupado:'Ocupado', manutencao:'Manutenção'
   };
@@ -1260,7 +1260,7 @@ async function renderAppCamareira() {
     { key:'sujo',       label:'Para limpar',             icon:'🟠', color:'#e67e22', badge:'badge-sujo'      },
     { key:'conferencia',label:'Aguardando conferência',  icon:'🔍', color:'#8e44ad', badge:'badge-conferencia'},
     { key:'limpo',      label:'Limpos',                  icon:'✨', color:'#27ae60', badge:'badge-limpo'     },
-    { key:'livre',      label:'Livres',                  icon:'✅', color:'#27ae60', badge:'badge-livre'     },
+    { key:'livre',      label:'Vagos',                   icon:'✅', color:'#27ae60', badge:'badge-livre'     },
     { key:'ocupado',    label:'Ocupados',                icon:'🏠', color:'#7f8c8d', badge:'badge-ocupado'   },
     { key:'bloqueado',  label:'Bloqueados',              icon:'🔒', color:'#c0392b', badge:'badge-bloqueado' },
     { key:'manutencao', label:'Manutenção',              icon:'🔧', color:'#95a5a6', badge:'badge-manutencao'},
@@ -1283,7 +1283,7 @@ async function renderAppCamareira() {
 
     if (g.key === 'livre') {
       html += `<div class="card" style="padding:14px 16px;color:var(--text2);font-size:13px;">
-        ✅ ${lista.length} apartamento${lista.length !== 1 ? 's' : ''} livre${lista.length !== 1 ? 's' : ''} — sem ação necessária.
+        ✅ ${lista.length} apartamento${lista.length !== 1 ? 's' : ''} vago${lista.length !== 1 ? 's' : ''} — sem ação necessária.
       </div>`;
     } else {
       lista.forEach(a => {
@@ -1935,7 +1935,7 @@ function renderAptoKanban() {
   ];
   const colsTodos = [
     ...colsLimpeza,
-    { key:'livre',      label:'Livre',      color:'#27ae60' },
+    { key:'livre',      label:'Vago',       color:'#27ae60' },
     { key:'ocupado',    label:'Ocupado',    color:'#7f8c8d' },
     { key:'bloqueado',  label:'Bloqueado',  color:'#c0392b' },
   ];

@@ -135,7 +135,7 @@ async function _carregarDashboard(hotelId) {
           <div class="stat-sub">unidades cadastradas</div>
         </div>
         <div class="stat-card s-green">
-          <div class="stat-label">Livres</div>
+          <div class="stat-label">Vagos</div>
           <div class="stat-value">${livre}</div>
           <div class="stat-sub">disponíveis agora</div>
         </div>
@@ -236,7 +236,7 @@ async function _carregarDashboard(hotelId) {
 
   // Gráfico status
   const statuses = ['livre','sujo','limpando','conferencia','bloqueado','ocupado','manutencao'];
-  const labels   = {livre:'Livre',sujo:'Sujo',limpando:'Limpando',conferencia:'Conferência',bloqueado:'Bloqueado',ocupado:'Ocupado',manutencao:'Manutenção'};
+  const labels   = {livre:'Vago',sujo:'Sujo',limpando:'Limpando',conferencia:'Conferência',bloqueado:'Bloqueado',ocupado:'Ocupado',manutencao:'Manutenção'};
   const colors   = {livre:'#27ae60',sujo:'#e67e22',limpando:'#2e86c1',conferencia:'#8e44ad',bloqueado:'#c0392b',ocupado:'#7f8c8d',manutencao:'#f1c40f'};
   let chartHtml  = '';
   statuses.forEach(s => {

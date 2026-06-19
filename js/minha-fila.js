@@ -306,7 +306,7 @@ function _mfRenderGestor(el) {
       <div class="card" style="text-align:center;padding:10px;border-top:2px solid var(--success);cursor:pointer;"
            onclick="_mfScrollTo('mf-sec-livres')">
         <div style="font-size:18px;font-weight:700;color:var(--success);">${livres.length}</div>
-        <div style="font-size:10px;color:var(--text3);margin-top:2px;">Livres</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px;">Vagos</div>
       </div>
       ${ocupados.length ? `<div class="card" style="text-align:center;padding:10px;border-top:2px solid #7f8c8d;cursor:pointer;"
            onclick="_mfScrollTo('mf-sec-ocupados')">
@@ -584,7 +584,7 @@ function _mfRenderGestor(el) {
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;
                   padding-bottom:8px;border-bottom:2px solid var(--success);">
         <span style="font-size:16px;">✅</span>
-        <span style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;">Livres</span>
+        <span style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;">Vagos</span>
         <span style="background:var(--success);color:#fff;font-size:10px;font-weight:700;
                      padding:2px 8px;border-radius:10px;margin-left:auto;">${livres.length}</span>
       </div>`;
@@ -597,7 +597,7 @@ function _mfRenderGestor(el) {
             <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} · ${a.andar}º andar</div>
             ${_camLine(a)}
           </div>
-          <span class="badge badge-livre" style="flex-shrink:0;">Livre</span>
+          <span class="badge badge-livre" style="flex-shrink:0;">Vago</span>
         </div>
         <div style="margin-top:10px;">
           <button class="btn btn-ghost btn-sm" onclick="openAptoDetail('${a.id}')">👁 Ver detalhes</button>

@@ -663,7 +663,7 @@ function _relAbaStatus(el) {
   const total   = aptos.length;
 
   const statusInfo = [
-    {key:'livre',label:'Livre',color:'#27ae60'},{key:'sujo',label:'Sujo',color:'#e67e22'},
+    {key:'livre',label:'Vago',color:'#27ae60'},{key:'sujo',label:'Sujo',color:'#e67e22'},
     {key:'limpando',label:'Limpando',color:'#2e86c1'},{key:'conferencia',label:'Conferência',color:'#8e44ad'},
     {key:'limpo',label:'Limpo',color:'#1abc9c'},{key:'ocupado',label:'Ocupado',color:'#7f8c8d'},
     {key:'bloqueado',label:'Bloqueado',color:'#c0392b'},{key:'manutencao',label:'Manutenção',color:'#f1c40f'},
@@ -1173,7 +1173,7 @@ function _relAbaTimeline(el) {
       : h.status_novo==='conferencia'?'Aguardando conferência'
       : h.status_novo==='limpo'?'Concluído (limpo)'
       : h.status_novo==='reprovado'?'Reprovado'
-      : h.status_novo==='livre'?'Liberado (livre)'
+      : h.status_novo==='livre'?'Liberado (vago)'
       : 'Mudança status';
     eventos.push({ dt: h.created_at, apto: a.numero||h.apartment_id, evento: ev,
       anterior: h.status_anterior||'—', novo: h.status_novo||'—',
