@@ -127,7 +127,7 @@
 <nav class="sidebar">
   <div class="sidebar-logo">
     <h1>🏨 Gov Estancorp</h1>
-    <p>Manual de Uso — v2026.06.17c</p>
+    <p>Manual de Uso — v2026.06.19</p>
   </div>
 
   <div class="sidebar-section">Introdução</div>
@@ -212,7 +212,24 @@
   <!-- ══ STATUS APARTAMENTOS ═══════════════════════════════ -->
   <section id="status-aptos" class="section">
     <div class="section-title">🚦 Status dos Apartamentos</div>
-    <p style="margin-bottom:12px;">Cada apartamento tem um status que indica sua situação atual. O status muda automaticamente pelo fluxo de limpeza ou pode ser alterado manualmente por perfis autorizados.</p>
+
+    <div class="card">
+      <h4>Sistema de 3 Camadas de Status <span class="novidade-badge">Atualizado</span></h4>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:10px;">Cada apartamento possui três dimensões de status independentes que trabalham juntas:</p>
+      <table>
+        <thead><tr><th>Camada</th><th>Campo</th><th>Valores possíveis</th><th>Quem controla</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Status Operacional</strong></td><td><code>status</code></td><td>sujo · limpando · pausado · conferência · limpo · reprovado · livre · ocupado · bloqueado · manutenção</td><td>Fluxo de limpeza (automático)</td></tr>
+          <tr><td><strong>Status Apto</strong></td><td><code>status_apto</code></td><td>Ocupado · Vago · Bloqueado</td><td>Admin / Gestor (manual)</td></tr>
+          <tr><td><strong>Status Gov</strong></td><td><code>status_governanca_manual</code></td><td>Limpo · Sujo · Manutenção · Não Perturbe · Dormiu Fora · Não Quis Arrumação</td><td>Admin / Gestor (manual)</td></tr>
+        </tbody>
+      </table>
+      <div class="info-box blue" style="margin-top:10px;margin-bottom:0;">
+        <strong>Alterar Status:</strong> O modal "Alterar Status de Apartamento" exibe apenas <strong>Status Apto</strong> e <strong>Status Gov</strong> para alteração manual. O Status Operacional é gerenciado exclusivamente pelo fluxo de limpeza (iniciar, pausar, concluir, reprovar) e não é editável manualmente.
+      </div>
+    </div>
+
+    <p style="margin-bottom:12px;">O <strong>Status Operacional</strong> muda automaticamente pelo fluxo de limpeza ou pode ser alterado por perfis autorizados via Mapa:</p>
     <table>
       <thead><tr><th>Status</th><th>Significado</th><th>Próxima ação esperada</th></tr></thead>
       <tbody>
@@ -235,6 +252,20 @@
         <thead><tr><th>Indicador</th><th>O que significa</th></tr></thead>
         <tbody>
           <tr><td><strong>Badge de status colorido</strong></td><td>Status atual do apartamento (ex.: Sujo, Limpando)</td></tr>
+          <tr><td><strong>Sem responsável</strong> <span style="color:#dc2626;font-size:11px;">(texto vermelho)</span></td><td>Apartamento sujo sem camareira atribuída</td></tr>
+          <tr><td><strong>há Xmin / há Xh</strong> <span style="color:#94a3b8;font-size:11px;">(texto cinza)</span></td><td>Tempo decorrido desde a última mudança de status (aparece após 2 minutos)</td></tr>
+          <tr><td><strong>🔴 Triângulo de prioridade</strong></td><td>Apartamento marcado como prioritário</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h4>Indicadores visuais nos cards do Mapa <span class="novidade-badge">Atualizado</span></h4>
+      <table>
+        <thead><tr><th>Indicador</th><th>O que significa</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Badge de status colorido</strong></td><td>Status operacional atual (ex.: Sujo, Limpando)</td></tr>
+          <tr><td><strong>Tipo · N🛏</strong></td><td>Tipo do apartamento seguido da quantidade de leitos (ex.: Standard · 2🛏)</td></tr>
           <tr><td><strong>Sem responsável</strong> <span style="color:#dc2626;font-size:11px;">(texto vermelho)</span></td><td>Apartamento sujo sem camareira atribuída</td></tr>
           <tr><td><strong>há Xmin / há Xh</strong> <span style="color:#94a3b8;font-size:11px;">(texto cinza)</span></td><td>Tempo decorrido desde a última mudança de status (aparece após 2 minutos)</td></tr>
           <tr><td><strong>🔴 Triângulo de prioridade</strong></td><td>Apartamento marcado como prioritário</td></tr>
@@ -297,6 +328,25 @@
       <li><div class="step-num">6</div><div class="step-body">Quem <em>abriu</em> o chamado não recebe notificação de si mesmo.</div></li>
       <li><div class="step-num">7</div><div class="step-body">A conexão é encerrada automaticamente ao fazer logout.</div></li>
     </ul>
+
+    <div class="card">
+      <h4>🔊 Som + Notificações Web para Camareira <span class="novidade-badge">Novo</span></h4>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:10px;">O perfil <strong>Camareira</strong> recebe notificações extras com som e alerta do sistema operacional nos seguintes eventos:</p>
+      <table>
+        <thead><tr><th>Evento</th><th>Som</th><th>O que aparece</th></tr></thead>
+        <tbody>
+          <tr><td>Apto <span class="badge b-sujo">Sujo</span> atribuído a ela</td><td>🔔 2 bipes</td><td>Modal 🧹 + notificação do SO</td></tr>
+          <tr><td>Apto <span class="badge b-reprovado">Reprovado</span> (que é dela)</td><td>🔔 3 bipes urgentes</td><td>Modal ❌ + notificação do SO</td></tr>
+          <tr><td>Novo chamado de Governança</td><td>🔔 2 bipes (urgente = 3)</td><td>Modal de chamado + notificação do SO</td></tr>
+        </tbody>
+      </table>
+      <div class="info-box green" style="margin-top:10px;">
+        <strong>Como funciona:</strong> O som é gerado pelo <strong>Web Audio API</strong> do navegador — não requer arquivo de áudio externo. A notificação de sistema usa o <strong>Web Notifications API</strong> — o navegador solicitará permissão na primeira vez que a camareira acessar o sistema.
+      </div>
+      <div class="info-box amber" style="margin-top:8px;">
+        <strong>iOS (iPhone/iPad):</strong> Notificações de sistema não funcionam no Safari normal. Para recebê-las, a camareira deve <strong>adicionar o app à tela inicial</strong> (botão Compartilhar → "Adicionar à Tela de Início") e abrir pelo ícone criado. Isso ativa o modo PWA, que suporta notificações a partir do iOS 16.4. O som funciona normalmente após o primeiro toque na tela.
+      </div>
+    </div>
   </section>
 
   <hr>
@@ -640,7 +690,7 @@
       <div class="section-title">📌 Minha Fila (tela principal) <span class="novidade-badge">Atualizado</span></div>
       <div class="info-box blue">Ao fazer login, a camareira é direcionada automaticamente para <strong>Minha Fila</strong>.</div>
       <ul class="steps">
-        <li><div class="step-num">1</div><div class="step-body">A fila é organizada por <strong>prioridade de atribuição</strong> em 4 seções: <strong>(1) Minha atribuição</strong> (aptos atribuídos a mim em qualquer status operacional) → <strong>(2) Reprovados disponíveis</strong> (sem camareira definida) → <strong>(3) Sujos sem responsável</strong> (nenhuma camareira atribuída) → <strong>(4) Demais</strong> (pausados e em conferência não atribuídos a mim).</div></li>
+        <li><div class="step-num">1</div><div class="step-body">A fila é organizada por <strong>prioridade de atribuição</strong> em 4 seções: <strong>(1) Minha atribuição</strong> — apenas aptos com status <span class="badge b-sujo">Sujo</span> atribuídos a mim → <strong>(2) Reprovados disponíveis</strong> (sem camareira definida) → <strong>(3) Sujos sem responsável</strong> (nenhuma camareira atribuída) → <strong>(4) Demais</strong> (pausados, conferência e outros status não sujo atribuídos a mim ou sem atribuição).</div></li>
         <li><div class="step-num">2</div><div class="step-body">Todos os cards exibem o <strong>nome da camareira responsável</strong> pelo apartamento, ou o texto <span style="color:#dc2626;font-weight:700;">👤 Sem responsável</span> em vermelho quando não há atribuição. Isso vale para todos os status.</div></li>
         <li><div class="step-num">3</div><div class="step-body">Para <strong>iniciar</strong>: clique em <strong>▶ Iniciar limpeza</strong>. O apto vai para <span class="badge b-limpando">Em andamento</span> e o <strong>checklist de limpeza abre automaticamente</strong>. No topo do checklist, três botões com emojis aparecem sempre: <strong>🛏 Saída (checkout)</strong>, <strong>🏠 Permanência</strong> e <strong>🔧 Pós-manutenção</strong>. Toque no tipo correto antes de marcar os itens (mínimo 80%).</div></li>
         <li><div class="step-num">4</div><div class="step-body">Ao concluir o checklist, clique em <strong>✓ Concluir limpeza</strong>. O tipo de limpeza selecionado e as respostas são salvos e o apto vai direto para <span class="badge b-conferencia">Ag. Conferência</span>. Se precisar cancelar, clique em <strong>🚫 Cancelar limpeza</strong> — o apto retorna ao status de origem.</div></li>
@@ -656,7 +706,7 @@
         <tbody>
           <tr>
             <td><strong>⏸ Pausar</strong></td>
-            <td>Apto vai para <span class="badge b-pausado">Pausado</span>. A limpeza pode ser retomada depois — o checklist reabre do ponto em que parou.</td>
+            <td>Apto vai para <span class="badge b-pausado">Pausado</span>. A limpeza pode ser retomada depois — o checklist reabre do ponto em que parou. O modal de motivo de pausa é sempre exibido, seja pelo botão no card ou pelo botão dentro do checklist.</td>
             <td>Interrupção temporária (hóspede no quarto, falta de material)</td>
           </tr>
           <tr>
@@ -679,17 +729,8 @@
         </div>
       </div>
       <div class="card">
-        <h4>Motivos de Cancelamento</h4>
-        <p style="font-size:13px;color:var(--text2);margin-bottom:8px;">Ao cancelar uma limpeza (iniciada por engano ou por decisão operacional), selecione o motivo (configurável em <strong>Config → Motivos de Cancelamento</strong>):</p>
-        <div class="badge-row">
-          <span class="badge" style="background:#fef2f2;color:#991b1b;">Iniciado por engano</span>
-          <span class="badge" style="background:#fef2f2;color:#991b1b;">Apartamento errado</span>
-          <span class="badge" style="background:#fef2f2;color:#991b1b;">Hóspede não permitiu acesso</span>
-          <span class="badge" style="background:#fef2f2;color:#991b1b;">Redistribuição de equipe</span>
-          <span class="badge" style="background:#fef2f2;color:#991b1b;">Prioridade alterada</span>
-          <span class="badge" style="background:#fef2f2;color:#991b1b;">Serviço cancelado pela governança</span>
-          <span class="badge" style="background:#fef2f2;color:#991b1b;">Outro</span>
-        </div>
+        <h4>Cancelamento</h4>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:8px;">Ao cancelar uma limpeza, confirme a ação no modal de confirmação. O apto retorna ao status anterior (normalmente Sujo). <strong>Não é necessário informar motivo</strong> — o cancelamento é registrado com o nome de quem cancelou e o horário.</p>
       </div>
     </div>
 
@@ -700,9 +741,23 @@
         <li><div class="step-num">2</div><div class="step-body">Chamados de <strong>Governança</strong>: pode assumir, atualizar status, comentar e criar novos chamados.</div></li>
         <li><div class="step-num">3</div><div class="step-body">Chamados de <strong>Manutenção</strong>: aparecem com <span class="badge" style="background:#f1f5f9;color:#475569;font-size:11px;">👁 Somente leitura</span> — apenas consulta, sem ações.</div></li>
         <li><div class="step-num">4</div><div class="step-body">Na aba <strong>Disponíveis</strong>: veja chamados de governança sem responsável. Clique em <strong>✋ Assumir chamado</strong> para se tornar responsável.</div></li>
-        <li><div class="step-num">5</div><div class="step-body">Recebe <strong>notificação modal</strong> de novos chamados de Governança. Pressione <strong>✓ OK</strong> para confirmar.</div></li>
+        <li><div class="step-num">5</div><div class="step-body">Recebe <strong>notificação modal</strong> de novos chamados de Governança, acompanhada de <strong>som de alerta</strong> e <strong>notificação do sistema operacional</strong>. Pressione <strong>✓ OK</strong> para confirmar.</div></li>
         <li><div class="step-num">6</div><div class="step-body">Recebe também notificação de <strong>Chamado Atribuído a Você</strong> quando um gestor atribui um chamado diretamente.</div></li>
       </ul>
+    </div>
+
+    <div class="section">
+      <div class="section-title">🔔 Notificações da Camareira <span class="novidade-badge">Novo</span></div>
+      <div class="info-box blue">A camareira recebe alertas automáticos de som e notificação de sistema nos eventos abaixo. O sistema solicita permissão de notificação ao fazer login.</div>
+      <table>
+        <thead><tr><th>Evento</th><th>O que acontece</th></tr></thead>
+        <tbody>
+          <tr><td>Apto <span class="badge b-sujo">Sujo</span> atribuído a ela</td><td>Modal 🧹 aparece na tela + som de 2 bipes + notificação do celular/PC</td></tr>
+          <tr><td>Apto <span class="badge b-reprovado">Reprovado</span> (já atribuído a ela)</td><td>Modal ❌ aparece na tela + som de 3 bipes urgentes + notificação do celular/PC</td></tr>
+          <tr><td>Novo chamado de Governança</td><td>Modal de chamado + som de alerta + notificação do celular/PC</td></tr>
+        </tbody>
+      </table>
+      <div class="info-box amber" style="margin-top:8px;"><strong>iOS:</strong> Para receber notificações no iPhone/iPad, adicione o app à tela inicial (Safari → compartilhar → "Adicionar à Tela de Início") e abra pelo ícone criado. Requer iOS 16.4 ou superior.</div>
     </div>
   </section>
 
@@ -875,14 +930,16 @@
         <li><div class="step-num">2</div><div class="step-body">Use os filtros de <strong>Andar</strong> e <strong>Camareira</strong> para refinar a visualização.</div></li>
         <li><div class="step-num">3</div><div class="step-body">Use o filtro <strong>Com chamados</strong> para destacar apenas os aptos que têm chamados abertos — nesse modo, colunas adicionais (Livre, Ocupado, Bloqueado) também são exibidas para não omitir aptos com chamados nesses status.</div></li>
         <li><div class="step-num">4</div><div class="step-body">Clique em qualquer card para ver detalhes e alterar o status diretamente.</div></li>
+        <li><div class="step-num">5</div><div class="step-body">Cada card exibe o <strong>Status Apto</strong> (Ocupado/Vago/Bloqueado) como badge adicional — o status Gov já está representado pelas colunas do kanban.</div></li>
       </ul>
     </div>
 
     <div class="card">
-      <h4>📋 Modo Chamados</h4>
+      <h4>📋 Modo Chamados <span class="novidade-badge">Atualizado</span></h4>
       <ul class="steps" style="margin-top:8px;">
         <li><div class="step-num">1</div><div class="step-body">Clique no botão <strong>📋 Chamados</strong> no topo. Os filtros de limpeza ficam ocultos e o board exibe os chamados organizados por status (Aberto · Em análise · Em andamento · Pausado · Resolvido · Cancelado).</div></li>
-        <li><div class="step-num">2</div><div class="step-body">Para voltar ao fluxo de apartamentos, clique em <strong>🧹 Limpeza</strong>. Os dois modos são independentes — a alternância não interfere nos dados.</div></li>
+        <li><div class="step-num">2</div><div class="step-body">Cada card de chamado exibe <strong>Status Gov</strong> e <strong>Status Apto</strong> lado a lado — útil para identificar rapidamente o estado do apartamento relacionado ao chamado sem sair do Kanban.</div></li>
+        <li><div class="step-num">3</div><div class="step-body">Para voltar ao fluxo de apartamentos, clique em <strong>🧹 Limpeza</strong>. Os dois modos são independentes — a alternância não interfere nos dados.</div></li>
       </ul>
     </div>
 
@@ -988,12 +1045,12 @@
             <td><strong>Camareira</strong></td>
             <td>
               Fila por prioridade em 4 seções:<br>
-              <strong>(1)</strong> Minha atribuição (qualquer status) →
-              <strong>(2)</strong> Reprovados disponíveis →
-              <strong>(3)</strong> Sujos sem responsável →
-              <strong>(4)</strong> Demais pausados/conferência<br>
+              <strong>(1) Minha atribuição</strong> — somente aptos com status <span class="badge b-sujo">Sujo</span> atribuídos à camareira logada →<br>
+              <strong>(2)</strong> Reprovados disponíveis →<br>
+              <strong>(3)</strong> Sujos sem responsável →<br>
+              <strong>(4)</strong> Demais (pausados, conferência e outros status não sujo atribuídos a ela)<br>
               Todos os cards exibem nome da camareira ou "Sem responsável".<br>
-              Botões: Iniciar · Pausar · Retomar · Re-limpar
+              Botões de ação variam por status do card: <strong>▶ Iniciar · ⏸ Pausar · ▶ Retomar · ▶ Re-limpar</strong>
             </td>
             <td>✅ Abre ao iniciar / retomar / re-limpar<br>Seletor de <strong>tipo de limpeza</strong> no topo do checklist</td>
           </tr>
@@ -1390,7 +1447,7 @@
       </ul>
       <p style="font-size:13px;color:var(--text2);">Ao selecionar um hotel, todas as seções carregam os dados daquele hotel. Ao trocar o hotel, todas as seções recarregam automaticamente. O Admin Hotel não vê o seletor — edita sempre o seu próprio hotel.</p>
       <div class="info-box green" style="margin-top:10px;margin-bottom:0;">
-        <strong>Replicação automática:</strong> Ao cadastrar um novo hotel, todas as configurações do <strong>Hotel Gran Estanplaza</strong> são copiadas automaticamente (turnos, tipos de chamado, checklists, motivos, tipos de limpeza, andares, solicitantes, parâmetros e demais). O novo hotel já começa com uma base de configuração completa.
+        <strong>Replicação automática:</strong> Ao cadastrar um novo hotel, todas as configurações do <strong>Hotel Gran Estanplaza</strong> são copiadas automaticamente (turnos, tipos de chamado, checklists, motivos de pausa, motivos de reprovação, tipos de limpeza, andares, solicitantes, parâmetros e demais). O novo hotel já começa com uma base de configuração completa.
       </div>
     </div>
 
@@ -1416,12 +1473,6 @@
       <h4>⏸ Motivos de Pausa <span class="novidade-badge">Novo</span></h4>
       <p style="font-size:13px;color:var(--text2);margin-bottom:8px;">Gerencie os motivos exibidos quando a camareira pausa uma limpeza em andamento. O motivo é obrigatório ao pausar.</p>
       <p style="font-size:12px;color:var(--text3);">Exemplos padrão: Hóspede no quarto · Aguardando enxoval · Falta de material · Solicitação da supervisão · Interrupção operacional · Outro</p>
-    </div>
-
-    <div class="card">
-      <h4>🚫 Motivos de Cancelamento <span class="novidade-badge">Novo</span></h4>
-      <p style="font-size:13px;color:var(--text2);margin-bottom:8px;">Gerencie os motivos exibidos quando uma limpeza é cancelada (diferente de pausada — cancelamento encerra a limpeza e retorna o apto para Sujo). O motivo é obrigatório ao cancelar.</p>
-      <p style="font-size:12px;color:var(--text3);">Exemplos padrão: Iniciado por engano · Apartamento errado · Hóspede não permitiu acesso · Redistribuição de equipe · Prioridade alterada · Serviço cancelado pela governança · Outro</p>
     </div>
 
     <div class="card">
@@ -1498,6 +1549,21 @@
     <div class="info-box amber">
       <strong>Recomendação:</strong> Camareiras e técnicos de manutenção normalmente utilizam o sistema pelo celular. Certifique-se de que a tela do dispositivo não adormeça durante o turno para receber notificações em tempo real.
     </div>
+
+    <div class="card">
+      <h4>🍎 Notificações no iPhone/iPad (iOS) <span class="novidade-badge">Novo</span></h4>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:10px;">No Safari do iOS, notificações de sistema são bloqueadas por padrão. Para habilitá-las, a camareira deve instalar o app como PWA:</p>
+      <ul class="steps">
+        <li><div class="step-num">1</div><div class="step-body">Abra o sistema no <strong>Safari</strong> no iPhone ou iPad.</div></li>
+        <li><div class="step-num">2</div><div class="step-body">Toque no botão <strong>Compartilhar</strong> (ícone de quadrado com seta para cima) na barra de ferramentas do Safari.</div></li>
+        <li><div class="step-num">3</div><div class="step-body">Role para baixo e toque em <strong>"Adicionar à Tela de Início"</strong>.</div></li>
+        <li><div class="step-num">4</div><div class="step-body">Confirme o nome e toque em <strong>Adicionar</strong>. Um ícone do Gov Estancorp aparecerá na tela inicial.</div></li>
+        <li><div class="step-num">5</div><div class="step-body">Abra sempre pelo <strong>ícone na tela inicial</strong> — não pelo Safari. Ao abrir, o sistema solicitará permissão de notificação.</div></li>
+      </ul>
+      <div class="info-box green" style="margin-top:8px;">
+        <strong>Requisito:</strong> iOS 16.4 ou superior. Após instalar como PWA, som e notificações de sistema funcionam normalmente para todos os alertas da camareira.
+      </div>
+    </div>
   </section>
 
   <hr>
@@ -1528,7 +1594,7 @@
 
     <div class="card">
       <h4>Iniciei uma limpeza por engano, como desfazer?</h4>
-      <p>O gestor, supervisora ou admin pode cancelar: na Minha Fila ou no Mapa, use <strong>Cancelar limpeza</strong> e informe o motivo "Iniciado por engano". O apto retorna para <span class="badge b-sujo">Sujo</span>.</p>
+      <p>Na Minha Fila ou no Mapa, use <strong>Cancelar limpeza</strong> e confirme. Não é necessário informar motivo. O apto retorna para <span class="badge b-sujo">Sujo</span> e o sistema registra quem cancelou e o horário.</p>
     </div>
 
     <div class="card">
@@ -1562,8 +1628,18 @@
     </div>
 
     <div class="card">
-      <h4>Como adicionar um novo motivo de pausa ou cancelamento?</h4>
-      <p>Acesse <strong>Config</strong> no menu lateral → aba <strong>Motivos de Pausa</strong> ou <strong>Motivos de Cancelamento</strong> → clique em <strong>+ Adicionar</strong> → informe o nome e salve. O novo motivo aparece imediatamente nas listas suspensas para todos os usuários do hotel.</p>
+      <h4>Como adicionar um novo motivo de pausa?</h4>
+      <p>Acesse <strong>Config</strong> no menu lateral → seção <strong>Motivos de Pausa</strong> → clique em <strong>+ Adicionar</strong> → informe o nome e salve. O novo motivo aparece imediatamente na lista suspensa ao pausar uma limpeza.</p>
+    </div>
+
+    <div class="card">
+      <h4>Cancelar uma limpeza exige informar motivo?</h4>
+      <p>Não. O cancelamento de limpeza não requer motivo — basta confirmar a ação no modal. O sistema registra automaticamente quem cancelou e o horário. O apto retorna ao status anterior (normalmente <span class="badge b-sujo">Sujo</span>).</p>
+    </div>
+
+    <div class="card">
+      <h4>A camareira não está recebendo som/notificação. O que verificar?</h4>
+      <p>1. Verifique se o navegador concedeu permissão de notificação (o sistema solicita ao fazer login). 2. No iPhone/iPad: o app precisa estar instalado na tela inicial como PWA — notificações não funcionam no Safari comum. 3. Certifique-se de que o volume do dispositivo está ativado. 4. No iOS, verifique se as notificações do app não estão bloqueadas nas configurações do sistema.</p>
     </div>
 
     <div class="card">
@@ -1598,7 +1674,7 @@
 
     <div class="card">
       <h4>Ao criar um novo hotel, preciso configurar tudo do zero?</h4>
-      <p>Não. Ao salvar um novo hotel, o sistema replica automaticamente todas as configurações do <strong>Hotel Gran Estanplaza</strong> — turnos, tipos de chamado, checklists, motivos de pausa, motivos de cancelamento, motivos de reprovação, tipos de limpeza, solicitantes, checklist da supervisora e parâmetros de tempo. O novo hotel já começa com uma base completa que pode ser ajustada conforme necessário.</p>
+      <p>Não. Ao salvar um novo hotel, o sistema replica automaticamente todas as configurações do <strong>Hotel Gran Estanplaza</strong> — turnos, tipos de chamado, checklists, motivos de pausa, motivos de reprovação, tipos de limpeza, solicitantes, checklist da supervisora e parâmetros de tempo. O novo hotel já começa com uma base completa que pode ser ajustada conforme necessário.</p>
     </div>
 
     <div class="card">
@@ -1613,7 +1689,7 @@
   </section>
 
   <div style="text-align:center;padding:32px 0;color:var(--text3);font-size:12px;border-top:1px solid var(--border);">
-    Gov Estancorp · Manual de Uso · Versão 2026.06.17c · Sistema de Governança Hoteleira
+    Gov Estancorp · Manual de Uso · Versão 2026.06.19 · Sistema de Governança Hoteleira
   </div>
 
 </main>

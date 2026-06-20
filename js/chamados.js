@@ -150,7 +150,7 @@ async function _fetchChamados() {
       solicitante, hospede, descricao, prazo, created_at, criado_por,
       departamento, responsavel_user_id,
       hotel_id, hotels(nome),
-      apartment_id, apartments(numero, status_apto, status_governanca_manual)
+      apartment_id, apartments(numero, leitos, status_apto, status_governanca_manual)
     `)
     .order('created_at', { ascending: false });
 
@@ -197,6 +197,7 @@ async function _fetchChamados() {
     hotel_id:            c.hotel_id,
     hotelNome:           c.hotels?.nome || null,
     apartment_id:        c.apartment_id,
+    leitos:              c.apartments?.leitos || null,
     status_apto:         c.apartments?.status_apto || null,
     status_gov:          c.apartments?.status_governanca_manual || null,
     created_at:          c.created_at,
@@ -785,8 +786,25 @@ function renderChamados() {
               ${dispBadge}
             </div>
             <div style="font-size:12px;color:var(--text2);">
-              Apto ${c.apto}${c.hospede ? ` · ${c.hospede}` : ''}${c.camareira ? ` · ${c.departamento === 'manutencao' ? '🔧' : '🧹'} ${c.camareira}` : ' · Sem responsável'}
+              Apto ${c.apto}${c.leitos ? ` · ${c.leitos}🛏` : ''}${c.hospede ? ` · ${c.hospede}` : ''}${c.camareira ? ` · ${c.departamento === 'manutencao' ? '🔧' : '🧹'} ${c.camareira}` : ' · Sem responsável'}
             </div>
+            ${(() => {
+              const aptoOpcoes = typeof _statusAptoOpcoes !== 'undefined' ? _statusAptoOpcoes : [];
+              const govOpcoes  = typeof _statusGovOpcoes  !== 'undefined' ? _statusGovOpcoes  : [];
+              const bApto = (() => {
+                if (!c.status_apto) return '';
+                const op = aptoOpcoes.find(o => o.nome === c.status_apto);
+                const cor = op?.cor || '#6b7280';
+                return `<span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;background:${cor}22;color:${cor};border:1px solid ${cor}55;white-space:nowrap;">🏠 ${c.status_apto}</span>`;
+              })();
+              const bGov = (() => {
+                if (!c.status_gov) return '';
+                const op = govOpcoes.find(o => o.nome === c.status_gov);
+                const cor = op?.cor || '#6b7280';
+                return `<span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;background:${cor}22;color:${cor};border:1px solid ${cor}55;white-space:nowrap;">🏛 ${c.status_gov}</span>`;
+              })();
+              return (bApto || bGov) ? `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;">${bApto}${bGov}</div>` : '';
+            })()}
             ${c.categoria ? `<div style="font-size:11px;color:var(--text3);margin-top:2px;">📁 ${c.categoria}</div>` : ''}
             ${c.desc ? `<div style="font-size:12px;color:var(--text3);margin-top:4px;">${c.desc.substring(0,80)}${c.desc.length>80?'…':''}</div>` : ''}
           </div>

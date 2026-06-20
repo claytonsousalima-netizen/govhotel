@@ -1,0 +1,1 @@
+SELECT tablename, policyname, cmd FROM pg_policies WHERE tablename IN ('apto_tipos','apto_categorias','tipos_limpeza','chamado_tipos','checklist_templates','solicitantes','motivos_reprovacao','motivos_pausa','motivos_cancelamento','supervisora_checklist_items','hotel_config','turnos') ORDER BY tablename, cmd;

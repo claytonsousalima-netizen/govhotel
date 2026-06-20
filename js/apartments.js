@@ -2269,9 +2269,11 @@ function renderAptoKanban() {
             ${a.numero}
             ${temChamado ? '<span style="font-size:10px;color:var(--danger);" title="Chamado aberto">📋</span>' : ''}
           </div>
-          <div class="kanban-detail">${a.tipo} · ${a.andar}º andar</div>
+          <div class="kanban-detail">${a.tipo}${a.leitos ? ` · ${a.leitos}🛏` : ''} · ${a.andar}º andar</div>
           ${_kbAptoLine}
-          ${cam ? `<div style="font-size:11px;color:var(--text3);margin-top:4px;">👤 ${cam.nome}</div>` : ''}
+          ${cam
+            ? `<div style="font-size:11px;color:var(--text3);margin-top:4px;">👤 ${cam.nome}</div>`
+            : `<div style="font-size:11px;color:#dc2626;font-weight:600;margin-top:4px;">👤 Sem responsável</div>`}
           ${a.prioridade ? '<div style="font-size:10px;font-weight:700;color:var(--danger);margin-top:2px;">⚠️ PRIORIDADE</div>' : ''}
         </div>`;
       }).join('') || `<div style="font-size:12px;color:var(--text3);text-align:center;padding:12px;">—</div>`}
