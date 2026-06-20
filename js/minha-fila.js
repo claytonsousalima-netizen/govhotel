@@ -135,7 +135,7 @@ function _mfRenderCamareira(el) {
         <div>
           <div style="font-size:22px;font-weight:800;color:${corTexto};line-height:1;">${a.numero}</div>
           <div style="font-size:12px;color:var(--text2);margin-top:3px;">
-            ${a.tipo} &nbsp;·&nbsp; ${a.andar}º andar &nbsp;·&nbsp; ${a.leitos} leito${a.leitos !== 1 ? 's' : ''}
+            ${a.tipo} &nbsp;·&nbsp; ${a.andar}º andar &nbsp;·&nbsp; ${a.leitos}🛏
           </div>
           ${_camLineCam(a)}
           ${_mfAptoBlock(a)}
@@ -180,7 +180,7 @@ function _mfRenderCamareira(el) {
         <div>
           <div style="font-size:22px;font-weight:800;color:#1d4ed8;line-height:1;">${a.numero}</div>
           <div style="font-size:12px;color:var(--text2);margin-top:3px;">
-            ${a.tipo} &nbsp;·&nbsp; ${a.andar}º andar &nbsp;·&nbsp; ${a.leitos} leito${a.leitos !== 1 ? 's' : ''}
+            ${a.tipo} &nbsp;·&nbsp; ${a.andar}º andar &nbsp;·&nbsp; ${a.leitos}🛏
           </div>
           ${_camLineCam(a)}
           ${_mfAptoBlock(a)}
