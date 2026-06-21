@@ -422,7 +422,8 @@ tr:last-child td { border-bottom: none; }
   /* Espaçamento geral */
   .content { padding: 12px; }
   .topbar { padding: 0 12px; }
-  .topbar-right { gap: 20px; }
+  .topbar-right { flex-direction: column; align-items: flex-end; gap: 2px; }
+  .topbar-date { font-size: 11px; line-height: 1.2; }
 
   /* Touch targets — mínimo 40px de altura */
   .btn-sm { padding: 9px 12px; font-size: 12px; min-height: 40px; }
@@ -3070,6 +3071,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 <script src="js/config.js?v=20260619af"></script>
 <script src="js/dashboard.js?v=20260619g"></script>
 <script src="js/relatorios.js?v=20260619z"></script>
-<script src="js/minha-fila.js?v=20260620c"></script>
+<script src="js/minha-fila.js?v=20260620d"></script>
 </body>
 </html>

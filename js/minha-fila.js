@@ -203,7 +203,7 @@ function _mfRenderCamareira(el) {
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px;">
         <div>
           <div style="font-size:22px;font-weight:800;line-height:1;">${a.numero}</div>
-          <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} &nbsp;·&nbsp; ${a.andar}º andar</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo}${a.leitos ? ` · ${a.leitos}🛏` : ''} &nbsp;·&nbsp; ${a.andar}º andar</div>
           ${_camLineCam(a)}
           ${_mfAptoBlock(a)}
         </div>
@@ -289,7 +289,7 @@ function _mfRenderGestor(el) {
   const _aptoInfo = a => `
     <div>
       <div style="font-size:22px;font-weight:800;line-height:1;">${a.numero}</div>
-      <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo} · ${a.andar}º andar</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:3px;">${a.tipo}${a.leitos ? ` · ${a.leitos}🛏` : ''} · ${a.andar}º andar</div>
       ${_camLine(a)}
       ${_mfAptoBlock(a)}
     </div>`;
