@@ -2562,3 +2562,64 @@ async function solicitarPermissaoNotificacao() {
     await Notification.requestPermission();
   }
 }
+
+// ── MODAL BLOQUEANTE DE ALERTAS ───────────────────────────────
+const _alertaFila = [];
+let _alertaAberto = false;
+let _alertaSomInterval = null;
+
+function _alertaTocarLoop(urgente) {
+  _alertaSomInterval && clearInterval(_alertaSomInterval);
+  _tocarSomNotif(urgente);
+  _alertaSomInterval = setInterval(() => _tocarSomNotif(urgente), urgente ? 4000 : 6000);
+}
+
+function _alertaPararLoop() {
+  if (_alertaSomInterval) { clearInterval(_alertaSomInterval); _alertaSomInterval = null; }
+}
+
+function _mostrarProximoAlerta() {
+  if (_alertaAberto || !_alertaFila.length) return;
+  const { icon, titulo, corpo, urgente } = _alertaFila.shift();
+  _alertaAberto = true;
+
+  document.getElementById('alerta-notif-icon').textContent   = icon;
+  document.getElementById('alerta-notif-titulo').textContent = titulo;
+  document.getElementById('alerta-notif-corpo').textContent  = corpo;
+
+  const filaEl = document.getElementById('alerta-notif-fila');
+  if (_alertaFila.length > 0) {
+    filaEl.textContent = `+${_alertaFila.length} aviso(s) aguardando`;
+    filaEl.style.display = 'block';
+  } else {
+    filaEl.style.display = 'none';
+  }
+
+  document.getElementById('modal-alerta-notif').classList.add('open');
+  _alertaTocarLoop(urgente);
+  _webNotif(titulo, corpo, urgente);
+}
+
+function _fecharAlertaNotif() {
+  _alertaPararLoop();
+  document.getElementById('modal-alerta-notif').classList.remove('open');
+  _alertaAberto = false;
+  setTimeout(_mostrarProximoAlerta, 300);
+}
+
+function _enfileirarAlerta(icon, titulo, corpo, urgente) {
+  _alertaFila.push({ icon, titulo, corpo, urgente });
+  _mostrarProximoAlerta();
+}
+
+// Exibida quando um apto sujo é atribuído à camareira logada
+function _showAptosSujosAtribuidos(lista) {
+  const nomes = lista.map(a => `Apto ${a.numero}`).join('\n');
+  _enfileirarAlerta('🧹', 'Novo(s) apto(s) para arrumar', nomes, false);
+}
+
+// Exibida quando um apto é reprovado na inspeção e retorna para a camareira
+function _showAptosReprovadosAtribuidos(lista) {
+  const nomes = lista.map(a => `Apto ${a.numero}`).join('\n');
+  _enfileirarAlerta('⚠️', 'Apto reprovado — refazer limpeza', nomes, true);
+}

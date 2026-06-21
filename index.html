@@ -2166,11 +2166,24 @@ tr:last-child td { border-bottom: none; }
   </div>
 </div>
 
+<!-- MODAL ALERTA BLOQUEANTE (chamados / aptos sujos / reprovados) -->
+<div class="modal-overlay" id="modal-alerta-notif" data-obrigatorio="1" style="z-index:2000;">
+  <div class="modal" style="max-width:360px;text-align:center;">
+    <div class="modal-body" style="padding:36px 28px 28px;">
+      <div id="alerta-notif-icon" style="font-size:52px;line-height:1;margin-bottom:14px;"></div>
+      <div id="alerta-notif-titulo" style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:10px;"></div>
+      <div id="alerta-notif-corpo" style="color:var(--text-muted);font-size:14px;white-space:pre-line;margin-bottom:28px;line-height:1.5;"></div>
+      <div id="alerta-notif-fila" style="font-size:12px;color:var(--text-muted);margin-bottom:16px;display:none;"></div>
+      <button class="btn btn-primary" style="min-width:160px;font-size:15px;padding:12px 24px;" onclick="_fecharAlertaNotif()">OK — Ciente</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast-msg"></div>
 
 <script src="js/supabase-client.js?v=20260613p"></script>
-<script src="js/auth.js?v=20260615a"></script>
+<script src="js/auth.js?v=20260621e"></script>
 <script>
 // ============ STATE ============
 let currentPage = 'dashboard';
@@ -3113,11 +3126,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <script src="js/hotels.js?v=20260619g"></script>
-<script src="js/apartments.js?v=20260621a"></script>
+<script src="js/apartments.js?v=20260621f"></script>
 <script src="js/maids.js?v=20260619g"></script>
 <script src="js/users.js?v=20260619g"></script>
 <script src="js/permissions.js?v=20260619g"></script>
-<script src="js/chamados.js?v=20260621b"></script>
+<script src="js/chamados.js?v=20260621g"></script>
 <script src="js/config.js?v=20260621c"></script>
 <script src="js/dashboard.js?v=20260621d"></script>
 <script src="js/relatorios.js?v=20260620l"></script>

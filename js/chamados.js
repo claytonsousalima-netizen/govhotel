@@ -984,6 +984,19 @@ function stopRealtimeChamados() {
   _chamadosResponsavelMap.clear();
 }
 
+// Notificação bloqueante de novo chamado ou atribuição
+function _showNovoChamadoNotif(c, tipo) {
+  const aptoLabel = c.apto ? `Apto ${c.apto}` : '';
+  const titulo    = tipo === 'atribuido' ? 'Chamado atribuído a você' : 'Novo chamado';
+  const partes    = [aptoLabel, c.categoria, c.descricao].filter(Boolean);
+  const corpo     = partes.join('\n');
+  const urgente   = tipo === 'atribuido';
+  const icon      = tipo === 'atribuido' ? '🔧' : '🔔';
+  if (typeof _enfileirarAlerta === 'function') {
+    _enfileirarAlerta(icon, titulo, corpo, urgente);
+  }
+}
+
 // ── INICIALIZAR CHAMADOS ─────────────────────────────────────
 async function _initChamados() {
   await _loadTiposChamado();

@@ -76,6 +76,12 @@ async function loadSessionUser(authUser) {
 
   startApp();
 
+  // Solicita permissão de notificação do navegador para perfis operacionais
+  const _perfisNotif = ['camareira', 'manutencao', 'supervisora', 'gestor', 'admin'];
+  if (_perfisNotif.includes(profile.perfil) && typeof solicitarPermissaoNotificacao === 'function') {
+    solicitarPermissaoNotificacao();
+  }
+
   // Primeiro acesso: força troca de senha
   if (authUser.user_metadata?.force_password_change) {
     setTimeout(() => _abrirTrocaSenhaObrigatoria(), 300);
