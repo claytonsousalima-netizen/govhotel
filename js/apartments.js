@@ -1523,10 +1523,10 @@ async function abrirChecklistApp(id) {
   const apto = aptos.find(a => a.id === id);
   if (!apto) return;
   const titulo = apto.status === 'limpando'
-    ? `Concluir limpeza — Apto ${apto.numero}`
+    ? `Concluir arrumação — Apto ${apto.numero}`
     : apto.status === 'reprovado'
-    ? `Re-limpeza — Apto ${apto.numero}`
-    : `Limpeza — Apto ${apto.numero}`;
+    ? `Re-arrumação — Apto ${apto.numero}`
+    : `Arrumação — Apto ${apto.numero}`;
   document.getElementById('checklist-title').textContent = titulo;
   const hotelId = currentUser?.hotelId;
   let q = supabaseClient.from('checklist_templates').select('nome').eq('ativo', true).order('ordem');

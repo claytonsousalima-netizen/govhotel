@@ -621,7 +621,7 @@ function _relAbaGargalos(el) {
   el.innerHTML = `
     <div class="stats-grid" style="margin-bottom:16px;">
       ${_relCard('Sujos sem camareira', sujosSemCam.length, '','s-red')}
-      ${_relCard('Em limpeza', emLimpando.length, '','s-blue')}
+      ${_relCard('Em Arrumação', emLimpando.length, '','s-blue')}
       ${_relCard('Pausados', pausados.length, '','s-orange')}
       ${_relCard('Aguardando inspeção', emConf.length, '','s-purple')}
       ${_relCard('Reprovados', reprovados.length, '','s-red')}
@@ -1181,7 +1181,7 @@ function _relAbaTimeline(el) {
     if (f.camareira && h.alterado_por!==f.camareira) return;
     if (f.dtIni && h.created_at.slice(0,10)<f.dtIni) return;
     if (f.dtFim && h.created_at.slice(0,10)>f.dtFim) return;
-    const ev = h.status_novo==='limpando'?'Início limpeza'
+    const ev = h.status_novo==='limpando'?'Início arrumação'
       : h.status_novo==='pausado'?'Pausa'
       : h.status_novo==='conferencia'?'Aguardando inspeção'
       : h.status_novo==='limpo'?'Concluído (limpo)'
