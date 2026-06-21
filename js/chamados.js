@@ -786,7 +786,7 @@ function renderChamados() {
               ${dispBadge}
             </div>
             <div style="font-size:12px;color:var(--text2);">
-              Apto ${c.apto}${c.leitos ? ` · ${c.leitos}🛏` : ''}${c.hospede ? ` · ${c.hospede}` : ''}${c.camareira ? ` · ${c.departamento === 'manutencao' ? '🔧' : '🧹'} ${c.camareira}` : ' · Sem responsável'}
+              Apto ${c.apto}${c.leitos ? ` · ${c.leitos}🛏` : ''}${c.hospede ? ` · ${c.hospede}` : ''}${c.camareira ? ` · ${c.departamento === 'manutencao' ? '🔧' : '🧹'} ${c.camareira}` : ' · <span style="color:#dc2626;font-weight:700;">👤 Sem responsável</span>'}
             </div>
             ${(() => {
               const aptoOpcoes = typeof _statusAptoOpcoes !== 'undefined' ? _statusAptoOpcoes : [];
