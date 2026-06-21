@@ -94,10 +94,12 @@ async function _carregarDashboard(hotelId) {
       .not('status', 'in', '("resolvido","concluido","cancelado")')
       .not('prazo', 'is', null)
       .lt('prazo', agora),
-    // retrabalhos em aberto (status aberta/aberto/null)
-    supabaseClient.from('pendencias_retrabalho').select('id', { count: 'exact', head: true })
+    // retrabalhos em aberto — dados completos para detalhe
+    supabaseClient.from('pendencias_retrabalho')
+      .select('id, apartment_id, motivo, obs, status, created_at, apartments(numero, tipo, andar, leitos)')
       .eq('hotel_id', hotelId)
-      .or('status.eq.aberta,status.eq.aberto,status.is.null'),
+      .or('status.eq.aberta,status.eq.aberto,status.is.null')
+      .order('created_at', { ascending: false }),
   ]);
 
   const aptosArr   = aptosRes.data   || [];
@@ -120,7 +122,8 @@ async function _carregarDashboard(hotelId) {
 
   const govAbertos   = govAbertosRes.count  ?? 0;
   const govAtrasados = govAtrasadosRes.count ?? 0;
-  const retrabalhos  = retrabalhoRes.count  ?? 0;
+  const retrabArr    = retrabalhoRes.data   || [];
+  const retrabalhos  = retrabArr.length;
 
   // Stats grid — linha 1: composição dos aptos | linha 2: outros indicadores
   document.getElementById('stats-grid').innerHTML = `
@@ -282,6 +285,38 @@ async function _carregarDashboard(hotelId) {
         </div>
       </div>`;
   }).join('') || '<p style="font-size:13px;color:var(--text3);">Nenhuma atividade recente.</p>';
+
+  // Retrabalhos em aberto — detalhe
+  const retEl = document.getElementById('dash-retrabalhos');
+  if (retEl) {
+    if (!retrabArr.length) {
+      retEl.innerHTML = '';
+    } else {
+      const rows = retrabArr.map(r => {
+        const ap = r.apartments;
+        const aptoInfo = ap
+          ? `Apto ${ap.numero}${ap.leitos ? ` · ${ap.leitos}🛏` : ''} · ${ap.andar}º andar`
+          : '—';
+        const dias = r.created_at
+          ? Math.floor((Date.now() - new Date(r.created_at)) / 86400000) : null;
+        return `
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+                      padding:10px 0;border-bottom:1px solid var(--border);">
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:13px;font-weight:700;">${aptoInfo}</div>
+              ${r.motivo ? `<div style="font-size:12px;color:var(--text2);margin-top:2px;">🔁 ${r.motivo}</div>` : ''}
+              ${r.obs    ? `<div style="font-size:11px;color:var(--text3);margin-top:2px;">${r.obs}</div>` : ''}
+            </div>
+            ${dias !== null ? `<span style="font-size:11px;color:#c0392b;font-weight:700;white-space:nowrap;">${dias}d</span>` : ''}
+          </div>`;
+      }).join('');
+      retEl.innerHTML = `
+        <div class="card" style="margin-top:16px;padding:16px 18px;">
+          <div class="card-title" style="margin-bottom:12px;">🔁 Retrabalhos em aberto (${retrabArr.length})</div>
+          ${rows}
+        </div>`;
+    }
+  }
 }
 
 function refreshDash() { renderDashboard(); toast('Dashboard atualizado'); }

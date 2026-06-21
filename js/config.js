@@ -71,6 +71,7 @@ async function _recarregarTodasSections() {
     renderConfigMotivos(),
     renderConfigChecklist(),
     renderConfigMotivosPausa(),
+    renderConfigMotivosCancelamento(),
     renderConfigStatusApto(),
     renderConfigStatusGov(),
     (typeof renderConfigAptoTiposCats === 'function' ? renderConfigAptoTiposCats() : Promise.resolve()),
@@ -903,6 +904,86 @@ async function _delMotivosPausa(id) {
   toast('Excluído!', 'success'); await renderConfigMotivosPausa();
 }
 
+
+// ── MOTIVOS CANCELAMENTO CHAMADO ─────────────────────────────
+let _motivosCancelCache = [];
+
+async function renderConfigMotivosCancelamento() {
+  const el = document.getElementById('config-motivos-cancelamento');
+  if (!el) return;
+  const hotelId = _cfgHotelId();
+  let q = supabaseClient.from('motivos_cancelamento').select('*').order('ordem');
+  if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
+  const { data, error } = await q;
+  if (error) { el.innerHTML = `<div style="color:var(--danger);font-size:12px;">Erro: ${error.message}</div>`; return; }
+  _motivosCancelCache = data || [];
+  el.innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+      <input type="text" id="new-mcancel-nome" placeholder="Novo motivo de cancelamento..."
+        style="flex:1;min-width:180px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;"
+        onkeydown="if(event.key==='Enter') _addMotivosCancel()">
+      <button class="btn btn-primary btn-sm" onclick="_addMotivosCancel()">+ Adicionar</button>
+    </div>
+    <div id="mcancel-lista">${_motivosCancelCache.map(m => _rowMotivosCancel(m)).join('')}</div>`;
+}
+
+function _rowMotivosCancel(m) {
+  return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);gap:8px;" id="mcancel-row-${m.id}">
+    <div style="display:flex;align-items:center;gap:8px;flex:1;">
+      <span style="font-size:12px;color:var(--text3);">${m.hotel_id?'🏨':'🌐'}</span>
+      <span style="font-size:13px;${!m.ativo?'text-decoration:line-through;color:var(--text3);':''}" id="mcancel-text-${m.id}">${m.nome}</span>
+      ${!m.ativo?'<span class="badge badge-bloqueado" style="font-size:10px;">Inativo</span>':''}
+    </div>
+    <div id="mcancel-edit-${m.id}" style="display:none;flex:1;">
+      <input type="text" id="mcancel-input-${m.id}" value="${m.nome}"
+        style="width:100%;padding:5px 8px;border:1.5px solid var(--primary-light);border-radius:var(--radius-sm);font-size:13px;"
+        onkeydown="if(event.key==='Enter') _saveMotivosCancel('${m.id}')">
+    </div>
+    <div style="display:flex;gap:4px;flex-shrink:0;">
+      <button class="btn btn-ghost btn-xs" id="mcancel-btn-edit-${m.id}" onclick="_editMotivosCancel('${m.id}')" title="Editar">✏️</button>
+      <button class="btn btn-ghost btn-xs" id="mcancel-btn-save-${m.id}" style="display:none;" onclick="_saveMotivosCancel('${m.id}')" title="Salvar">💾</button>
+      <button class="btn btn-ghost btn-xs" id="mcancel-btn-cancel-${m.id}" style="display:none;" onclick="renderConfigMotivosCancelamento()" title="Cancelar">✕</button>
+      <button class="btn btn-ghost btn-xs" onclick="_toggleMotivosCancel('${m.id}',${m.ativo})" title="${m.ativo?'Inativar':'Ativar'}">${m.ativo?'⏸':'▶'}</button>
+      ${m.hotel_id?`<button class="btn btn-ghost btn-xs" style="color:var(--danger);" onclick="_delMotivosCancel('${m.id}')" title="Excluir">🗑</button>`:''}
+    </div>
+  </div>`;
+}
+function _editMotivosCancel(id) {
+  document.getElementById(`mcancel-text-${id}`).parentElement.style.display = 'none';
+  document.getElementById(`mcancel-edit-${id}`).style.display = 'block';
+  document.getElementById(`mcancel-btn-edit-${id}`).style.display = 'none';
+  document.getElementById(`mcancel-btn-save-${id}`).style.display = '';
+  document.getElementById(`mcancel-btn-cancel-${id}`).style.display = '';
+  document.getElementById(`mcancel-input-${id}`)?.focus();
+}
+async function _saveMotivosCancel(id) {
+  const nome = document.getElementById(`mcancel-input-${id}`)?.value.trim();
+  if (!nome) { toast('Informe o motivo', 'error'); return; }
+  const { error } = await supabaseClient.from('motivos_cancelamento').update({ nome }).eq('id', id);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  toast('Salvo!', 'success'); await renderConfigMotivosCancelamento();
+}
+async function _addMotivosCancel() {
+  const input = document.getElementById('new-mcancel-nome');
+  const nome  = input?.value.trim();
+  if (!nome) { toast('Informe o motivo', 'error'); return; }
+  if (_cfgBlocked()) { toast('Selecione um hotel para editar configurações', 'error'); return; }
+  const hotel_id = _cfgHotelId();
+  const { error } = await supabaseClient.from('motivos_cancelamento')
+    .insert([{ nome, hotel_id, ativo: true, ordem: (_motivosCancelCache.length || 0) + 1 }]);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  if (input) input.value = '';
+  toast('Adicionado!', 'success'); await renderConfigMotivosCancelamento();
+}
+async function _toggleMotivosCancel(id, ativo) {
+  await supabaseClient.from('motivos_cancelamento').update({ ativo: !ativo }).eq('id', id);
+  await renderConfigMotivosCancelamento();
+}
+async function _delMotivosCancel(id) {
+  if (!confirm('Excluir este motivo de cancelamento?')) return;
+  await supabaseClient.from('motivos_cancelamento').delete().eq('id', id);
+  toast('Excluído!', 'success'); await renderConfigMotivosCancelamento();
+}
 
 // ── STATUS APTO ──────────────────────────────────────────────
 let _statusAptoCache = [];

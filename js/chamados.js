@@ -514,6 +514,62 @@ async function atualizarStatusChamado(id, novoStatus) {
   }
 }
 
+// ── CANCELAMENTO DE CHAMADO COM MOTIVO ───────────────────────
+let _cancelChamadoId = null;
+
+async function abrirModalCancelarChamado(id) {
+  _cancelChamadoId = id;
+  const sel   = document.getElementById('cancel-chamado-motivo');
+  const obsEl = document.getElementById('cancel-chamado-obs');
+  if (obsEl) obsEl.value = '';
+  if (sel) {
+    sel.innerHTML = '<option value="">Carregando...</option>';
+    const hotelId = currentUser?.hotelId;
+    let q = supabaseClient.from('motivos_cancelamento').select('id, nome').eq('ativo', true).order('ordem');
+    if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
+    const { data } = await q;
+    sel.innerHTML = '<option value="">Selecione o motivo *</option>' +
+      (data || []).map(m => `<option value="${m.nome}">${m.nome}</option>`).join('');
+  }
+  _onCancelChamadoMotivoChange();
+  openModal('modal-cancelar-chamado');
+}
+
+function _onCancelChamadoMotivoChange() {
+  const motivo = (document.getElementById('cancel-chamado-motivo')?.value || '').toLowerCase().trim();
+  const label  = document.getElementById('cancel-chamado-obs-label');
+  if (label) label.textContent = motivo === 'outro'
+    ? 'Observação *' : 'Observação (obrigatória para "Outro")';
+}
+
+async function confirmarCancelarChamado() {
+  const motivo = document.getElementById('cancel-chamado-motivo')?.value || '';
+  const obs    = (document.getElementById('cancel-chamado-obs')?.value || '').trim();
+  if (!motivo) { toast('Selecione o motivo do cancelamento', 'error'); return; }
+  if (motivo.toLowerCase().trim() === 'outro' && !obs) {
+    toast('Para o motivo "Outro", a observação é obrigatória', 'error'); return;
+  }
+  closeModal('modal-cancelar-chamado');
+  const id = _cancelChamadoId;
+  _cancelChamadoId = null;
+
+  const c = _chamadosCache.find(x => x.id === id);
+  if (!c) return;
+  const { error } = await supabaseClient.from('work_orders')
+    .update({ status: 'cancelado', resolved_at: new Date().toISOString(), resolved_by: currentUser.id })
+    .eq('id', id);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+
+  const texto = `Cancelado por ${currentUser.nome}. Motivo: ${motivo}${obs ? ' — ' + obs : ''}`;
+  await _gravarHistorico(id, c.hotel_id, 'cancelamento', texto);
+  c.status = 'cancelado';
+  chamados = _chamadosCache;
+  renderChamados();
+  renderKanban();
+  if (_chamadoDetalheId === id) { _renderDetalheConteudo(c); await _carregarHistoricoChamado(id); }
+  toast('Chamado cancelado', 'success');
+}
+
 // ── ABRIR DETALHE DO CHAMADO ──────────────────────────────────
 async function abrirDetalheChamado(id) {
   _chamadoDetalheId = id;
@@ -604,7 +660,10 @@ function _renderDetalheConteudo(c) {
             : ns === 'resolvido' || ns === 'concluido' ? 'btn-success'
             : ns === 'reaberto' ? 'btn-danger'
             : 'btn-primary';
-          return `<button class="btn ${cls} btn-sm" onclick="atualizarStatusChamado('${c.id}','${ns}')">→ ${sl}</button>`;
+          const fn = ns === 'cancelado'
+            ? `abrirModalCancelarChamado('${c.id}')`
+            : `atualizarStatusChamado('${c.id}','${ns}')`;
+          return `<button class="btn ${cls} btn-sm" onclick="${fn}">→ ${sl}</button>`;
         }).join('');
         elAcoes.innerHTML = `
           <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">Ações</div>

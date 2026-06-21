@@ -1039,6 +1039,12 @@ async function cancelarLimpeza() {
   await mudarStatusApto(selectedAptoId, 'sujo', texto);
 }
 
+function _onPausaMotivoChange() {
+  const motivo = (document.getElementById('pausa-motivo')?.value || '').toLowerCase().trim();
+  const label  = document.getElementById('pausa-obs-label');
+  if (label) label.textContent = motivo === 'outro' ? 'Observação *' : 'Observação adicional (opcional)';
+}
+
 async function abrirModalPausa(id) {
   selectedAptoId = id;
   const sel = document.getElementById('pausa-motivo');
@@ -1068,6 +1074,9 @@ async function pausarLimpeza() {
   const motivo = document.getElementById('pausa-motivo')?.value || '';
   const obs    = (document.getElementById('pausa-obs')?.value || '').trim();
   if (!motivo) { toast('Selecione o motivo da pausa', 'error'); return; }
+  if (motivo.toLowerCase().trim() === 'outro' && !obs) {
+    toast('Para o motivo "Outro", a observação é obrigatória', 'error'); return;
+  }
   closeModal('modal-pausar-limpeza');
   const texto = `Pausado por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}: ${motivo}${obs ? ' — ' + obs : ''}`;
   await mudarStatusApto(selectedAptoId, 'pausado', texto);
