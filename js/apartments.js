@@ -124,7 +124,7 @@ async function _limparLimpandoOrfaos() {
       `Limpeza encerrada automaticamente — processo não concluído (inativo há mais de 2h)`
     );
   }
-  toast(`${orfaos.length} apto(s) em limpeza sem processo ativo foram revertidos para Sujo`, 'warning');
+  toast(`${orfaos.length} apto(s) em arrumação sem processo ativo foram revertidos para Sujo`, 'warning');
 }
 
 // ── POPULAR SELECT DE CAMAREIRA (de user_profiles) ───────────
@@ -1077,7 +1077,7 @@ async function concluirLimpeza() {
   const apto = aptos.find(a => a.id === selectedAptoId);
   if (!apto) return;
   if (apto.status !== 'limpando') {
-    toast('Conclusão só é permitida com apartamento Em limpeza. Retome antes de concluir.', 'error'); return;
+    toast('Conclusão só é permitida com apartamento Em arrumação. Retome antes de concluir.', 'error'); return;
   }
   const _PERFIS_CHECKLIST_LIMPEZA = ['camareira','admin_global','admin_hotel','gestor','supervisora','governanta'];
   if (_PERFIS_CHECKLIST_LIMPEZA.includes(currentUser?.perfil)) {
@@ -1321,7 +1321,7 @@ async function renderAppCamareira() {
   document.getElementById('app-aptos-count').textContent = `${todos.length} aptos no hotel`;
 
   const LABEL = {
-    livre:'Vago', sujo:'Sujo', limpando:'Em limpeza', pausado:'Pausado',
+    livre:'Vago', sujo:'Sujo', limpando:'Em Arrumação', pausado:'Pausado',
     conferencia:'Ag. Inspeção', limpo:'Limpo', reprovado:'Reprovado',
     bloqueado:'Bloqueado', ocupado:'Ocupado', manutencao:'Manutenção'
   };
@@ -1352,7 +1352,7 @@ async function renderAppCamareira() {
   const grupos = [
     { key:'reprovado',  label:'Re-limpeza necessária', icon:'❌', color:'#e74c3c', badge:'badge-reprovado' },
     { key:'pausado',    label:'Pausados — retomar',     icon:'⏸', color:'#f39c12', badge:'badge-pausado'   },
-    { key:'limpando',   label:'Em andamento',            icon:'🧹', color:'#2e86c1', badge:'badge-limpando'  },
+    { key:'limpando',   label:'Em Arrumação',             icon:'🧹', color:'#2e86c1', badge:'badge-limpando'  },
     { key:'sujo',       label:'Para limpar',             icon:'🟠', color:'#e67e22', badge:'badge-sujo'      },
     { key:'conferencia',label:'Aguardando inspeção',      icon:'🔍', color:'#8e44ad', badge:'badge-conferencia'},
     { key:'limpo',      label:'Limpos',                  icon:'✨', color:'#27ae60', badge:'badge-limpo'     },
@@ -1611,7 +1611,7 @@ function _badgeStatusApto(apto) {
 }
 
 function _badgeStatusGov(apto) {
-  const _OP = { limpando:'🧹 Limpando', pausado:'⏸ Pausado', conferencia:'🔍 Aguard. conf.', reprovado:'❌ Reprovado' };
+  const _OP = { limpando:'🧹 Arrumação', pausado:'⏸ Pausado', conferencia:'🔍 Ag. Inspeção', reprovado:'❌ Reprovado' };
   if (_OP[apto.status]) return `<span style="display:inline-block;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;background:#dbeafe;color:#1d4ed8;border:1px solid #93c5fd;white-space:nowrap;">${_OP[apto.status]}</span>`;
   if (!apto.status_gov) return '';
   const op  = _statusGovOpcoes.find(o => o.nome === apto.status_gov);
@@ -2124,7 +2124,7 @@ function renderMapa() {
 
       // Status Gov — bloco destacado (full-width) no card
       const _bGovCard = (() => {
-        const _OP = { limpando:'🧹 Limpando', pausado:'⏸ Pausado', conferencia:'🔍 Ag. Inspeção', reprovado:'❌ Reprovado' };
+        const _OP = { limpando:'🧹 Arrumação', pausado:'⏸ Pausado', conferencia:'🔍 Ag. Inspeção', reprovado:'❌ Reprovado' };
         if (_OP[a.status]) return `<div style="font-size:10px;font-weight:700;padding:3px 6px;border-radius:6px;background:#dbeafe;color:#1d4ed8;text-align:center;margin-top:5px;">${_OP[a.status]}</div>`;
         if (!a.status_gov) return '';
         const op = _statusGovOpcoes.find(o => o.nome === a.status_gov);
@@ -2228,7 +2228,7 @@ function renderAptoKanban() {
   // (chamados abertos existem em aptos ocupados, livres, bloqueados, etc.)
   const colsLimpeza = [
     { key:'sujo',        label:'Sujo',          color:'#e67e22' },
-    { key:'limpando',    label:'Em limpeza',     color:'#2e86c1' },
+    { key:'limpando',    label:'Em Arrumação',   color:'#2e86c1' },
     { key:'pausado',     label:'Pausado',        color:'#f39c12' },
     { key:'conferencia', label:'Ag. Inspeção',   color:'#8e44ad' },
     { key:'limpo',       label:'Limpo',          color:'#1abc9c' },

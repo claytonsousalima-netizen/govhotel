@@ -726,7 +726,7 @@ tr:last-child td { border-bottom: none; }
         <div class="filters" id="mapa-filters">
           <button class="filter-btn active" onclick="filterMapa('todos',this)">Todos</button>
           <button class="filter-btn" onclick="filterMapa('sujo',this)">🟠 Sujo</button>
-          <button class="filter-btn" onclick="filterMapa('limpando',this)">🔵 Em limpeza</button>
+          <button class="filter-btn" onclick="filterMapa('limpando',this)">🔵 Em Arrumação</button>
           <button class="filter-btn" onclick="filterMapa('pausado',this)">🟡 Pausado</button>
           <button class="filter-btn" onclick="filterMapa('conferencia',this)">🟣 Ag. Inspeção</button>
           <button class="filter-btn" onclick="filterMapa('limpo',this)">🟢 Limpo</button>
@@ -766,7 +766,7 @@ tr:last-child td { border-bottom: none; }
         <div class="filters" id="kanban-filtros-status" style="margin-bottom:0;">
           <button class="filter-btn active" onclick="filterKanbanStatus('todos',this)">Todos</button>
           <button class="filter-btn" onclick="filterKanbanStatus('sujo',this)">🟠 Sujo</button>
-          <button class="filter-btn" onclick="filterKanbanStatus('limpando',this)">🔵 Em limpeza</button>
+          <button class="filter-btn" onclick="filterKanbanStatus('limpando',this)">🔵 Em Arrumação</button>
           <button class="filter-btn" onclick="filterKanbanStatus('pausado',this)">🟡 Pausado</button>
           <button class="filter-btn" onclick="filterKanbanStatus('conferencia',this)">🟣 Ag. Inspeção</button>
           <button class="filter-btn" onclick="filterKanbanStatus('reprovado',this)">🔴 Reprovado</button>
@@ -1088,7 +1088,7 @@ tr:last-child td { border-bottom: none; }
           </div>
           <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
             <div class="stat-card s-orange" style="padding:10px;"><div class="stat-label" style="font-size:10px;">A limpar</div><div class="stat-value" style="font-size:20px;" id="app-a-limpar">0</div></div>
-            <div class="stat-card s-blue" style="padding:10px;"><div class="stat-label" style="font-size:10px;">Limpando</div><div class="stat-value" style="font-size:20px;" id="app-limpando">0</div></div>
+            <div class="stat-card s-blue" style="padding:10px;"><div class="stat-label" style="font-size:10px;">Arrumação</div><div class="stat-value" style="font-size:20px;" id="app-limpando">0</div></div>
             <div class="stat-card s-green" style="padding:10px;"><div class="stat-label" style="font-size:10px;">Concluídos</div><div class="stat-value" style="font-size:20px;" id="app-concluidos">0</div></div>
           </div>
           <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Meus apartamentos</div>
@@ -1827,7 +1827,7 @@ tr:last-child td { border-bottom: none; }
             <select id="gl-status">
               <option value="livre" selected>Vago</option>
               <option value="sujo">Sujo</option>
-              <option value="limpando">Em limpeza</option>
+              <option value="limpando">Em Arrumação</option>
               <option value="pausado">Pausado</option>
               <option value="conferencia">Ag. Inspeção</option>
               <option value="limpo">Limpo</option>
@@ -2416,7 +2416,7 @@ const _STATUS_ICONS = {
   bloqueado:'🔒', ocupado:'🏠', manutencao:'🔧'
 };
 const _STATUS_LABELS = {
-  livre:'Vago', sujo:'Sujo', limpando:'Em limpeza', pausado:'Pausado',
+  livre:'Vago', sujo:'Sujo', limpando:'Em Arrumação', pausado:'Pausado',
   conferencia:'Ag. Inspeção', limpo:'Limpo', reprovado:'Reprovado',
   bloqueado:'Bloqueado', ocupado:'Ocupado', manutencao:'Manutenção'
 };
@@ -2644,7 +2644,7 @@ async function openAptoDetail(id) {
       <div style="flex:1;min-width:200px;">
         <div style="font-size:40px;text-align:center;padding:16px;background:var(--bg);border-radius:var(--radius);margin-bottom:12px;">${_STATUS_ICONS[apto.status]||'❓'}</div>
         ${(() => {
-          const _OP = { limpando:'🧹 Limpando', pausado:'⏸ Pausado', conferencia:'🔍 Ag. Inspeção', reprovado:'❌ Reprovado' };
+          const _OP = { limpando:'🧹 Arrumação', pausado:'⏸ Pausado', conferencia:'🔍 Ag. Inspeção', reprovado:'❌ Reprovado' };
           const govHtml = _OP[apto.status]
             ? `<div style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:7px;background:#dbeafe;color:#1d4ed8;text-align:center;margin-bottom:6px;">${_OP[apto.status]}</div>`
             : (() => {
@@ -3077,14 +3077,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <script src="js/hotels.js?v=20260619g"></script>
-<script src="js/apartments.js?v=20260620f"></script>
+<script src="js/apartments.js?v=20260620j"></script>
 <script src="js/maids.js?v=20260619g"></script>
 <script src="js/users.js?v=20260619g"></script>
 <script src="js/permissions.js?v=20260619g"></script>
 <script src="js/chamados.js?v=20260620e"></script>
 <script src="js/config.js?v=20260619af"></script>
-<script src="js/dashboard.js?v=20260620g"></script>
-<script src="js/relatorios.js?v=20260620h"></script>
-<script src="js/minha-fila.js?v=20260620i"></script>
+<script src="js/dashboard.js?v=20260620k"></script>
+<script src="js/relatorios.js?v=20260620l"></script>
+<script src="js/minha-fila.js?v=20260620m"></script>
 </body>
 </html>

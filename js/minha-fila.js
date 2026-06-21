@@ -308,9 +308,9 @@ function _mfRenderGestor(el) {
         <div style="font-size:10px;color:var(--text2);font-weight:700;margin-top:4px;text-transform:uppercase;">Reprovados</div>
       </div>
       <div class="card" style="text-align:center;padding:14px 10px;border-top:3px solid #2e86c1;cursor:pointer;"
-           onclick="_mfScrollTo('mf-sec-limpando')" title="Ver apartamentos em limpeza">
+           onclick="_mfScrollTo('mf-sec-limpando')" title="Ver apartamentos em arrumação">
         <div style="font-size:30px;font-weight:800;color:#2e86c1;line-height:1;">${limpandoApts.length}</div>
-        <div style="font-size:10px;color:var(--text2);font-weight:700;margin-top:4px;text-transform:uppercase;">Em limpeza</div>
+        <div style="font-size:10px;color:var(--text2);font-weight:700;margin-top:4px;text-transform:uppercase;">Em Arrumação</div>
       </div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(72px,1fr));gap:10px;margin-bottom:14px;">
@@ -447,7 +447,7 @@ function _mfRenderGestor(el) {
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;
                   padding-bottom:8px;border-bottom:2px solid #2e86c1;">
         <span style="font-size:16px;">🧹</span>
-        <span style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;">Em limpeza agora</span>
+        <span style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;">Em Arrumação</span>
         <span style="background:#2e86c1;color:#fff;font-size:10px;font-weight:700;
                      padding:2px 8px;border-radius:10px;margin-left:auto;">${limpandoApts.length}</span>
       </div>`;

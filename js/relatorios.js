@@ -271,7 +271,7 @@ function _relRenderShell() {
     { id:'resumo',          label:'📋 Resumo' },
     { id:'status',          label:'🏠 Status' },
     { id:'sem-resp',        label:'👤 Sem Resp.' },
-    { id:'tempo-limpeza',   label:'⏱ Tempo Limpeza' },
+    { id:'tempo-limpeza',   label:'⏱ Tempo Arrumação' },
     { id:'produtividade',   label:'📊 Produtividade' },
     { id:'qualidade',       label:'✅ Qualidade' },
     { id:'checklists',      label:'📝 Checklists' },
@@ -537,8 +537,8 @@ function _relAbaExecutivo(el) {
     ${_relCard('Sujos', sujos, 'aguardando limpeza','s-orange')}
     ${_relCard('Aguardando inspeção', conferencia, '','s-purple')}
     ${_relCard('Sem camareira', semCam, '','s-gray')}
-    ${_relCard('Limpezas concluídas', sessConcluidas.length, 'no período','s-green')}
-    ${tmBruto!=='—'?_relCard('Tempo médio de limpeza', tmBruto, 'bruto','s-blue'):''}
+    ${_relCard('Arrumações concluídas', sessConcluidas.length, 'no período','s-green')}
+    ${tmBruto!=='—'?_relCard('Tempo médio de arrumação', tmBruto, 'bruto','s-blue'):''}
     ${txAprov!=='—'?_relCard('Taxa de aprovação', txAprov, '','s-green'):''}
     ${txReprov!=='—'?_relCard('Taxa de reprovação', txReprov, '','s-red'):''}
     ${txRetrab!=='—'?_relCard('Taxa de retrabalho', txRetrab, '','s-orange'):''}
@@ -677,7 +677,7 @@ function _relAbaStatus(el) {
 
   const statusInfo = [
     {key:'livre',label:'Vago',color:'#27ae60'},{key:'sujo',label:'Sujo',color:'#e67e22'},
-    {key:'limpando',label:'Limpando',color:'#2e86c1'},{key:'conferencia',label:'Inspeção',color:'#8e44ad'},
+    {key:'limpando',label:'Arrumação',color:'#2e86c1'},{key:'conferencia',label:'Inspeção',color:'#8e44ad'},
     {key:'limpo',label:'Limpo',color:'#1abc9c'},{key:'ocupado',label:'Ocupado',color:'#7f8c8d'},
     {key:'bloqueado',label:'Bloqueado',color:'#c0392b'},{key:'manutencao',label:'Manutenção',color:'#f1c40f'},
     {key:'pausado',label:'Pausado',color:'#f39c12'},{key:'reprovado',label:'Reprovado',color:'#e74c3c'},
