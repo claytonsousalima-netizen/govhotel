@@ -2623,3 +2623,19 @@ function _showAptosReprovadosAtribuidos(lista) {
   const nomes = lista.map(a => `Apto ${a.numero}`).join('\n');
   _enfileirarAlerta('⚠️', 'Apto reprovado — refazer limpeza', nomes, true);
 }
+
+// ── POLLING DE FUNDO — detecta atribuições mesmo sem navegação ──
+// Inicia ao fazer login; sincroniza aptos a cada 30s para que as
+// notificações disparem independentemente de qual página está aberta.
+let _aptosBgInterval = null;
+
+document.addEventListener('govhotel:ready', () => {
+  if (_aptosBgInterval) return;
+  const perfil = currentUser?.perfil;
+  if (!['camareira', 'supervisora', 'gestor', 'admin'].includes(perfil)) return;
+
+  _aptosBgInterval = setInterval(async () => {
+    if (!currentUser) { clearInterval(_aptosBgInterval); _aptosBgInterval = null; return; }
+    try { await syncApartamentos(); } catch (e) {}
+  }, 30000);
+});
