@@ -1221,6 +1221,12 @@ async function confirmarChecklistSupervisora(decisao) {
   }
 }
 
+function _onReprovacaoMotivoChange() {
+  const motivo = (document.getElementById('rep-motivo')?.value || '').toLowerCase().trim();
+  const label  = document.getElementById('rep-obs-label');
+  if (label) label.textContent = motivo === 'outro' ? 'Observações *' : 'Observações adicionais (opcional)';
+}
+
 async function abrirModalReprovacao() {
   if (!_PERFIS_CONFERENCIA.has(currentUser?.perfil)) {
     toast('Somente supervisora, gestora ou admin podem reprovar a limpeza', 'error'); return;
@@ -1257,6 +1263,9 @@ async function reprovarLimpeza() {
   const obs    = document.getElementById('rep-obs')?.value.trim() || null;
 
   if (!motivo) { toast('Selecione o motivo da reprovação', 'error'); return; }
+  if (motivo.toLowerCase().trim() === 'outro' && !obs) {
+    toast('Para o motivo "Outro", a observação é obrigatória', 'error'); return;
+  }
 
   const apto = aptos.find(a => a.id === selectedAptoId);
   if (!apto) return;

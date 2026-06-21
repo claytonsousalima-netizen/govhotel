@@ -1402,13 +1402,13 @@ tr:last-child td { border-bottom: none; }
       <div class="form-row single">
         <div class="field">
           <label>Motivo da reprovação *</label>
-          <select id="rep-motivo"><option value="">Selecione o motivo *</option></select>
+          <select id="rep-motivo" onchange="_onReprovacaoMotivoChange()"><option value="">Selecione o motivo *</option></select>
         </div>
       </div>
       <div class="form-row single">
         <div class="field">
-          <label>Observações adicionais</label>
-          <textarea id="rep-obs" rows="3" placeholder="Detalhe o problema encontrado (opcional)..."></textarea>
+          <label id="rep-obs-label">Observações adicionais (opcional)</label>
+          <textarea id="rep-obs" rows="3" placeholder="Detalhe o problema encontrado..."></textarea>
         </div>
       </div>
     </div>
@@ -3126,7 +3126,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <script src="js/hotels.js?v=20260619g"></script>
-<script src="js/apartments.js?v=20260621j"></script>
+<script src="js/apartments.js?v=20260621l"></script>
 <script src="js/maids.js?v=20260619g"></script>
 <script src="js/users.js?v=20260619g"></script>
 <script src="js/permissions.js?v=20260619g"></script>
