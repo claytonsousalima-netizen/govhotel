@@ -571,7 +571,7 @@ function _renderDetalheConteudo(c) {
 
   const elInfo = document.getElementById('cd-info');
   if (elInfo) elInfo.innerHTML = `
-    <div><span style="font-size:11px;color:var(--text3);">Apartamento</span><div style="font-weight:600;">${c.apto}</div></div>
+    <div><span style="font-size:11px;color:var(--text3);">Apartamento</span><div style="font-weight:600;">${c.apto}${c.leitos ? ` · ${c.leitos}🛏` : ''}</div></div>
     <div><span style="font-size:11px;color:var(--text3);">Solicitante</span><div>${c.solicitante || '—'}</div></div>
     <div><span style="font-size:11px;color:var(--text3);">Responsável</span><div>${c.camareira ? (c.departamento === 'manutencao' ? '🔧 ' : '🧹 ') + c.camareira : '<em style="color:var(--text3);">Sem responsável</em>'}</div></div>
     ${c.hospede ? `<div><span style="font-size:11px;color:var(--text3);">Hóspede</span><div>${c.hospede}</div></div>` : ''}
@@ -867,7 +867,7 @@ function renderKanban() {
           ${showHotel && c.hotelNome ? `<div style="font-size:10px;font-weight:700;color:var(--primary);margin-bottom:2px;">🏨 ${c.hotelNome}</div>` : ''}
           ${c.numero ? `<div style="font-size:10px;font-weight:700;color:var(--primary);margin-bottom:2px;">${c.numero}</div>` : ''}
           <div style="font-weight:600;font-size:13px;">${deptIcon} ${c.tipo}</div>
-          <div style="font-size:11px;color:var(--text2);margin-top:2px;">Apto ${c.apto}</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px;">Apto ${c.apto}${c.leitos ? ` · ${c.leitos}🛏` : ''}</div>
           ${(_govHtml || _aptoHtml) ? `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;">${_govHtml}${_aptoHtml}</div>` : ''}
           ${c.camareira ? `<div style="font-size:11px;color:var(--text3);margin-top:3px;">${c.departamento === 'manutencao' ? '🔧' : '🧹'} ${c.camareira}</div>` : ''}
           <div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap;">
