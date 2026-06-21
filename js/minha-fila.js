@@ -220,7 +220,7 @@ function _mfRenderCamareira(el) {
     const dGrupos = [
       { key:'pausado',    label:'Pausados',   icon:'⏸', color:'#f39c12' },
       { key:'sujo',       label:'Para limpar',icon:'🟠', color:'#e67e22' },
-      { key:'conferencia',label:'Ag. conf.',  icon:'🔍', color:'#8e44ad' },
+      { key:'conferencia',label:'Ag. Inspeção', icon:'🔍', color:'#8e44ad' },
     ];
     dGrupos.forEach(g => {
       const lista = demais.filter(a => a.status === g.key);
@@ -298,9 +298,9 @@ function _mfRenderGestor(el) {
   let html = `
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;">
       <div class="card" style="text-align:center;padding:14px 10px;border-top:3px solid #8e44ad;cursor:pointer;"
-           onclick="_mfScrollTo('mf-sec-conferencia')" title="Ver apartamentos aguardando conferência">
+           onclick="_mfScrollTo('mf-sec-conferencia')" title="Ver apartamentos aguardando inspeção">
         <div style="font-size:30px;font-weight:800;color:#8e44ad;line-height:1;">${conferencia.length}</div>
-        <div style="font-size:10px;color:var(--text2);font-weight:700;margin-top:4px;text-transform:uppercase;">Aguard. conf.</div>
+        <div style="font-size:10px;color:var(--text2);font-weight:700;margin-top:4px;text-transform:uppercase;">Ag. Inspeção</div>
       </div>
       <div class="card" style="text-align:center;padding:14px 10px;border-top:3px solid var(--danger);cursor:pointer;"
            onclick="_mfScrollTo('mf-sec-reprovados')" title="Ver apartamentos reprovados">
@@ -358,7 +358,7 @@ function _mfRenderGestor(el) {
                   padding-bottom:8px;border-bottom:2px solid #8e44ad;">
         <span style="font-size:16px;">🔍</span>
         <span style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;">
-          Aguardando conferência
+          Aguardando inspeção
         </span>
         <span style="background:#8e44ad;color:#fff;font-size:10px;font-weight:700;
                      padding:2px 8px;border-radius:10px;margin-left:auto;">${conferencia.length}</span>
@@ -368,7 +368,7 @@ function _mfRenderGestor(el) {
       <div class="card" style="margin-bottom:10px;border-left:4px solid #8e44ad;padding:14px 16px;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px;">
           ${_aptoInfo(a)}
-          <span class="badge badge-conferencia" style="flex-shrink:0;">Aguard. conf.</span>
+          <span class="badge badge-conferencia" style="flex-shrink:0;">Ag. Inspeção</span>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
           ${podeAprovar ? `

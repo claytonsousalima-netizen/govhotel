@@ -157,7 +157,7 @@ async function _carregarDashboard(hotelId) {
         </div>` : ''}
         ${conferencia > 0 ? `
         <div class="stat-card" style="border-top:3px solid #0891b2;">
-          <div class="stat-label">Ag. conferência</div>
+          <div class="stat-label">Ag. Inspeção</div>
           <div class="stat-value" style="color:#0891b2;">${conferencia}</div>
           <div class="stat-sub">aguardando vistoria</div>
         </div>` : ''}
@@ -224,7 +224,7 @@ async function _carregarDashboard(hotelId) {
           ${sujoSemCam > 0 ? _govCard('Sujos sem cam.', sujoSemCam, '#c0392b', 'sem responsável') : ''}
           ${_govCard('Em limpeza',     limpando,   '#2e86c1', 'em andamento')}
           ${_govCard('Pausados',       pausado,    '#f39c12', 'limpeza interrompida')}
-          ${_govCard('Ag. conferência',conferencia,'#8e44ad', 'aguardando vistoria')}
+          ${_govCard('Ag. Inspeção',   conferencia,'#8e44ad', 'aguardando inspeção')}
           ${_govCard('Limpos',         limpo,      '#27ae60', 'prontos')}
           ${_govCard('Reprovados',     reprovado,  '#c0392b', 'exigem retrabalho')}
           ${_govCard('Chamados abertos', govAbertos,   '#e74c3c', 'gov. em aberto')}
@@ -236,7 +236,7 @@ async function _carregarDashboard(hotelId) {
 
   // Gráfico status
   const statuses = ['livre','sujo','limpando','conferencia','bloqueado','ocupado','manutencao'];
-  const labels   = {livre:'Vago',sujo:'Sujo',limpando:'Limpando',conferencia:'Conferência',bloqueado:'Bloqueado',ocupado:'Ocupado',manutencao:'Manutenção'};
+  const labels   = {livre:'Vago',sujo:'Sujo',limpando:'Limpando',conferencia:'Inspeção',bloqueado:'Bloqueado',ocupado:'Ocupado',manutencao:'Manutenção'};
   const colors   = {livre:'#27ae60',sujo:'#e67e22',limpando:'#2e86c1',conferencia:'#8e44ad',bloqueado:'#c0392b',ocupado:'#7f8c8d',manutencao:'#f1c40f'};
   let chartHtml  = '';
   statuses.forEach(s => {

@@ -1085,7 +1085,7 @@ async function concluirLimpeza() {
     _checklistOrigemStatus = 'limpando';
     await abrirChecklistApp(selectedAptoId);
   } else {
-    const obs = `Limpeza concluída por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')} — aguardando conferência`;
+    const obs = `Limpeza concluída por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')} — aguardando inspeção`;
     await mudarStatusApto(selectedAptoId, 'conferencia', obs);
   }
 }
@@ -1105,14 +1105,14 @@ function aprovarLimpeza() {
 
 async function abrirChecklistSupervisora() {
   if (!_PERFIS_CONFERENCIA.has(currentUser?.perfil)) {
-    toast('Sem permissão para realizar conferência', 'error'); return;
+    toast('Sem permissão para realizar inspeção', 'error'); return;
   }
   const apto = aptos.find(a => a.id === selectedAptoId);
   if (!apto || apto.status !== 'conferencia') {
-    toast('Conferência só é permitida em apartamento Aguardando conferência', 'error'); return;
+    toast('Inspeção só é permitida em apartamento Aguardando inspeção', 'error'); return;
   }
   const titulo = document.getElementById('sup-cl-titulo');
-  if (titulo && apto) titulo.textContent = `🔍 Conferência — Apto ${apto.numero}`;
+  if (titulo && apto) titulo.textContent = `🔍 Inspeção — Apto ${apto.numero}`;
 
   const obsEl = document.getElementById('sup-cl-obs');
   if (obsEl) obsEl.value = '';
@@ -1218,7 +1218,7 @@ async function abrirModalReprovacao() {
   }
   const apto = aptos.find(a => a.id === selectedAptoId);
   if (!apto || apto.status !== 'conferencia') {
-    toast('Reprovação só é permitida em apartamento Aguardando conferência', 'error'); return;
+    toast('Reprovação só é permitida em apartamento Aguardando inspeção', 'error'); return;
   }
   const sel = document.getElementById('rep-motivo');
   const obs = document.getElementById('rep-obs');
@@ -1322,7 +1322,7 @@ async function renderAppCamareira() {
 
   const LABEL = {
     livre:'Vago', sujo:'Sujo', limpando:'Em limpeza', pausado:'Pausado',
-    conferencia:'Aguard. conf.', limpo:'Limpo', reprovado:'Reprovado',
+    conferencia:'Ag. Inspeção', limpo:'Limpo', reprovado:'Reprovado',
     bloqueado:'Bloqueado', ocupado:'Ocupado', manutencao:'Manutenção'
   };
 
@@ -1354,7 +1354,7 @@ async function renderAppCamareira() {
     { key:'pausado',    label:'Pausados — retomar',     icon:'⏸', color:'#f39c12', badge:'badge-pausado'   },
     { key:'limpando',   label:'Em andamento',            icon:'🧹', color:'#2e86c1', badge:'badge-limpando'  },
     { key:'sujo',       label:'Para limpar',             icon:'🟠', color:'#e67e22', badge:'badge-sujo'      },
-    { key:'conferencia',label:'Aguardando conferência',  icon:'🔍', color:'#8e44ad', badge:'badge-conferencia'},
+    { key:'conferencia',label:'Aguardando inspeção',      icon:'🔍', color:'#8e44ad', badge:'badge-conferencia'},
     { key:'limpo',      label:'Limpos',                  icon:'✨', color:'#27ae60', badge:'badge-limpo'     },
     { key:'livre',      label:'Vagos',                   icon:'✅', color:'#27ae60', badge:'badge-livre'     },
     { key:'ocupado',    label:'Ocupados',                icon:'🏠', color:'#7f8c8d', badge:'badge-ocupado'   },
@@ -1578,7 +1578,7 @@ async function concluirChecklist() {
   _checklistOrigemStatus = null;
   closeModal('modal-checklist');
 
-  const obs = `Checklist de limpeza concluído por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')} — aguardando conferência`;
+  const obs = `Checklist de limpeza concluído por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')} — aguardando inspeção`;
   await mudarStatusApto(selectedAptoId, 'conferencia', obs);
 }
 
@@ -2033,8 +2033,8 @@ function _renderFiltrosBar(containerId) {
       📋 Com chamados
     </button>
     <button class="filter-btn${_aptoFiltros.status === 'conferencia' ? ' active' : ''}"
-            onclick="_setFiltroStatusRapido('conferencia')" title="Aguardando conferência">
-      🟣 Aguard. conf.
+            onclick="_setFiltroStatusRapido('conferencia')" title="Aguardando inspeção">
+      🟣 Ag. Inspeção
     </button>
     <button class="filter-btn${_aptoFiltros.status === 'reprovado' ? ' active' : ''}"
             onclick="_setFiltroStatusRapido('reprovado')" title="Reprovados">
@@ -2124,7 +2124,7 @@ function renderMapa() {
 
       // Status Gov — bloco destacado (full-width) no card
       const _bGovCard = (() => {
-        const _OP = { limpando:'🧹 Limpando', pausado:'⏸ Pausado', conferencia:'🔍 Aguard. conf.', reprovado:'❌ Reprovado' };
+        const _OP = { limpando:'🧹 Limpando', pausado:'⏸ Pausado', conferencia:'🔍 Ag. Inspeção', reprovado:'❌ Reprovado' };
         if (_OP[a.status]) return `<div style="font-size:10px;font-weight:700;padding:3px 6px;border-radius:6px;background:#dbeafe;color:#1d4ed8;text-align:center;margin-top:5px;">${_OP[a.status]}</div>`;
         if (!a.status_gov) return '';
         const op = _statusGovOpcoes.find(o => o.nome === a.status_gov);
@@ -2230,7 +2230,7 @@ function renderAptoKanban() {
     { key:'sujo',        label:'Sujo',          color:'#e67e22' },
     { key:'limpando',    label:'Em limpeza',     color:'#2e86c1' },
     { key:'pausado',     label:'Pausado',        color:'#f39c12' },
-    { key:'conferencia', label:'Aguard. conf.',  color:'#8e44ad' },
+    { key:'conferencia', label:'Ag. Inspeção',   color:'#8e44ad' },
     { key:'limpo',       label:'Limpo',          color:'#1abc9c' },
     { key:'reprovado',   label:'Reprovado',      color:'#e74c3c' },
     { key:'manutencao',  label:'Manutenção',     color:'#f1c40f' },

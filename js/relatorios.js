@@ -535,7 +535,7 @@ function _relAbaExecutivo(el) {
     ${_relCard('Total de apartamentos', total, 'unidades ativas','s-blue')}
     ${_relCard('Limpos', limpos, `de ${total}`,'s-green')}
     ${_relCard('Sujos', sujos, 'aguardando limpeza','s-orange')}
-    ${_relCard('Aguardando conferência', conferencia, '','s-purple')}
+    ${_relCard('Aguardando inspeção', conferencia, '','s-purple')}
     ${_relCard('Sem camareira', semCam, '','s-gray')}
     ${_relCard('Limpezas concluídas', sessConcluidas.length, 'no período','s-green')}
     ${tmBruto!=='—'?_relCard('Tempo médio de limpeza', tmBruto, 'bruto','s-blue'):''}
@@ -613,7 +613,7 @@ function _relAbaGargalos(el) {
     ...limpandoRows,
     ...buildRows(sujosSemCam,'Sujo sem camareira'),
     ...buildRows(pausados,'Pausado'),
-    ...buildRows(emConf,'Aguardando conferência'),
+    ...buildRows(emConf,'Aguardando inspeção'),
     ...buildRows(reprovados,'Reprovado'),
     ...chamRows, ...retRows,
   ];
@@ -623,7 +623,7 @@ function _relAbaGargalos(el) {
       ${_relCard('Sujos sem camareira', sujosSemCam.length, '','s-red')}
       ${_relCard('Em limpeza', emLimpando.length, '','s-blue')}
       ${_relCard('Pausados', pausados.length, '','s-orange')}
-      ${_relCard('Aguardando conferência', emConf.length, '','s-purple')}
+      ${_relCard('Aguardando inspeção', emConf.length, '','s-purple')}
       ${_relCard('Reprovados', reprovados.length, '','s-red')}
       ${_relCard('Retrabalhos abertos', retAbertos.length, '','s-orange')}
       ${_relCard('Chamados atrasados', chamAtras.length, '','s-red')}
@@ -677,7 +677,7 @@ function _relAbaStatus(el) {
 
   const statusInfo = [
     {key:'livre',label:'Vago',color:'#27ae60'},{key:'sujo',label:'Sujo',color:'#e67e22'},
-    {key:'limpando',label:'Limpando',color:'#2e86c1'},{key:'conferencia',label:'Conferência',color:'#8e44ad'},
+    {key:'limpando',label:'Limpando',color:'#2e86c1'},{key:'conferencia',label:'Inspeção',color:'#8e44ad'},
     {key:'limpo',label:'Limpo',color:'#1abc9c'},{key:'ocupado',label:'Ocupado',color:'#7f8c8d'},
     {key:'bloqueado',label:'Bloqueado',color:'#c0392b'},{key:'manutencao',label:'Manutenção',color:'#f1c40f'},
     {key:'pausado',label:'Pausado',color:'#f39c12'},{key:'reprovado',label:'Reprovado',color:'#e74c3c'},
@@ -973,7 +973,7 @@ function _relAbaQualidade(el) {
 
   el.innerHTML = `
     <div class="stats-grid" style="margin-bottom:16px;">
-      ${_relCard('Conferências realizadas', total,'','s-blue')}
+      ${_relCard('Inspeções realizadas', total,'','s-blue')}
       ${_relCard('Aprovações', aprovados,'','s-green')}
       ${_relCard('Reprovações', reprovados,'','s-red')}
       ${total?_relCard('Taxa de reprovação', taxaPct+'%','','s-purple'):''}
@@ -986,7 +986,7 @@ function _relAbaQualidade(el) {
       <div class="card"><div class="card-title" style="margin-bottom:8px;">Aptos com reprovação reincidente</div>
         ${reincHtml}</div>
     </div>
-    <div class="card"><div class="card-title" style="margin-bottom:10px;">Conferências (${checks.length})</div>
+    <div class="card"><div class="card-title" style="margin-bottom:10px;">Inspeções (${checks.length})</div>
       ${total ? _relTable(
         ['Data','Apto','Camareira','Conferente','Item','Resposta','Obs','Resultado','Motivo reprovação','Retrabalho'],
         rows
@@ -1049,7 +1049,7 @@ function _relAbaChecklists(el) {
 
   el.innerHTML = `
     <div class="card" style="margin-bottom:16px;">
-      <div class="card-title" style="margin-bottom:12px;">A. Checklist de Conferência — Supervisora / Gestora</div>
+      <div class="card-title" style="margin-bottom:12px;">A. Checklist de Inspeção — Supervisora / Gestora</div>
       <div class="stats-grid" style="margin-bottom:14px;">
         ${_relCard('Checklists preenchidos', confTotal,'','s-blue')}
         ${_relCard('Aprovados', confAprov,'','s-green')}
@@ -1183,7 +1183,7 @@ function _relAbaTimeline(el) {
     if (f.dtFim && h.created_at.slice(0,10)>f.dtFim) return;
     const ev = h.status_novo==='limpando'?'Início limpeza'
       : h.status_novo==='pausado'?'Pausa'
-      : h.status_novo==='conferencia'?'Aguardando conferência'
+      : h.status_novo==='conferencia'?'Aguardando inspeção'
       : h.status_novo==='limpo'?'Concluído (limpo)'
       : h.status_novo==='reprovado'?'Reprovado'
       : h.status_novo==='livre'?'Liberado (vago)'
@@ -1200,7 +1200,7 @@ function _relAbaTimeline(el) {
     if (f.andar && String(a.andar)!==String(f.andar)) return;
     if (f.dtIni && h.created_at.slice(0,10)<f.dtIni) return;
     if (f.dtFim && h.created_at.slice(0,10)>f.dtFim) return;
-    const res = h.resultado==='aprovado'||h.resultado==='conforme'?'Aprovado na conferência':'Checklist conferência ('+(h.resultado||'registrado')+')';
+    const res = h.resultado==='aprovado'||h.resultado==='conforme'?'Aprovado na inspeção':'Checklist inspeção ('+(h.resultado||'registrado')+')';
     eventos.push({ dt: h.created_at, apto: a.numero||h.apartment_id, evento: res,
       anterior: '—', novo: h.resultado||'—',
       usuario: _relNome(h.user_id), cam: h.camareira_id?_relNome(h.camareira_id):(a.maid_id?_relNome(a.maid_id):'—'),

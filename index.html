@@ -728,7 +728,7 @@ tr:last-child td { border-bottom: none; }
           <button class="filter-btn" onclick="filterMapa('sujo',this)">🟠 Sujo</button>
           <button class="filter-btn" onclick="filterMapa('limpando',this)">🔵 Em limpeza</button>
           <button class="filter-btn" onclick="filterMapa('pausado',this)">🟡 Pausado</button>
-          <button class="filter-btn" onclick="filterMapa('conferencia',this)">🟣 Aguard. conf.</button>
+          <button class="filter-btn" onclick="filterMapa('conferencia',this)">🟣 Ag. Inspeção</button>
           <button class="filter-btn" onclick="filterMapa('limpo',this)">🟢 Limpo</button>
           <button class="filter-btn" onclick="filterMapa('reprovado',this)">🔴 Reprovado</button>
           <button class="filter-btn" onclick="filterMapa('bloqueado',this)">⛔ Bloqueado</button>
@@ -768,7 +768,7 @@ tr:last-child td { border-bottom: none; }
           <button class="filter-btn" onclick="filterKanbanStatus('sujo',this)">🟠 Sujo</button>
           <button class="filter-btn" onclick="filterKanbanStatus('limpando',this)">🔵 Em limpeza</button>
           <button class="filter-btn" onclick="filterKanbanStatus('pausado',this)">🟡 Pausado</button>
-          <button class="filter-btn" onclick="filterKanbanStatus('conferencia',this)">🟣 Aguard. conf.</button>
+          <button class="filter-btn" onclick="filterKanbanStatus('conferencia',this)">🟣 Ag. Inspeção</button>
           <button class="filter-btn" onclick="filterKanbanStatus('reprovado',this)">🔴 Reprovado</button>
         </div>
         <div id="kanban-filtros-aptos"></div>
@@ -976,7 +976,7 @@ tr:last-child td { border-bottom: none; }
           <!-- Tipos de chamado — Governança -->
           <div class="card">
             <div class="card-title" style="margin-bottom:6px;">🧹 Tipos de Chamado — Governança</div>
-            <div style="font-size:11px;color:var(--text3);margin-bottom:12px;">Limpeza, troca de roupa, reposição, conferência etc. · 🌐 padrão · 🏨 deste hotel</div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:12px;">Limpeza, troca de roupa, reposição, inspeção etc. · 🌐 padrão · 🏨 deste hotel</div>
             <div id="config-tipos-governanca"></div>
           </div>
 
@@ -1004,7 +1004,7 @@ tr:last-child td { border-bottom: none; }
           <!-- Tipos de Limpeza -->
           <div class="card">
             <div class="card-title" style="margin-bottom:6px;">🧺 Tipos de Limpeza</div>
-            <div style="font-size:11px;color:var(--text3);margin-bottom:12px;">Opções do campo "Tipo de limpeza" no checklist de conferência. 🌐 = padrão · 🏨 = deste hotel</div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:12px;">Opções do campo "Tipo de limpeza" no checklist de inspeção. 🌐 = padrão · 🏨 = deste hotel</div>
             <div id="config-tipos-limpeza"></div>
           </div>
 
@@ -1297,14 +1297,14 @@ tr:last-child td { border-bottom: none; }
 <div class="modal-overlay" id="modal-conferencia-supervisora">
   <div class="modal" style="max-width:600px;">
     <div class="modal-header">
-      <div class="modal-title" id="sup-cl-titulo">🔍 Conferência — Checklist da Supervisora</div>
+      <div class="modal-title" id="sup-cl-titulo">🔍 Inspeção — Checklist da Supervisora</div>
       <button class="btn-close" onclick="closeModal('modal-conferencia-supervisora')">✕</button>
     </div>
     <div class="modal-body">
       <p style="font-size:12px;color:var(--text3);margin-bottom:12px;">Avalie cada item antes de aprovar ou reprovar o apartamento.</p>
       <div id="sup-cl-items"></div>
       <div class="field" style="margin-top:14px;">
-        <label>Observação da conferência (opcional)</label>
+        <label>Observação da inspeção (opcional)</label>
         <textarea id="sup-cl-obs" rows="2" placeholder="Registre observações gerais..."></textarea>
       </div>
     </div>
@@ -1829,7 +1829,7 @@ tr:last-child td { border-bottom: none; }
               <option value="sujo">Sujo</option>
               <option value="limpando">Em limpeza</option>
               <option value="pausado">Pausado</option>
-              <option value="conferencia">Aguard. conferência</option>
+              <option value="conferencia">Ag. Inspeção</option>
               <option value="limpo">Limpo</option>
               <option value="reprovado">Reprovado</option>
               <option value="bloqueado">Bloqueado</option>
@@ -1998,7 +1998,7 @@ tr:last-child td { border-bottom: none; }
       <div id="checklist-confirmacao-wrap" style="margin-top:16px;padding:12px 14px;background:var(--surface2);border:2px solid var(--border);border-radius:var(--radius-sm);display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
         <input type="checkbox" id="checklist-confirmacao" onchange="_toggleConfirmacaoChecklist()" style="width:20px;height:20px;flex-shrink:0;margin-top:1px;cursor:pointer;">
         <label id="checklist-confirmacao-label" for="checklist-confirmacao" style="font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;line-height:1.4;">
-          Confirmo que <strong>todos os itens acima foram verificados</strong> e o apartamento está pronto para conferência.
+          Confirmo que <strong>todos os itens acima foram verificados</strong> e o apartamento está pronto para inspeção.
         </label>
       </div>
       <div id="checklist-confirmacao-required" style="display:none;font-size:12px;color:var(--danger);margin-top:4px;">⚠️ Confirmação obrigatória para concluir a limpeza.</div>
@@ -2417,7 +2417,7 @@ const _STATUS_ICONS = {
 };
 const _STATUS_LABELS = {
   livre:'Vago', sujo:'Sujo', limpando:'Em limpeza', pausado:'Pausado',
-  conferencia:'Aguard. conf.', limpo:'Limpo', reprovado:'Reprovado',
+  conferencia:'Ag. Inspeção', limpo:'Limpo', reprovado:'Reprovado',
   bloqueado:'Bloqueado', ocupado:'Ocupado', manutencao:'Manutenção'
 };
 
@@ -2611,7 +2611,7 @@ async function openAptoDetail(id) {
     conferencia: (!isCamareira && !isManutencao)
       ? `<button class="btn btn-xs btn-primary" onclick="aprovarLimpeza()">✅ Aprovar limpeza</button>
          <button class="btn btn-xs btn-danger"  onclick="abrirModalReprovacao()">❌ Reprovar limpeza</button>`
-      : `<span style="font-size:12px;color:var(--text3);">Aguardando conferência da supervisora.</span>`,
+      : `<span style="font-size:12px;color:var(--text3);">Aguardando inspeção da supervisora.</span>`,
     limpo:       `<button class="btn btn-xs btn-primary" onclick="mudarStatusApto('${id}','livre')">✅ Liberar para check-in</button>
                   <button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','ocupado')">🏠 Marcar ocupado</button>
                   <button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','sujo')">↩ Marcar sujo</button>`,
@@ -2644,7 +2644,7 @@ async function openAptoDetail(id) {
       <div style="flex:1;min-width:200px;">
         <div style="font-size:40px;text-align:center;padding:16px;background:var(--bg);border-radius:var(--radius);margin-bottom:12px;">${_STATUS_ICONS[apto.status]||'❓'}</div>
         ${(() => {
-          const _OP = { limpando:'🧹 Limpando', pausado:'⏸ Pausado', conferencia:'🔍 Aguard. conf.', reprovado:'❌ Reprovado' };
+          const _OP = { limpando:'🧹 Limpando', pausado:'⏸ Pausado', conferencia:'🔍 Ag. Inspeção', reprovado:'❌ Reprovado' };
           const govHtml = _OP[apto.status]
             ? `<div style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:7px;background:#dbeafe;color:#1d4ed8;text-align:center;margin-bottom:6px;">${_OP[apto.status]}</div>`
             : (() => {
@@ -3077,14 +3077,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <script src="js/hotels.js?v=20260619g"></script>
-<script src="js/apartments.js?v=20260620a"></script>
+<script src="js/apartments.js?v=20260620f"></script>
 <script src="js/maids.js?v=20260619g"></script>
 <script src="js/users.js?v=20260619g"></script>
 <script src="js/permissions.js?v=20260619g"></script>
 <script src="js/chamados.js?v=20260620e"></script>
 <script src="js/config.js?v=20260619af"></script>
-<script src="js/dashboard.js?v=20260619g"></script>
-<script src="js/relatorios.js?v=20260619z"></script>
-<script src="js/minha-fila.js?v=20260620d"></script>
+<script src="js/dashboard.js?v=20260620g"></script>
+<script src="js/relatorios.js?v=20260620h"></script>
+<script src="js/minha-fila.js?v=20260620i"></script>
 </body>
 </html>
