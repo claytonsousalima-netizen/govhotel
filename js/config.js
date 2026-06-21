@@ -992,7 +992,7 @@ async function renderConfigStatusApto() {
   if (!el) return;
   const hotelId = _cfgHotelId();
   let q = supabaseClient.from('status_apto_opcoes').select('*').order('ordem');
-  if (hotelId) q = q.eq('hotel_id', hotelId);
+  if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
   const { data } = await q;
   _statusAptoCache = data || [];
   el.innerHTML = `
@@ -1013,7 +1013,7 @@ async function renderConfigStatusGov() {
   if (!el) return;
   const hotelId = _cfgHotelId();
   let q = supabaseClient.from('status_governanca_opcoes').select('*').order('ordem');
-  if (hotelId) q = q.eq('hotel_id', hotelId);
+  if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
   const { data } = await q;
   _statusGovCache = data || [];
   el.innerHTML = `
