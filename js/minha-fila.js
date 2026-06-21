@@ -101,12 +101,15 @@ function _mfRenderCamareira(el) {
   const nome = currentUser.nome?.split(' ')[0] || 'Camareira';
   const uid  = currentUser.id;
 
-  // limpando é estado transitório (modal aberto) — não aparece na fila
-  const statusUrgencia = { reprovado:0, pausado:1, sujo:2, conferencia:3 };
+  // Urgência para ordenar meus aptos (limpando = mais urgente que sujo)
+  const statusUrgencia = { limpando:0, reprovado:1, pausado:2, sujo:3, conferencia:4 };
+  // Conjunto de status que aparecem na seção "demais" (aptos de outras camareiras) — limpando excluído
+  const demaisStatusSet = new Set(['reprovado','pausado','sujo','conferencia']);
 
-  // 1. Minha atribuição — apenas sujos atribuídos a mim
+  // 1. Minha atribuição — inclui limpando para que a camareira encontre o botão Pausar
+  //    mesmo depois de fechar o checklist sem pausar/concluir
   const meusAptos = aptos
-    .filter(a => a.camareira_id === uid && a.status === 'sujo')
+    .filter(a => a.camareira_id === uid && ['sujo','limpando','reprovado','pausado'].includes(a.status))
     .sort((a, b) => (statusUrgencia[a.status] ?? 9) - (statusUrgencia[b.status] ?? 9));
 
   const meusIds = new Set(meusAptos.map(a => a.id));
@@ -119,7 +122,7 @@ function _mfRenderCamareira(el) {
 
   // 4. Demais (pausados/limpando não meus, conferencia não minha, etc.)
   const demaisIds = new Set([...meusIds, ...reprovDisp.map(a=>a.id), ...sujosSemCam.map(a=>a.id)]);
-  const demais = aptos.filter(a => !demaisIds.has(a.id) && a.status in statusUrgencia);
+  const demais = aptos.filter(a => !demaisIds.has(a.id) && demaisStatusSet.has(a.status));
 
   const _camLineCam = a => {
     const cam = (typeof equipe !== 'undefined' ? equipe : []).find(e => e.id === a.camareira_id);
@@ -456,9 +459,10 @@ function _mfRenderGestor(el) {
       <div class="card" style="margin-bottom:10px;border-left:4px solid #2e86c1;padding:14px 16px;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px;">
           ${_aptoInfo(a)}
-          <span class="badge badge-limpando" style="flex-shrink:0;">Limpando</span>
+          <span class="badge badge-limpando" style="flex-shrink:0;">Em Arrumação</span>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          ${podeAprovar ? `<button class="btn btn-warning btn-sm" onclick="abrirModalPausa('${a.id}')">⏸ Pausar</button>` : ''}
           <button class="btn btn-ghost btn-sm" onclick="openAptoDetail('${a.id}')">👁 Ver detalhes</button>
         </div>
       </div>`;
