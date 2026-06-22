@@ -39,6 +39,7 @@ let _xlsRegistrosValidos  = [];   // registros prontos após parse+validação
 let _xlsIgnoradas         = 0;
 let _xlsInconsistencias   = [];   // conflitos de duplicata (excluídos do import)
 let _xlsNaoReconhecidos   = [];   // status inválido mas importados parcialmente
+let _xlsArquivoNome       = '';   // nome do arquivo — salvo na validação para uso no confirmar
 
 // ══════════════════════════════════════════════════════════════════════════════
 // FUNÇÕES DE NORMALIZAÇÃO (Etapa 4)
@@ -467,6 +468,7 @@ function _xlsLimparResultados() {
   _xlsIgnoradas        = 0;
   _xlsInconsistencias  = [];
   _xlsNaoReconhecidos  = [];
+  _xlsArquivoNome      = '';
 
   const resumo  = document.getElementById('xls-resumo');
   const preview = document.getElementById('xls-preview-wrap');
@@ -493,6 +495,7 @@ async function _xlsValidar() {
   const file = input?.files[0];
   if (!file) { toast('Selecione um arquivo.', 'error'); return; }
 
+  _xlsArquivoNome = file.name;   // guarda antes de qualquer await
   btnVal.disabled   = true;
   btnVal.textContent = '⏳ Validando...';
   _xlsLimparResultados();
@@ -575,6 +578,7 @@ function _xlsReset() {
   _xlsIgnoradas        = 0;
   _xlsInconsistencias  = [];
   _xlsNaoReconhecidos  = [];
+  _xlsArquivoNome      = '';
 
   const input = document.getElementById('xls-file-input');
   if (input) input.value = '';
@@ -600,8 +604,7 @@ async function _xlsConfirmar(substituir = false) {
   const dataIntegracao = dataEl?.value?.trim();
   if (!dataIntegracao) { toast('Informe a data da integração.', 'error'); return; }
 
-  const fileInput = document.getElementById('xls-file-input');
-  const arquivoNome = fileInput?.files[0]?.name || '';
+  const arquivoNome = _xlsArquivoNome;
   if (!arquivoNome) { toast('Nenhum arquivo validado. Valide o arquivo antes de confirmar.', 'error'); return; }
 
   if (!_xlsRegistrosValidos.length) {
