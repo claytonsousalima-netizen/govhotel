@@ -662,9 +662,10 @@ async function _xlsConfirmar(substituir = false) {
     }
 
     // ── Sucesso ──────────────────────────────────────────────────────────
+    const totalAtualizados = data?.total_aptos_atualizados ?? totalImportadas;
     const msgSucesso = substituir
-      ? `Integração substituída com sucesso. ${totalImportadas} apartamentos atualizados.`
-      : `Arquivo importado com sucesso. ${totalImportadas} apartamentos salvos.`;
+      ? `Integração substituída. ${totalAtualizados} apartamentos atualizados no sistema.`
+      : `Integração confirmada. ${totalAtualizados} apartamentos atualizados no sistema.`;
 
     toast(msgSucesso, 'success');
 
