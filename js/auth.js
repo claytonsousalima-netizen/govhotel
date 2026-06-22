@@ -182,9 +182,9 @@ const PERFIL_LABELS = {
 
 // ---------- PERMISSÕES POR PERFIL ----------
 const PERFIL_PAGES = {
-  admin_global: ['hoteis','usuarios','dashboard','mapa','kanban','chamados','equipe','cadastro-apto','relatorios','config','minha-fila'],
-  admin_hotel:  ['usuarios','dashboard','mapa','kanban','chamados','equipe','cadastro-apto','relatorios','config','minha-fila'],
-  gestor:       ['dashboard','mapa','kanban','chamados','equipe','relatorios','minha-fila'],
+  admin_global: ['hoteis','usuarios','dashboard','mapa','kanban','chamados','equipe','cadastro-apto','relatorios','config','minha-fila','integracao-xls'],
+  admin_hotel:  ['usuarios','dashboard','mapa','kanban','chamados','equipe','cadastro-apto','relatorios','config','minha-fila','integracao-xls'],
+  gestor:       ['dashboard','mapa','kanban','chamados','equipe','relatorios','minha-fila','integracao-xls'],
   supervisora:  ['mapa','kanban','chamados','equipe','minha-fila'],
   camareira:    ['app-camareira','mapa','chamados','minha-fila'],
   manutencao:   ['mapa','chamados'],

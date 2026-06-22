@@ -14,6 +14,8 @@
 
 <!-- Supabase JS SDK -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- SheetJS — leitura de arquivos XLS/XLSX no browser -->
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 
 <style>
 :root {
@@ -727,7 +729,7 @@ tr:last-child td { border-bottom: none; }
         <div class="filters" id="mapa-filters">
           <button class="filter-btn active" onclick="filterMapa('todos',this)">Todos</button>
           <button class="filter-btn" onclick="filterMapa('sujo',this)">🟠 Sujo</button>
-          <button class="filter-btn" onclick="filterMapa('limpando',this)">🔵 Em Arrumação</button>
+          <button class="filter-btn" onclick="filterMapa('limpando',this)">🔵 Arrumando</button>
           <button class="filter-btn" onclick="filterMapa('pausado',this)">🟡 Pausado</button>
           <button class="filter-btn" onclick="filterMapa('conferencia',this)">🟣 Ag. Inspeção</button>
           <button class="filter-btn" onclick="filterMapa('limpo',this)">🟢 Limpo</button>
@@ -767,7 +769,7 @@ tr:last-child td { border-bottom: none; }
         <div class="filters" id="kanban-filtros-status" style="margin-bottom:0;">
           <button class="filter-btn active" onclick="filterKanbanStatus('todos',this)">Todos</button>
           <button class="filter-btn" onclick="filterKanbanStatus('sujo',this)">🟠 Sujo</button>
-          <button class="filter-btn" onclick="filterKanbanStatus('limpando',this)">🔵 Em Arrumação</button>
+          <button class="filter-btn" onclick="filterKanbanStatus('limpando',this)">🔵 Arrumando</button>
           <button class="filter-btn" onclick="filterKanbanStatus('pausado',this)">🟡 Pausado</button>
           <button class="filter-btn" onclick="filterKanbanStatus('conferencia',this)">🟣 Ag. Inspeção</button>
           <button class="filter-btn" onclick="filterKanbanStatus('reprovado',this)">🔴 Reprovado</button>
@@ -897,6 +899,9 @@ tr:last-child td { border-bottom: none; }
           </div>
         </div>
       </div>
+
+      <!-- ====== INTEGRAÇÃO XLS ====== -->
+      <div class="page" id="page-integracao-xls"></div>
 
       <!-- ====== RELATÓRIOS ====== -->
       <div class="page" id="page-relatorios">
@@ -1094,7 +1099,7 @@ tr:last-child td { border-bottom: none; }
           </div>
           <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
             <div class="stat-card s-orange" style="padding:10px;"><div class="stat-label" style="font-size:10px;">A limpar</div><div class="stat-value" style="font-size:20px;" id="app-a-limpar">0</div></div>
-            <div class="stat-card s-blue" style="padding:10px;"><div class="stat-label" style="font-size:10px;">Arrumação</div><div class="stat-value" style="font-size:20px;" id="app-limpando">0</div></div>
+            <div class="stat-card s-blue" style="padding:10px;"><div class="stat-label" style="font-size:10px;">Arrumando</div><div class="stat-value" style="font-size:20px;" id="app-limpando">0</div></div>
             <div class="stat-card s-green" style="padding:10px;"><div class="stat-label" style="font-size:10px;">Concluídos</div><div class="stat-value" style="font-size:20px;" id="app-concluidos">0</div></div>
           </div>
           <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Meus apartamentos</div>
@@ -1863,7 +1868,7 @@ tr:last-child td { border-bottom: none; }
             <select id="gl-status">
               <option value="livre" selected>Vago</option>
               <option value="sujo">Sujo</option>
-              <option value="limpando">Em Arrumação</option>
+              <option value="limpando">Arrumando</option>
               <option value="pausado">Pausado</option>
               <option value="conferencia">Ag. Inspeção</option>
               <option value="limpo">Limpo</option>
@@ -2310,7 +2315,8 @@ const NAV_ITEMS = {
     { section:'Cadastros' },
     { id:'cadastro-apto', icon:'🏠', label:'Apartamentos' },
     { section:'Análise' },
-    { id:'relatorios', icon:'📈', label:'Relatórios' },
+    { id:'relatorios',      icon:'📈', label:'Relatórios' },
+    { id:'integracao-xls',  icon:'📥', label:'Integração XLS' },
     { section:'Sistema' },
     { id:'config', icon:'⚙️', label:'Configurações' },
   ],
@@ -2325,7 +2331,8 @@ const NAV_ITEMS = {
     { id:'chamados', icon:'🔔', label:'Chamados', badge:true },
     { id:'equipe',   icon:'👥', label:'Equipe' },
     { section:'Análise' },
-    { id:'relatorios', icon:'📈', label:'Relatórios' },
+    { id:'relatorios',     icon:'📈', label:'Relatórios' },
+    { id:'integracao-xls', icon:'📥', label:'Integração XLS' },
   ],
   supervisora: [
     { section:'Minha Operação' },
@@ -2409,6 +2416,7 @@ const PAGE_TITLES = {
   config:'Configurações', 'app-camareira':'Meus Apartamentos',
   'app-manutencao':'Meus Chamados — Manutenção',
   'minha-fila':'Minha Fila',
+  'integracao-xls':'Integração XLS — Sistema GOV',
 };
 
 function openPage(id) {
@@ -2439,7 +2447,8 @@ function openPage(id) {
   if (id === 'relatorios')    renderRelatorios();
   if (id === 'config')        renderConfig();
   if (id === 'app-camareira') renderAppCamareira();
-  if (id === 'app-manutencao') renderAppManutencao();
+  if (id === 'app-manutencao')   renderAppManutencao();
+  if (id === 'integracao-xls')  renderIntegracaoXls();
 }
 
 // ── HELPER: chip de hotel para perfis sem seletor ────────────
@@ -2465,7 +2474,7 @@ const _STATUS_ICONS = {
   bloqueado:'🔒', ocupado:'🏠', manutencao:'🔧'
 };
 const _STATUS_LABELS = {
-  livre:'Vago', sujo:'Sujo', limpando:'Em Arrumação', pausado:'Pausado',
+  livre:'Vago', sujo:'Sujo', limpando:'Arrumando', pausado:'Pausado',
   conferencia:'Ag. Inspeção', limpo:'Limpo', reprovado:'Reprovado',
   bloqueado:'Bloqueado', ocupado:'Ocupado', manutencao:'Manutenção'
 };
@@ -3126,14 +3135,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <script src="js/hotels.js?v=20260619g"></script>
-<script src="js/apartments.js?v=20260622a"></script>
+<script src="js/apartments.js?v=20260622c"></script>
 <script src="js/maids.js?v=20260619g"></script>
 <script src="js/users.js?v=20260619g"></script>
 <script src="js/permissions.js?v=20260619g"></script>
 <script src="js/chamados.js?v=20260621g"></script>
 <script src="js/config.js?v=20260621m"></script>
-<script src="js/dashboard.js?v=20260621d"></script>
-<script src="js/relatorios.js?v=20260621k"></script>
-<script src="js/minha-fila.js?v=20260621i"></script>
+<script src="js/dashboard.js?v=20260622c"></script>
+<script src="js/relatorios.js?v=20260622f"></script>
+<script src="js/minha-fila.js?v=20260622c"></script>
+<script src="js/integracao-xls.js?v=20260622g"></script>
 </body>
 </html>

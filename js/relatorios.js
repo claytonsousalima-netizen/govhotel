@@ -210,7 +210,7 @@ async function _relCarregarDados(hotelId) {
   if (confCheckRes.error) avisos.push('Conferências de supervisora indisponíveis (verifique console)');
 
   _relData    = { aptos, chamados, retrabalhos, equipe, history, confChecklists, limpChecklists, userNames, aptoById, sessoes, parametros, avisos };
-  _relFiltros = { dtIni:'', dtFim:'', andar:'', camareira:'', status:'', apto:'', tipo:'', prioridade:'' };
+  _relFiltros = { dtIni:'', dtFim:'', andar:'', camareira:'', status:'', apto:'', tipo:'', prioridade:'', situacaoPausa:'' };
 
   _relRenderShell();
   _relAbrirAba(_relAba);
@@ -280,6 +280,7 @@ function _relRenderShell() {
     { id:'retrabalhos',     label:'🔁 Retrabalhos' },
     { id:'equipe',          label:'👥 Equipe' },
     { id:'pausas',          label:'⏸ Pausas' },
+    { id:'discrepancia',    label:'🔴 Discrepância' },
   ];
 
   const { aptos, equipe, chamados, avisos } = _relData;
@@ -338,12 +339,12 @@ function _rFS(id,label,opts,val,onev) {
 function _relFiltro(campo, valor) { _relFiltros[campo] = valor; _relAbrirAba(_relAba); }
 
 function _relLimparFiltros() {
-  _relFiltros = { dtIni:'', dtFim:'', andar:'', camareira:'', status:'', apto:'', tipo:'', prioridade:'' };
+  _relFiltros = { dtIni:'', dtFim:'', andar:'', camareira:'', status:'', apto:'', tipo:'', prioridade:'', situacaoPausa:'' };
   _relRenderShell(); _relAbrirAba(_relAba);
 }
 
 const _REL_ABAS = ['executivo','gargalos','resumo','status','sem-resp','tempo-limpeza',
-  'produtividade','qualidade','checklists','chamados','timeline','retrabalhos','equipe','pausas'];
+  'produtividade','qualidade','checklists','chamados','timeline','retrabalhos','equipe','pausas','discrepancia'];
 
 function _relAbrirAba(id) {
   _relAba = id;
@@ -358,7 +359,7 @@ function _relAbrirAba(id) {
     status: _relAbaStatus, 'sem-resp': _relAbaSemResp, 'tempo-limpeza': _relAbaTempoLimpeza,
     produtividade: _relAbaProdutividade, qualidade: _relAbaQualidade, checklists: _relAbaChecklists,
     chamados: _relAbaChamados, timeline: _relAbaTimeline, retrabalhos: _relAbaRetrabalhos,
-    equipe: _relAbaEquipe, pausas: _relAbaPausas,
+    equipe: _relAbaEquipe, pausas: _relAbaPausas, discrepancia: _relAbaDiscrepancia,
   };
   if (map[id]) map[id](el);
 }
@@ -621,7 +622,7 @@ function _relAbaGargalos(el) {
   el.innerHTML = `
     <div class="stats-grid" style="margin-bottom:16px;">
       ${_relCard('Sujos sem camareira', sujosSemCam.length, '','s-red')}
-      ${_relCard('Em Arrumação', emLimpando.length, '','s-blue')}
+      ${_relCard('Arrumando', emLimpando.length, '','s-blue')}
       ${_relCard('Pausados', pausados.length, '','s-orange')}
       ${_relCard('Aguardando inspeção', emConf.length, '','s-purple')}
       ${_relCard('Reprovados', reprovados.length, '','s-red')}
@@ -677,7 +678,7 @@ function _relAbaStatus(el) {
 
   const statusInfo = [
     {key:'livre',label:'Vago',color:'#27ae60'},{key:'sujo',label:'Sujo',color:'#e67e22'},
-    {key:'limpando',label:'Arrumação',color:'#2e86c1'},{key:'conferencia',label:'Inspeção',color:'#8e44ad'},
+    {key:'limpando',label:'Arrumando',color:'#2e86c1'},{key:'conferencia',label:'Inspeção',color:'#8e44ad'},
     {key:'limpo',label:'Limpo',color:'#1abc9c'},{key:'ocupado',label:'Ocupado',color:'#7f8c8d'},
     {key:'bloqueado',label:'Bloqueado',color:'#c0392b'},{key:'manutencao',label:'Manutenção',color:'#f1c40f'},
     {key:'pausado',label:'Pausado',color:'#f39c12'},{key:'reprovado',label:'Reprovado',color:'#e74c3c'},
@@ -1569,6 +1570,300 @@ function _relAbaPausas(el) {
       ? '<p style="color:var(--text3);text-align:center;padding:32px;">Nenhuma pausa encontrada.</p>'
       : _relTable(['Apto','Andar','Início da Pausa','Fim da Pausa','Duração','Quem Pausou','Retomado por','Observação'], rows, 9999)}
   </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ABA DISCREPÂNCIA — Relatório de Discrepância da Integração XLS
+// ══════════════════════════════════════════════════════════════════
+
+// Estado próprio da aba (não mistura com _relFiltros das outras abas)
+let _discFiltros = { data: new Date().toISOString().slice(0,10), apenasDisc: false, statusApto: '', statusGov: '', apto: '' };
+
+// Labels visuais dos status internos — limpando nunca exibe como "Limpando"
+const _DISC_LABEL = {
+  vago:'Vago', ocupado:'Ocupado', bloqueado:'Bloqueado',
+  nao_perturbe:'Não Perturbe', nao_quis_arrumacao:'Não quis arrumação',
+  limpo:'Limpo', sujo:'Sujo', limpando:'Arrumando',
+  inspecao:'Inspeção', manutencao:'Manutenção',
+};
+
+function _discLabel(v) { return _DISC_LABEL[v] || v || '—'; }
+
+// Cores por tipo para badges
+const _DISC_COR = {
+  vago:'#22c55e', ocupado:'#ef4444', bloqueado:'#6b7280',
+  nao_perturbe:'#8b5cf6', nao_quis_arrumacao:'#ec4899',
+  limpo:'#22c55e', sujo:'#f97316', limpando:'#2e86c1',
+  inspecao:'#8e44ad', manutencao:'#f59e0b',
+};
+
+function _discBadge(v) {
+  const cor = _DISC_COR[v] || '#6b7280';
+  const lbl = _discLabel(v);
+  return `<span style="display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;background:${cor}22;color:${cor};border:1px solid ${cor}55;white-space:nowrap;">${lbl}</span>`;
+}
+
+// ── Regras de discrepância (função pura) ─────────────────────────
+// Recebe um registro de integracao_xls_status_diario.
+// status_apto   = STATUS GOV do XLS  (ocupação: vago/ocupado/bloqueado/nao_perturbe/nao_quis_arrumacao)
+// status_governanca = STATUS APTO do XLS (limpeza: limpo/sujo/limpando/inspecao/manutencao)
+
+function calcularDiscrepanciasIntegracaoXls(r, dataIntegracao) {
+  const disc = [];
+  const gov     = r.status_apto        || '';   // ocupação
+  const limpeza = r.status_governanca  || '';   // limpeza
+  const adultos = r.adultos ?? 0;
+  const partida = r.data_partida || '';
+
+  // Regra 1: Ocupado sem hóspedes informados
+  if (gov === 'ocupado' && adultos === 0)
+    disc.push('Ocupado sem hóspedes informados');
+
+  // Regra 2: Vago com hóspedes informados
+  if (gov === 'vago' && adultos > 0)
+    disc.push('Vago com hóspedes informados');
+
+  // Regra 3: Bloqueado com hóspedes informados
+  if (gov === 'bloqueado' && adultos > 0)
+    disc.push('Bloqueado com hóspedes informados');
+
+  // Regra 4: Ocupado com status de arrumação/conferência/inspeção
+  if (gov === 'ocupado' && ['limpando','inspecao','sujo'].includes(limpeza))
+    disc.push('Ocupado com status de arrumação/conferência');
+
+  // Regra 5: Possível saída do dia (partida = data_integracao e está ocupado)
+  if (partida && partida === dataIntegracao && gov === 'ocupado')
+    disc.push('Possível saída do dia');
+
+  return disc;
+}
+
+// ── Observações informativas (não são discrepâncias críticas) ─────
+function _discObs(r) {
+  const obs = [];
+  if (r.status_apto === 'nao_quis_arrumacao') obs.push('Não quis arrumação');
+  if (r.status_apto === 'nao_perturbe')        obs.push('Não Perturbe');
+  if (r.status_governanca === 'nao_perturbe')   obs.push('Não Perturbe (limpeza)');
+  return obs.join('; ');
+}
+
+// ── Exportação CSV ────────────────────────────────────────────────
+function _discExportarCsv(registros, dataIntegracao) {
+  const header = ['Apto','Status Apto','Status Governança','Adultos','Data Partida','Discrepâncias','Observação'];
+  const linhas = registros.map(r => {
+    const disc = calcularDiscrepanciasIntegracaoXls(r, dataIntegracao);
+    const obs  = _discObs(r);
+    return [
+      r.apto,
+      _discLabel(r.status_apto),
+      _discLabel(r.status_governanca),
+      r.adultos ?? 0,
+      r.data_partida || '',
+      disc.join(' | '),
+      obs,
+    ].map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(',');
+  });
+  const csv  = [header.join(','), ...linhas].join('\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `discrepancia_${dataIntegracao}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Render da aba ─────────────────────────────────────────────────
+async function _relAbaDiscrepancia(el) {
+  const hotelId = _relHotelId;
+  if (!hotelId) { el.innerHTML = '<p style="color:var(--text3);padding:24px;">Selecione um hotel.</p>'; return; }
+
+  // Render imediato do shell com filtros
+  el.innerHTML = `
+    <div class="card" style="padding:14px 18px;margin-bottom:16px;">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <label style="font-size:11px;color:var(--text3);">Data da integração</label>
+          <input type="date" id="disc-f-data" value="${_discFiltros.data}"
+            onchange="_discFiltro('data',this.value)"
+            style="padding:5px 8px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:12px;width:130px;">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <label style="font-size:11px;color:var(--text3);">Status Apto (ocupação)</label>
+          <select id="disc-f-sapto" onchange="_discFiltro('statusApto',this.value)"
+            style="padding:5px 8px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:12px;">
+            <option value="">Todos</option>
+            <option value="ocupado"  ${_discFiltros.statusApto==='ocupado'?'selected':''}>Ocupado</option>
+            <option value="vago"     ${_discFiltros.statusApto==='vago'?'selected':''}>Vago</option>
+            <option value="bloqueado"${_discFiltros.statusApto==='bloqueado'?'selected':''}>Bloqueado</option>
+            <option value="nao_perturbe"${_discFiltros.statusApto==='nao_perturbe'?'selected':''}>Não Perturbe</option>
+            <option value="nao_quis_arrumacao"${_discFiltros.statusApto==='nao_quis_arrumacao'?'selected':''}>Não quis arrumação</option>
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <label style="font-size:11px;color:var(--text3);">Status Gov (limpeza)</label>
+          <select id="disc-f-sgov" onchange="_discFiltro('statusGov',this.value)"
+            style="padding:5px 8px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:12px;">
+            <option value="">Todos</option>
+            <option value="limpo"     ${_discFiltros.statusGov==='limpo'?'selected':''}>Limpo</option>
+            <option value="sujo"      ${_discFiltros.statusGov==='sujo'?'selected':''}>Sujo</option>
+            <option value="limpando"  ${_discFiltros.statusGov==='limpando'?'selected':''}>Arrumando</option>
+            <option value="inspecao"  ${_discFiltros.statusGov==='inspecao'?'selected':''}>Inspeção</option>
+            <option value="manutencao"${_discFiltros.statusGov==='manutencao'?'selected':''}>Manutenção</option>
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <label style="font-size:11px;color:var(--text3);">Apto</label>
+          <input type="text" id="disc-f-apto" value="${_discFiltros.apto}"
+            oninput="_discFiltro('apto',this.value)"
+            placeholder="ex: 301"
+            style="padding:5px 8px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:12px;width:80px;">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <label style="font-size:11px;color:var(--text3);">Mostrar</label>
+          <select id="disc-f-apenas" onchange="_discFiltro('apenasDisc',this.value==='1')"
+            style="padding:5px 8px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:12px;">
+            <option value="0" ${!_discFiltros.apenasDisc?'selected':''}>Todos os aptos</option>
+            <option value="1" ${_discFiltros.apenasDisc?'selected':''}>Apenas discrepâncias</option>
+          </select>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="_discLimparFiltros()">✕ Limpar</button>
+        <button class="btn btn-outline btn-sm" onclick="_discExportarCsv(_discDadosAtuais||[],_discFiltros.data)">⬇ CSV</button>
+      </div>
+    </div>
+    <div id="disc-conteudo"><div style="padding:32px;text-align:center;color:var(--text3);font-size:13px;">⏳ Carregando...</div></div>
+  `;
+
+  await _discCarregarERender();
+}
+
+// Dados em memória para exportação CSV
+let _discDadosAtuais = [];
+
+async function _discCarregarERender() {
+  const el = document.getElementById('disc-conteudo');
+  if (!el) return;
+
+  const { data, error } = await supabaseClient
+    .from('integracao_xls_status_diario')
+    .select('apto, status_apto, status_apto_original, status_governanca, status_governanca_original, adultos, data_partida, data_integracao')
+    .eq('hotel_id', _relHotelId)
+    .eq('data_integracao', _discFiltros.data)
+    .order('apto');
+
+  if (error) {
+    el.innerHTML = `<div class="card" style="padding:24px;color:#991b1b;">Erro ao carregar dados: ${error.message}</div>`;
+    return;
+  }
+
+  if (!data || !data.length) {
+    el.innerHTML = `<div class="card" style="padding:32px;text-align:center;color:var(--text3);">
+      Nenhum dado de integração encontrado para <strong>${_discFiltros.data}</strong>.<br>
+      <span style="font-size:12px;margin-top:8px;display:block;">Realize primeiro a Integração XLS para esta data.</span>
+    </div>`;
+    return;
+  }
+
+  _discDadosAtuais = data;
+
+  // Aplica filtros de tela
+  let filtrados = data.filter(r => {
+    if (_discFiltros.statusApto && r.status_apto !== _discFiltros.statusApto) return false;
+    if (_discFiltros.statusGov  && r.status_governanca !== _discFiltros.statusGov) return false;
+    if (_discFiltros.apto && !String(r.apto||'').includes(_discFiltros.apto)) return false;
+    return true;
+  });
+
+  // Calcula discrepâncias de cada registro
+  const comDisc = filtrados.map(r => ({
+    ...r,
+    disc: calcularDiscrepanciasIntegracaoXls(r, _discFiltros.data),
+    obs:  _discObs(r),
+  }));
+
+  if (_discFiltros.apenasDisc) {
+    filtrados = comDisc.filter(r => r.disc.length > 0);
+  } else {
+    filtrados = comDisc;
+  }
+
+  // ── Indicadores ──────────────────────────────────────────────────
+  const total      = data.length;
+  const ocupados   = data.filter(r => r.status_apto === 'ocupado').length;
+  const vagos      = data.filter(r => r.status_apto === 'vago').length;
+  const comAdultos = data.filter(r => (r.adultos ?? 0) > 0).length;
+  const totalDisc  = comDisc.filter(r => r.disc.length > 0).length;
+  const pctDisc    = total ? Math.round((totalDisc / total) * 100) : 0;
+
+  // ── Tabela ────────────────────────────────────────────────────────
+  const rows = filtrados.map(r => {
+    const temDisc    = r.disc.length > 0;
+    const rowStyle   = temDisc ? 'background:#fff1f2;' : '';
+    const discTags   = r.disc.map(d =>
+      `<div style="margin-bottom:3px;padding:2px 7px;border-radius:5px;font-size:11px;font-weight:700;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;white-space:nowrap;">${d}</div>`
+    ).join('');
+    const obsTag = r.obs
+      ? `<span style="font-size:11px;color:#6b7280;font-style:italic;">${r.obs}</span>`
+      : '';
+    return [
+      `<strong>${r.apto}</strong>`,
+      _discBadge(r.status_apto),
+      _discBadge(r.status_governanca),
+      String(r.adultos ?? 0),
+      r.data_partida ? r.data_partida.split('-').reverse().join('/') : '—',
+      discTags || '<span style="color:#9ca3af;font-size:11px;">—</span>',
+      obsTag || '—',
+    ].map((v,i) => {
+      const s = i === 0 ? rowStyle : (temDisc && i > 0 ? rowStyle : '');
+      return `<td style="padding:7px 10px;border-bottom:1px solid var(--border2);vertical-align:top;${s}">${v}</td>`;
+    }).join('');
+  });
+
+  const tabelaHtml = filtrados.length
+    ? `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead><tr style="background:var(--surface2,#f9fafb);">
+          ${['Apto','Status Apto','Status Gov (Limpeza)','Adultos','Data Partida','Tipo de Discrepância','Observação']
+            .map(c=>`<th style="text-align:left;padding:8px 10px;border-bottom:2px solid var(--border);color:var(--text2);white-space:nowrap;font-size:12px;">${c}</th>`).join('')}
+        </tr></thead>
+        <tbody>${rows.map(r=>`<tr>${r}</tr>`).join('')}</tbody>
+      </table>
+      ${filtrados.length > 500 ? `<p style="font-size:11px;color:var(--text3);margin-top:6px;">Exibindo ${filtrados.length} registros.</p>` : ''}
+      </div>`
+    : `<p style="color:var(--text3);padding:16px 0;font-size:13px;">Nenhum registro para os filtros aplicados.</p>`;
+
+  el.innerHTML = `
+    <!-- Cards indicadores -->
+    <div class="stats-grid" style="margin-bottom:16px;">
+      ${_relCard('Total importados', total, '', 's-blue')}
+      ${_relCard('Ocupados', ocupados, '', 's-red')}
+      ${_relCard('Vagos', vagos, '', 's-green')}
+      ${_relCard('Com adultos', comAdultos, '', 's-blue')}
+      ${_relCard('Discrepâncias', totalDisc, `${pctDisc}% do total`, totalDisc > 0 ? 's-red' : 's-green')}
+      ${_relCard('% Discrepância', pctDisc + '%', `${totalDisc} de ${total}`, pctDisc > 10 ? 's-red' : pctDisc > 0 ? 's-orange' : 's-green')}
+    </div>
+
+    <!-- Tabela -->
+    <div class="card" style="padding:18px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+        <div style="font-weight:600;">
+          Aptos em ${_discFiltros.data.split('-').reverse().join('/')}
+          ${_discFiltros.apenasDisc ? ' — apenas discrepâncias' : ''}
+          <span style="font-size:12px;font-weight:400;color:var(--text3);margin-left:8px;">${filtrados.length} registro(s)</span>
+        </div>
+      </div>
+      ${tabelaHtml}
+    </div>
+  `;
+}
+
+function _discFiltro(campo, valor) {
+  _discFiltros[campo] = valor;
+  _discCarregarERender();
+}
+
+function _discLimparFiltros() {
+  _discFiltros = { data: new Date().toISOString().slice(0,10), apenasDisc: false, statusApto: '', statusGov: '', apto: '' };
+  _relAbaDiscrepancia(document.getElementById('rel-aba-conteudo'));
 }
 
 // ── Patch openPage ────────────────────────────────────────────────

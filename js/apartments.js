@@ -1339,7 +1339,7 @@ async function renderAppCamareira() {
   document.getElementById('app-aptos-count').textContent = `${todos.length} aptos no hotel`;
 
   const LABEL = {
-    livre:'Vago', sujo:'Sujo', limpando:'Em Arrumação', pausado:'Pausado',
+    livre:'Vago', sujo:'Sujo', limpando:'Arrumando', pausado:'Pausado',
     conferencia:'Ag. Inspeção', limpo:'Limpo', reprovado:'Reprovado',
     bloqueado:'Bloqueado', ocupado:'Ocupado', manutencao:'Manutenção'
   };
@@ -1370,7 +1370,7 @@ async function renderAppCamareira() {
   const grupos = [
     { key:'reprovado',  label:'Re-limpeza necessária', icon:'❌', color:'#e74c3c', badge:'badge-reprovado' },
     { key:'pausado',    label:'Pausados — retomar',     icon:'⏸', color:'#f39c12', badge:'badge-pausado'   },
-    { key:'limpando',   label:'Em Arrumação',             icon:'🧹', color:'#2e86c1', badge:'badge-limpando'  },
+    { key:'limpando',   label:'Arrumando',                icon:'🧹', color:'#2e86c1', badge:'badge-limpando'  },
     { key:'sujo',       label:'Para limpar',             icon:'🟠', color:'#e67e22', badge:'badge-sujo'      },
     { key:'conferencia',label:'Aguardando inspeção',      icon:'🔍', color:'#8e44ad', badge:'badge-conferencia'},
     { key:'limpo',      label:'Limpos',                  icon:'✨', color:'#27ae60', badge:'badge-limpo'     },
@@ -1629,7 +1629,7 @@ function _badgeStatusApto(apto) {
 }
 
 function _badgeStatusGov(apto) {
-  const _OP = { limpando:'🧹 Arrumação', pausado:'⏸ Pausado', conferencia:'🔍 Ag. Inspeção', reprovado:'❌ Reprovado' };
+  const _OP = { limpando:'🧹 Arrumando', pausado:'⏸ Pausado', conferencia:'🔍 Ag. Inspeção', reprovado:'❌ Reprovado' };
   if (_OP[apto.status]) return `<span style="display:inline-block;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;background:#dbeafe;color:#1d4ed8;border:1px solid #93c5fd;white-space:nowrap;">${_OP[apto.status]}</span>`;
   if (!apto.status_gov) return '';
   const op  = _statusGovOpcoes.find(o => o.nome === apto.status_gov);
@@ -2142,7 +2142,7 @@ function renderMapa() {
 
       // Status Gov — bloco destacado (full-width) no card
       const _bGovCard = (() => {
-        const _OP = { limpando:'🧹 Arrumação', pausado:'⏸ Pausado', conferencia:'🔍 Ag. Inspeção', reprovado:'❌ Reprovado' };
+        const _OP = { limpando:'🧹 Arrumando', pausado:'⏸ Pausado', conferencia:'🔍 Ag. Inspeção', reprovado:'❌ Reprovado' };
         if (_OP[a.status]) return `<div style="font-size:10px;font-weight:700;padding:3px 6px;border-radius:6px;background:#dbeafe;color:#1d4ed8;text-align:center;margin-top:5px;">${_OP[a.status]}</div>`;
         if (!a.status_gov) return '';
         const op = _statusGovOpcoes.find(o => o.nome === a.status_gov);
@@ -2246,7 +2246,7 @@ function renderAptoKanban() {
   // (chamados abertos existem em aptos ocupados, livres, bloqueados, etc.)
   const colsLimpeza = [
     { key:'sujo',        label:'Sujo',          color:'#e67e22' },
-    { key:'limpando',    label:'Em Arrumação',   color:'#2e86c1' },
+    { key:'limpando',    label:'Arrumando',       color:'#2e86c1' },
     { key:'pausado',     label:'Pausado',        color:'#f39c12' },
     { key:'conferencia', label:'Ag. Inspeção',   color:'#8e44ad' },
     { key:'limpo',       label:'Limpo',          color:'#1abc9c' },
