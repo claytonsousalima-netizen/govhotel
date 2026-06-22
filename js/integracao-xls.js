@@ -495,10 +495,10 @@ async function _xlsValidar() {
   const file = input?.files[0];
   if (!file) { toast('Selecione um arquivo.', 'error'); return; }
 
-  _xlsArquivoNome = file.name;   // guarda antes de qualquer await
   btnVal.disabled   = true;
   btnVal.textContent = '⏳ Validando...';
   _xlsLimparResultados();
+  _xlsArquivoNome = file.name;   // depois do limpar, para não ser apagado
 
   try {
     const { rows, ignoradas, conflitos, cabValido, abaAviso } = await parseIntegracaoXlsFile(file);
