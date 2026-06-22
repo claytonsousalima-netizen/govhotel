@@ -37,7 +37,8 @@ const _MAP_STATUS_GOV = {
 
 let _xlsRegistrosValidos  = [];   // registros prontos após parse+validação
 let _xlsIgnoradas         = 0;
-let _xlsInconsistencias   = [];
+let _xlsInconsistencias   = [];   // conflitos de duplicata (excluídos do import)
+let _xlsNaoReconhecidos   = [];   // status inválido mas importados parcialmente
 
 // ══════════════════════════════════════════════════════════════════════════════
 // FUNÇÕES DE NORMALIZAÇÃO (Etapa 4)
@@ -290,6 +291,7 @@ function renderIntegracaoXls() {
   _xlsRegistrosValidos = [];
   _xlsIgnoradas        = 0;
   _xlsInconsistencias  = [];
+  _xlsNaoReconhecidos  = [];
 
   const hotelNome  = currentUser?.hotelNome || '';
   const hotelId    = currentUser?.hotelId   || '';
@@ -464,6 +466,7 @@ function _xlsLimparResultados() {
   _xlsRegistrosValidos = [];
   _xlsIgnoradas        = 0;
   _xlsInconsistencias  = [];
+  _xlsNaoReconhecidos  = [];
 
   const resumo  = document.getElementById('xls-resumo');
   const preview = document.getElementById('xls-preview-wrap');
@@ -497,11 +500,15 @@ async function _xlsValidar() {
   try {
     const { rows, ignoradas, conflitos, cabValido, abaAviso } = await parseIntegracaoXlsFile(file);
 
+    // Linhas com status não reconhecido (importadas parcialmente)
+    const naoReconhecidos = rows.filter(r => !r.conflito && (r.incApto || r.incGov));
+
     // Exibe avisos
     const avisosList = [];
     if (abaAviso)              avisosList.push({ tipo:'warn', msg: abaAviso });
     if (!cabValido.ok)         cabValido.erros.forEach(e => avisosList.push({ tipo:'error', msg: e }));
     if (conflitos.length)      avisosList.push({ tipo:'warn', msg: `${conflitos.length} apartamento(s) aparecem com dados conflitantes e foram destacados.` });
+    if (naoReconhecidos.length) avisosList.push({ tipo:'warn', msg: `${naoReconhecidos.length} apartamento(s) com status não reconhecido — importados com status parcial.` });
 
     if (avisosList.length) {
       avisos.innerHTML = avisosList.map(a => `
@@ -514,8 +521,8 @@ async function _xlsValidar() {
       avisos.style.display = '';
     }
 
-    // Resumo
-    const resumo = montarResumoIntegracao(rows, ignoradas, conflitos);
+    // Resumo — inconsistências = conflitos duplicados + status não reconhecidos
+    const resumo = montarResumoIntegracao(rows, ignoradas, [...conflitos, ...naoReconhecidos]);
     _xlsRenderResumo(resumo);
 
     // Preview
@@ -523,9 +530,10 @@ async function _xlsValidar() {
     document.getElementById('xls-preview-wrap').style.display = '';
 
     // Guarda estado
-    _xlsRegistrosValidos = rows.filter(r => !r.conflito && (r.statusApto || r.statusGov));
-    _xlsIgnoradas        = ignoradas;
-    _xlsInconsistencias  = conflitos;
+    _xlsRegistrosValidos  = rows.filter(r => !r.conflito && (r.statusApto || r.statusGov));
+    _xlsIgnoradas         = ignoradas;
+    _xlsInconsistencias   = conflitos;          // conflitos duplicados (excluídos do import)
+    _xlsNaoReconhecidos   = naoReconhecidos;    // status inválido (importados parcialmente)
 
     // Habilita confirmar somente se há registros válidos
     const btnConf = document.getElementById('xls-btn-confirmar');
@@ -566,6 +574,7 @@ function _xlsReset() {
   _xlsRegistrosValidos = [];
   _xlsIgnoradas        = 0;
   _xlsInconsistencias  = [];
+  _xlsNaoReconhecidos  = [];
 
   const input = document.getElementById('xls-file-input');
   if (input) input.value = '';
@@ -614,7 +623,7 @@ async function _xlsConfirmar(substituir = false) {
   const totalLinhas          = _xlsRegistrosValidos.length + _xlsIgnoradas + _xlsInconsistencias.length;
   const totalImportadas      = _xlsRegistrosValidos.length;
   const totalIgnoradas       = _xlsIgnoradas;
-  const totalInconsistencias = _xlsInconsistencias.length;
+  const totalInconsistencias = _xlsInconsistencias.length + _xlsNaoReconhecidos.length;
 
   // ── UI: bloqueia botão durante gravação ──────────────────────────────────
   const btnConf = document.getElementById('xls-btn-confirmar');
