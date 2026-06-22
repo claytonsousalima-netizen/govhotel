@@ -2167,7 +2167,7 @@ function renderMapa() {
           ${temChamado ? '<div style="position:absolute;top:4px;right:4px;font-size:9px;font-weight:700;background:var(--danger);color:#fff;border-radius:8px;padding:1px 5px;line-height:1.5;" title="Chamado aberto">📋</div>' : ''}
           <div class="apto-status-icon">${icon}</div>
           <div class="apto-num">${a.numero}</div>
-          <div class="apto-tipo">${a.tipo}${a.leitos ? ` · ${a.leitos}🛏` : ''}</div>
+          <div class="apto-tipo">${a.tipo}${a.leitos ? `<span style="white-space:nowrap"> · ${a.leitos}🛏</span>` : ''}</div>
           ${_bGovCard}
           ${_bAptoCard}
         </div>`;
@@ -2179,7 +2179,7 @@ function renderMapa() {
           ${temChamado ? '<div style="position:absolute;top:4px;right:4px;font-size:9px;font-weight:700;background:var(--danger);color:#fff;border-radius:8px;padding:1px 5px;line-height:1.5;" title="Chamado aberto">📋</div>' : ''}
           <div class="apto-status-icon">${icon}</div>
           <div class="apto-num">${a.numero}</div>
-          <div class="apto-tipo">${a.tipo}${a.leitos ? ` · ${a.leitos}🛏` : ''}</div>
+          <div class="apto-tipo">${a.tipo}${a.leitos ? `<span style="white-space:nowrap"> · ${a.leitos}🛏</span>` : ''}</div>
           ${_bGovCard}
           ${_bAptoCard}
           ${_camNome
@@ -2287,7 +2287,7 @@ function renderAptoKanban() {
             ${a.numero}
             ${temChamado ? '<span style="font-size:10px;color:var(--danger);" title="Chamado aberto">📋</span>' : ''}
           </div>
-          <div class="kanban-detail">${a.tipo}${a.leitos ? ` · ${a.leitos}🛏` : ''} · ${a.andar}º andar</div>
+          <div class="kanban-detail">${a.tipo}${a.leitos ? `<span style="white-space:nowrap"> · ${a.leitos}🛏</span>` : ''} · ${a.andar}º andar</div>
           ${_kbAptoLine}
           ${cam
             ? `<div style="font-size:11px;color:var(--text3);margin-top:4px;">👤 ${cam.nome}</div>`
