@@ -647,7 +647,7 @@ async function _xlsConfirmar(substituir = false) {
 
     if (error) {
       console.error('RPC importar_integracao_xls_status_diario:', error);
-      toast('Erro ao salvar integração. Tente novamente.', 'error');
+      toast('Erro: ' + (error.message || error.code || JSON.stringify(error)), 'error');
       return;
     }
 
@@ -657,7 +657,7 @@ async function _xlsConfirmar(substituir = false) {
         _xlsConfirmarSubstituicao(data.mensagem);
         return;
       }
-      toast(data?.mensagem || 'Erro ao salvar integração. Tente novamente.', 'error');
+      toast(data?.mensagem || data?.erro || 'Erro ao salvar integração. Tente novamente.', 'error');
       return;
     }
 
