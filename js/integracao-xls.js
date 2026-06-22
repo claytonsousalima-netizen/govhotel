@@ -16,8 +16,9 @@ const _MAP_STATUS_APTO = {
   'Manutencao':    { interno: 'manutencao', label: 'Manutenção'         },
   'Manutenção':    { interno: 'manutencao', label: 'Manutenção'         },
   'Reservado':     { interno: 'limpo',      label: 'Limpo'              },
-  'Nao Perturbe':  { interno: 'nao_perturbe', label: 'Não Perturbe'    },
-  'Não Perturbe':  { interno: 'nao_perturbe', label: 'Não Perturbe'    },
+  'Nao Perturbe':  { interno: 'nao_perturbe',       label: 'Não Perturbe'       },
+  'Não Perturbe':  { interno: 'nao_perturbe',       label: 'Não Perturbe'       },
+  'N.Q.A.':        { interno: 'nao_quis_arrumacao', label: 'Não quis arrumação' },
 };
 
 // STATUS GOV do XLS → { interno, label }
