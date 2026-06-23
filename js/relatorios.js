@@ -1285,7 +1285,7 @@ function _relAbaTimeline(el) {
       : h.status_novo==='conferencia'?'Arrumação'
       : h.status_novo==='limpo'?'Concluído (limpo)'
       : h.status_novo==='reprovado'?'Reprovado'
-      : h.status_novo==='livre'?'Liberado (vago)'
+      : h.status_novo==='livre'?'Vago'
       : 'Mudança status';
     eventos.push({ dt: h.created_at, apto: a.numero||h.apartment_id, evento: ev,
       anterior: h.status_anterior||'—', novo: h.status_novo||'—',

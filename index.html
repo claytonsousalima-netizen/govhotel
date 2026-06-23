@@ -2681,9 +2681,12 @@ async function openAptoDetail(id) {
       ? `<button class="btn btn-xs btn-primary" onclick="aprovarLimpeza()">✅ Aprovar limpeza</button>
          <button class="btn btn-xs btn-danger"  onclick="abrirModalReprovacao()">❌ Reprovar limpeza</button>`
       : `<span style="font-size:12px;color:var(--text3);">Aguardando arrumação da supervisora.</span>`,
-    limpo:       `<button class="btn btn-xs btn-primary" onclick="mudarStatusApto('${id}','livre')">✅ Liberar para check-in</button>
-                  <button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','ocupado')">🏠 Marcar ocupado</button>
-                  <button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','sujo')">↩ Marcar sujo</button>`,
+    limpo:       apto.status_apto === 'Ocupado'
+      ? `<button class="btn btn-xs btn-primary" onclick="mudarStatusApto('${id}','ocupado')">🏠 Confirmar ocupado</button>
+         <button class="btn btn-xs btn-ghost"   onclick="mudarStatusApto('${id}','sujo')">↩ Marcar sujo</button>`
+      : `<button class="btn btn-xs btn-primary" onclick="mudarStatusApto('${id}','livre')">✅ Disponível (Vago)</button>
+         <button class="btn btn-xs btn-ghost"   onclick="mudarStatusApto('${id}','ocupado')">🏠 Marcar ocupado</button>
+         <button class="btn btn-xs btn-ghost"   onclick="mudarStatusApto('${id}','sujo')">↩ Marcar sujo</button>`,
     bloqueado:   (!isCamareira && !isManutencao)
       ? `<button class="btn btn-xs btn-primary" onclick="mudarStatusApto('${id}','sujo')">🔓 Desbloquear</button>`
       : `<span style="font-size:12px;color:var(--text3);">Apartamento bloqueado — sem ação disponível.</span>`,
@@ -3153,7 +3156,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 <script src="js/chamados.js?v=20260621g"></script>
 <script src="js/config.js?v=20260621m"></script>
 <script src="js/dashboard.js?v=20260623c"></script>
-<script src="js/relatorios.js?v=20260623b"></script>
+<script src="js/relatorios.js?v=20260623c"></script>
 <script src="js/minha-fila.js?v=20260623a"></script>
 <script src="js/integracao-xls.js?v=20260623i"></script>
 </body>
