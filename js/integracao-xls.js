@@ -118,7 +118,7 @@ function validarCabecalhosIntegracaoXls(rows) {
   // Portanto a linha de cabeçalhos é rows[0]
   const header = rows[0] || [];
   const erros  = [];
-  const esperados = { 0: 'CODUH', 3: 'STATUS APTO', 6: 'STATUS GOV', 9: 'ADULTOS', 12: 'PARTIDA' };
+  const esperados = { 0: 'CODUH', 3: 'STATUS GOV', 6: 'STATUS APTO', 9: 'ADULTOS', 12: 'PARTIDA' };
   for (const [idx, nome] of Object.entries(esperados)) {
     const val = String(header[idx] ?? '').trim().toUpperCase();
     if (!val.includes(nome.toUpperCase())) {
