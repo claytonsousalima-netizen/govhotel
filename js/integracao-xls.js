@@ -745,7 +745,7 @@ function _xlsRenderTabelaConfronto(el, linhas, total) {
 
     const mudaNoModo = modo === 'geral'
       ? (mudaLimpeza || mudaOcupacao)
-      : (mudaOcupacao || mudaLimpezaSA);
+      : mudaOcupacao;
 
     return { ...l, novaLimpeza, novaOcupacao, ocupAtual, limpAtualDisplay,
              mudaLimpeza, mudaOcupacao, novaLimpezaSA: limpSADisplay, mudaLimpezaSA, mudaNoModo };
@@ -765,32 +765,26 @@ function _xlsRenderTabelaConfronto(el, linhas, total) {
   }
 
   if (modo === 'status_apto') {
-    // ── Integrar Status Apto: foco em Ocupação ───────────────────────────────
+    // ── Integrar Status Apto: SOMENTE Ocupação — não altera nem mostra Limpeza
     tabelaEl.innerHTML = `
       <div style="font-size:11px;color:#6b7280;margin-bottom:8px;padding:6px 10px;background:#f9fafb;border-radius:6px;border:1px solid #e5e7eb;">
-        Atualiza apenas a <strong>Ocupação</strong> (Vago / Ocupado / Bloqueado) conforme Col G do XLS.
-        O status de limpeza só muda como efeito colateral de mudança de ocupação.
+        Atualiza apenas a <strong>Ocupação</strong> (Vago / Ocupado / Bloqueado). O Status de Limpeza/Governança não é alterado.
       </div>
       <table style="width:100%;border-collapse:collapse;font-size:12px;">
         <thead>
           <tr style="background:#f3f4f6;text-align:left;">
             <th style="padding:8px 10px;border-bottom:2px solid #e5e7eb;width:60px;">Apto</th>
-            <th style="padding:8px 10px;border-bottom:2px solid #e5e7eb;border-right:2px solid #e5e7eb;" colspan="3">🏠 Ocupação (Sistema x XLS)</th>
-            <th style="padding:8px 10px;border-bottom:2px solid #e5e7eb;" colspan="3">🧹 Limpeza (efeito colateral)</th>
+            <th style="padding:8px 10px;border-bottom:2px solid #e5e7eb;" colspan="3">🏠 Ocupação (Sistema x XLS)</th>
           </tr>
         </thead>
         <tbody>
           ${comMudanca.map(l => {
-            const ocupCell  = l.mudaOcupacao
+            const ocupCell = l.mudaOcupacao
               ? `${_badgeO(l.ocupAtual,false)} ${_seta} ${_badgeO(l.novaOcupacao,true)}`
-              : _ok;
-            const limpEfeito = l.mudaLimpezaSA
-              ? `${_badgeL(l.limpAtualDisplay,false)} ${_seta} ${_badgeL(l.novaLimpezaSA,true)}`
               : _ok;
             return `<tr style="border-bottom:1px solid #f3f4f6;">
               <td style="padding:8px 10px;font-weight:700;font-size:13px;">${l.r.numero}</td>
-              <td style="padding:8px 10px;border-right:1px solid #f3f4f6;" colspan="3">${ocupCell}</td>
-              <td style="padding:8px 10px;" colspan="3">${limpEfeito}</td>
+              <td style="padding:8px 10px;" colspan="3">${ocupCell}</td>
             </tr>`;
           }).join('')}
         </tbody>
@@ -932,10 +926,7 @@ function _xlsRenderDivergencias(registros, sistemaMap) {
   }).length;
   const comMudancaSA = linhas.filter(l => {
     const novaOcup = _xlsNovaOcupacao(l.xlsApto);
-    const limpAtual = (l.sistStatus === 'vago' || l.sistStatus === 'ocupado') ? 'limpo' : l.sistStatus;
-    const limpSA    = (l.statusAptoResultado === 'vago' || l.statusAptoResultado === 'ocupado') ? 'limpo' : l.statusAptoResultado;
-    return (novaOcup !== null && novaOcup !== (l.sist?.status_apto || null)) ||
-           limpSA !== limpAtual;
+    return novaOcup !== null && novaOcup !== (l.sist?.status_apto || null);
   }).length;
 
   // Guarda dados para re-render ao trocar modo
@@ -1109,11 +1100,10 @@ async function _xlsConfirmar(substituir = false, modo = 'geral') {
       _xlsExibirAvisoPausados(aptosPausados.length, aptosPausados.join(', '));
     }
 
-    // Bloqueia todos os botões após gravação bem-sucedida
+    // Bloqueia botões após gravação bem-sucedida
     const _labelSalvo = '✅ Integração salva';
-    if (btnConf)  { btnConf.disabled = true; btnConf.textContent = _labelSalvo; }
-    if (btnGA)    { btnGA.disabled   = true; btnGA.textContent   = modo === 'geral'       ? _labelSalvo : '📊 Integrar Geral'; }
-    if (btnSA)    { btnSA.disabled   = true; btnSA.textContent   = modo === 'status_apto' ? _labelSalvo : '🏠 Integrar Status Apto'; }
+    if (btnConf) { btnConf.disabled = true; btnConf.textContent = _labelSalvo; }
+    if (btnInt)  { btnInt.disabled  = true; btnInt.textContent  = _labelSalvo; }
 
   } catch (err) {
     console.error('_xlsConfirmar:', err);
