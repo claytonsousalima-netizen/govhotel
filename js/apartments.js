@@ -7,6 +7,7 @@
 let _editingAptoId  = null;
 let _aptoViewHotelId = null;
 let _checklistOrigemStatus = null;
+let _sessaoLimpezaId       = null;
 let _limpandoOrfaosVerificado = false;
 let _aptosCarregados    = false;          // true após primeira carga de aptos
 let _aptosCamAnterior   = new Map();      // aptoId → camareira_id anterior (detecta atribuição)
@@ -1018,6 +1019,16 @@ async function iniciarLimpeza() {
   const acao = apto.status === 'pausado' ? 'retomada' : 'iniciada';
   const obs  = `Limpeza ${acao} por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
   await mudarStatusApto(selectedAptoId, 'limpando', obs);
+
+  // Abre sessão de tempo de limpeza
+  const { data: _sessaoData } = await supabaseClient.from('limpeza_sessoes').insert({
+    apartment_id: selectedAptoId,
+    hotel_id:     apto.hotel_id,
+    camareira_id: currentUser.id,
+    obs,
+  }).select('id').single();
+  _sessaoLimpezaId = _sessaoData?.id ?? null;
+
   // Perfis operacionais preenchem checklist ao iniciar; manutenção segue fluxo direto
   const _PERFIS_CHECKLIST_LIMPEZA = ['camareira','admin_global','admin_hotel','gestor','supervisora','governanta'];
   if (_PERFIS_CHECKLIST_LIMPEZA.includes(currentUser?.perfil)) {
@@ -1595,6 +1606,15 @@ async function concluirChecklist() {
     ...(qtdBagagem !== null ? { qtd_bagagem: qtdBagagem } : {}),
   });
   if (ckErr) console.warn('Checklist não salvo:', ckErr.message);
+
+  // Fecha sessão de tempo de limpeza
+  if (_sessaoLimpezaId) {
+    await supabaseClient.from('limpeza_sessoes').update({
+      fim_at:       new Date().toISOString(),
+      tipo_limpeza: _tipoLimpezaEnum(_checklistTipoSelecionado),
+    }).eq('id', _sessaoLimpezaId);
+    _sessaoLimpezaId = null;
+  }
 
   _checklistOrigemStatus = null;
   closeModal('modal-checklist');
