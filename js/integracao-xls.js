@@ -507,21 +507,43 @@ async function _xlsValidar() {
     // Linhas com status não reconhecido (importadas parcialmente)
     const naoReconhecidos = rows.filter(r => !r.conflito && (r.incApto || r.incGov));
 
+    // Consulta aptos do arquivo que estão pausados no sistema
+    let aptosPausadosValidacao = [];
+    try {
+      const numerosNoArquivo = [...new Set(rows.map(r => r.numero).filter(Boolean))];
+      if (numerosNoArquivo.length && hotelId) {
+        const { data: pausados } = await supabaseClient
+          .from('apartments')
+          .select('numero')
+          .eq('hotel_id', hotelId)
+          .eq('status', 'pausado')
+          .in('numero', numerosNoArquivo);
+        aptosPausadosValidacao = (pausados || []).map(a => a.numero).sort();
+      }
+    } catch (_) { /* não bloqueia a validação */ }
+
     // Exibe avisos
     const avisosList = [];
     if (abaAviso)              avisosList.push({ tipo:'warn', msg: abaAviso });
     if (!cabValido.ok)         cabValido.erros.forEach(e => avisosList.push({ tipo:'error', msg: e }));
     if (conflitos.length)      avisosList.push({ tipo:'warn', msg: `${conflitos.length} apartamento(s) aparecem com dados conflitantes e foram destacados.` });
     if (naoReconhecidos.length) avisosList.push({ tipo:'warn', msg: `${naoReconhecidos.length} apartamento(s) com status não reconhecido — importados com status parcial.` });
+    if (aptosPausadosValidacao.length) avisosList.push({
+      tipo:'pausado',
+      msg: `${aptosPausadosValidacao.length} apartamento(s) com limpeza pausada — status de governança será preservado: <strong>${aptosPausadosValidacao.join(', ')}</strong>`,
+    });
 
     if (avisosList.length) {
-      avisos.innerHTML = avisosList.map(a => `
-        <div style="padding:10px 16px;border-radius:8px;margin-bottom:8px;font-size:13px;
-          background:${a.tipo==='error'?'#fee2e2':'#fef9c3'};
-          border:1px solid ${a.tipo==='error'?'#fca5a5':'#fde68a'};
-          color:${a.tipo==='error'?'#991b1b':'#92400e'};">
-          ${a.tipo==='error'?'❌':'⚠️'} ${a.msg}
-        </div>`).join('');
+      avisos.innerHTML = avisosList.map(a => {
+        const bg  = a.tipo==='error' ? '#fee2e2' : a.tipo==='pausado' ? '#eff6ff' : '#fef9c3';
+        const brd = a.tipo==='error' ? '#fca5a5' : a.tipo==='pausado' ? '#93c5fd' : '#fde68a';
+        const cor = a.tipo==='error' ? '#991b1b' : a.tipo==='pausado' ? '#1e40af' : '#92400e';
+        const ico = a.tipo==='error' ? '❌'      : a.tipo==='pausado' ? '⏸'      : '⚠️';
+        return `<div style="padding:10px 16px;border-radius:8px;margin-bottom:8px;font-size:13px;
+          background:${bg};border:1px solid ${brd};color:${cor};">
+          ${ico} ${a.msg}
+        </div>`;
+      }).join('');
       avisos.style.display = '';
     }
 
