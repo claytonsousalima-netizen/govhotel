@@ -873,6 +873,7 @@ function _govSyncParaStatus(status) {
     limpo:       'Limpo',
     livre:       'Limpo',
     manutencao:  'Manutenção',
+    inspecao:    'Inspeção',
     // ocupado e bloqueado não sincronizam Gov automaticamente
   };
   return mapa[status] ?? null;
@@ -890,6 +891,7 @@ function _aptoSyncParaStatus(status) {
     ocupado:     'Ocupado',
     bloqueado:   'Bloqueado',
     manutencao:  'Bloqueado',
+    inspecao:    'Bloqueado',
   };
   return mapa[status] ?? null;
 }
@@ -1341,7 +1343,7 @@ async function renderAppCamareira() {
   const LABEL = {
     livre:'Vago', sujo:'Sujo', limpando:'Em Limpeza', pausado:'Pausado',
     conferencia:'Arrumação', limpo:'Limpo', reprovado:'Reprovado',
-    bloqueado:'Bloqueado', ocupado:'Ocupado', manutencao:'Manutenção'
+    bloqueado:'Bloqueado', ocupado:'Ocupado', manutencao:'Manutenção', inspecao:'Inspeção'
   };
 
   const totalMeusAtrib = todos.filter(a => a.camareira_id === currentUser.id).length;
@@ -1378,6 +1380,7 @@ async function renderAppCamareira() {
     { key:'ocupado',    label:'Ocupados',                icon:'🏠', color:'#7f8c8d', badge:'badge-ocupado'   },
     { key:'bloqueado',  label:'Bloqueados',              icon:'🔒', color:'#c0392b', badge:'badge-bloqueado' },
     { key:'manutencao', label:'Manutenção',              icon:'🔧', color:'#95a5a6', badge:'badge-manutencao'},
+    { key:'inspecao',   label:'Inspeção',               icon:'🔎', color:'#0891b2', badge:'badge-inspecao'  },
   ];
 
   let html = '';
@@ -1629,7 +1632,7 @@ function _badgeStatusApto(apto) {
 }
 
 function _badgeStatusGov(apto) {
-  const _OP = { limpando:'🧹 Em Limpeza', pausado:'⏸ Pausado', conferencia:'🔍 Arrumação', reprovado:'❌ Reprovado' };
+  const _OP = { limpando:'🧹 Em Limpeza', pausado:'⏸ Pausado', conferencia:'🔍 Arrumação', reprovado:'❌ Reprovado', inspecao:'🔎 Inspeção' };
   if (_OP[apto.status]) return `<span style="display:inline-block;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;background:#dbeafe;color:#1d4ed8;border:1px solid #93c5fd;white-space:nowrap;">${_OP[apto.status]}</span>`;
   if (!apto.status_gov) return '';
   const op  = _statusGovOpcoes.find(o => o.nome === apto.status_gov);
@@ -2058,6 +2061,10 @@ function _renderFiltrosBar(containerId) {
             onclick="_setFiltroStatusRapido('reprovado')" title="Reprovados">
       🔴 Reprovados
     </button>
+    <button class="filter-btn${_aptoFiltros.status === 'inspecao' ? ' active' : ''}"
+            onclick="_setFiltroStatusRapido('inspecao')" title="Em Inspeção">
+      🔎 Inspeção
+    </button>
     ${temFiltroAvancado ? `
     <button class="filter-btn" onclick="_limparFiltrosAvancados()"
             style="background:var(--danger);color:#fff;border-color:var(--danger);">
@@ -2142,7 +2149,7 @@ function renderMapa() {
 
       // Status Gov — bloco destacado (full-width) no card
       const _bGovCard = (() => {
-        const _OP = { limpando:'🧹 Em Limpeza', pausado:'⏸ Pausado', conferencia:'🔍 Arrumação', reprovado:'❌ Reprovado' };
+        const _OP = { limpando:'🧹 Em Limpeza', pausado:'⏸ Pausado', conferencia:'🔍 Arrumação', reprovado:'❌ Reprovado', inspecao:'🔎 Inspeção' };
         if (_OP[a.status]) return `<div style="font-size:10px;font-weight:700;padding:3px 6px;border-radius:6px;background:#dbeafe;color:#1d4ed8;text-align:center;margin-top:5px;">${_OP[a.status]}</div>`;
         if (!a.status_gov) return '';
         const op = _statusGovOpcoes.find(o => o.nome === a.status_gov);
@@ -2258,6 +2265,7 @@ function renderAptoKanban() {
     { key:'livre',      label:'Vago',       color:'#27ae60' },
     { key:'ocupado',    label:'Ocupado',    color:'#7f8c8d' },
     { key:'bloqueado',  label:'Bloqueado',  color:'#c0392b' },
+    { key:'inspecao',   label:'Inspeção',   color:'#0891b2' },
   ];
   const cols = _aptoFiltros.comChamado ? colsTodos : colsLimpeza;
 

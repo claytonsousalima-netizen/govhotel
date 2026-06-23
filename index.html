@@ -738,6 +738,7 @@ tr:last-child td { border-bottom: none; }
           <button class="filter-btn" onclick="filterMapa('livre',this)">✅ Vago</button>
           <button class="filter-btn" onclick="filterMapa('ocupado',this)">🏠 Ocupado</button>
           <button class="filter-btn" onclick="filterMapa('manutencao',this)">🔧 Manutenção</button>
+          <button class="filter-btn" onclick="filterMapa('inspecao',this)">🔎 Inspeção</button>
           <button class="filter-btn" id="filter-sem-camareira" onclick="_filtrarSemCamareira(this)">👤 Sem camareira</button>
           <input class="search-input" placeholder="🔍 Buscar apto..." oninput="searchMapa(this.value)">
           <div id="mapa-filtros-avancados"></div>
@@ -773,6 +774,7 @@ tr:last-child td { border-bottom: none; }
           <button class="filter-btn" onclick="filterKanbanStatus('pausado',this)">🟡 Pausado</button>
           <button class="filter-btn" onclick="filterKanbanStatus('conferencia',this)">🟣 Arrumação</button>
           <button class="filter-btn" onclick="filterKanbanStatus('reprovado',this)">🔴 Reprovado</button>
+          <button class="filter-btn" onclick="filterKanbanStatus('inspecao',this)">🔎 Inspeção</button>
         </div>
         <div id="kanban-filtros-aptos"></div>
         <div class="kanban" id="kanban-board"></div>
@@ -2471,12 +2473,12 @@ function refreshDash() { renderDashboard(); toast('Dashboard atualizado'); }
 const _STATUS_ICONS = {
   livre:'✅', sujo:'🧺', limpando:'🧹', pausado:'⏸',
   conferencia:'🔍', limpo:'✨', reprovado:'❌',
-  bloqueado:'🔒', ocupado:'🏠', manutencao:'🔧'
+  bloqueado:'🔒', ocupado:'🏠', manutencao:'🔧', inspecao:'🔎'
 };
 const _STATUS_LABELS = {
   livre:'Vago', sujo:'Sujo', limpando:'Em Limpeza', pausado:'Pausado',
   conferencia:'Arrumação', limpo:'Limpo', reprovado:'Reprovado',
-  bloqueado:'Bloqueado', ocupado:'Ocupado', manutencao:'Manutenção'
+  bloqueado:'Bloqueado', ocupado:'Ocupado', manutencao:'Manutenção', inspecao:'Inspeção'
 };
 
 // renderMapa definida em js/apartments.js
@@ -2493,7 +2495,7 @@ function _filtrarSemCamareira(btn) {
 
 
 // ── SELEÇÃO EM LOTE ──────────────────────────────────────────
-const _LOTE_STATUS_BLOQUEADOS = new Set(['limpando','pausado','conferencia','reprovado']);
+const _LOTE_STATUS_BLOQUEADOS = new Set(['limpando','pausado','conferencia','reprovado','inspecao']);
 let _loteMode = false;
 let _loteSelected = new Set();
 
@@ -2685,7 +2687,7 @@ async function openAptoDetail(id) {
   const flowBtns = isManutencao ? '' : (_flowMap[apto.status] || '');
 
   // Botões de força — somente status de alteração manual permitida (fluxo controla os demais)
-  const allStatuses = ['sujo','bloqueado','livre','ocupado','manutencao'];
+  const allStatuses = ['sujo','bloqueado','livre','ocupado','manutencao','inspecao'];
   const manStatuses = ['manutencao','sujo','livre','ocupado'];
   const forceBtns = !isCamareira ? `
     <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);">
@@ -2702,7 +2704,7 @@ async function openAptoDetail(id) {
       <div style="flex:1;min-width:200px;">
         <div style="font-size:40px;text-align:center;padding:16px;background:var(--bg);border-radius:var(--radius);margin-bottom:12px;">${_STATUS_ICONS[apto.status]||'❓'}</div>
         ${(() => {
-          const _OP = { limpando:'🧹 Em Limpeza', pausado:'⏸ Pausado', conferencia:'🔍 Arrumação', reprovado:'❌ Reprovado' };
+          const _OP = { limpando:'🧹 Em Limpeza', pausado:'⏸ Pausado', conferencia:'🔍 Arrumação', reprovado:'❌ Reprovado', inspecao:'🔎 Inspeção' };
           const govHtml = _OP[apto.status]
             ? `<div style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:7px;background:#dbeafe;color:#1d4ed8;text-align:center;margin-bottom:6px;">${_OP[apto.status]}</div>`
             : (() => {
@@ -3135,7 +3137,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <script src="js/hotels.js?v=20260619g"></script>
-<script src="js/apartments.js?v=20260623a"></script>
+<script src="js/apartments.js?v=20260623b"></script>
 <script src="js/maids.js?v=20260619g"></script>
 <script src="js/users.js?v=20260619g"></script>
 <script src="js/permissions.js?v=20260619g"></script>
