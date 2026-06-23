@@ -123,7 +123,7 @@ async function _relCarregarDados(hotelId) {
   if (conteudo) conteudo.innerHTML =
     `<div style="padding:32px;text-align:center;color:var(--text3);font-size:13px;">⏳ Carregando dados...</div>`;
 
-  const [aptosRes, chamadosRes, retrabRes, equipeRes, historyRes, confCheckRes, limpCheckRes, configRes] = await Promise.all([
+  const [aptosRes, chamadosRes, retrabRes, equipeRes, historyRes, confCheckRes, limpCheckRes, configRes, limpSessoesRes] = await Promise.all([
     supabaseClient.from('apartments')
       .select('id, numero, andar, tipo, status, maid_id, updated_at')
       .eq('hotel_id', hotelId).eq('ativo', true),
@@ -146,7 +146,10 @@ async function _relCarregarDados(hotelId) {
       .eq('hotel_id', hotelId).order('created_at', { ascending: false }).limit(2000),
     supabaseClient.from('hotel_config')
       .select('chave, valor').eq('hotel_id', hotelId)
-      .in('chave', ['tempo_padrao_saida', 'tempo_padrao_permanencia']),
+      .in('chave', ['tempo_padrao_saida', 'tempo_padrao_permanencia', 'tempo_padrao_pos_manutencao']),
+    supabaseClient.from('limpeza_sessoes')
+      .select('id, apartment_id, camareira_id, tipo_limpeza, inicio_at, fim_at, obs, created_at')
+      .eq('hotel_id', hotelId).order('inicio_at', { ascending: false }).limit(3000),
   ]);
 
   // Logar erros de cada query para facilitar diagnóstico no console
@@ -158,8 +161,9 @@ async function _relCarregarDados(hotelId) {
   if (historyRes.error)    _queryErros.push('apartment_status_history: ' + historyRes.error.message);
   if (confCheckRes.error)  _queryErros.push('conferencia_supervisora_checklists: ' + confCheckRes.error.message);
   if (limpCheckRes.error)  _queryErros.push('limpeza_checklists: ' + limpCheckRes.error.message);
-  if (configRes.error)     _queryErros.push('hotel_config: ' + configRes.error.message);
-  if (_queryErros.length)  console.warn('[Relatórios] Erros nas queries:\n' + _queryErros.join('\n'));
+  if (configRes.error)       _queryErros.push('hotel_config: ' + configRes.error.message);
+  if (limpSessoesRes.error)  _queryErros.push('limpeza_sessoes: ' + limpSessoesRes.error.message);
+  if (_queryErros.length)    console.warn('[Relatórios] Erros nas queries:\n' + _queryErros.join('\n'));
 
   const aptos         = aptosRes.data       || [];
   const chamados      = chamadosRes.data    || [];
@@ -172,15 +176,17 @@ async function _relCarregarDados(hotelId) {
   const limpChecklists= limpCheckRes.error  ? [] : (limpCheckRes.data || []);
   const configMap     = Object.fromEntries((configRes.data || []).map(r => [r.chave, parseInt(r.valor) || 0]));
   const parametros    = {
-    tempo_saida:        configMap['tempo_padrao_saida']       || 45,
-    tempo_permanencia:  configMap['tempo_padrao_permanencia'] || 25,
+    tempo_saida:          configMap['tempo_padrao_saida']           || 45,
+    tempo_permanencia:    configMap['tempo_padrao_permanencia']     || 25,
+    tempo_pos_manutencao: configMap['tempo_padrao_pos_manutencao']  || 30,
   };
+  const limpezaSessoes = limpSessoesRes.data || [];
 
   console.log('[Relatórios] Dados carregados:', {
     aptos: aptos.length, chamados: chamados.length, retrabalhos: retrabalhos.length,
     equipe: equipe.length, history: history.length,
     confChecklists: confChecklists.length, limpChecklists: limpChecklists.length,
-    erros: _queryErros.length,
+    limpezaSessoes: limpezaSessoes.length, erros: _queryErros.length,
   });
 
   const userNames = {};
@@ -209,7 +215,7 @@ async function _relCarregarDados(hotelId) {
   if (limpCheckRes.error) avisos.push('Checklists de limpeza indisponíveis (verifique console)');
   if (confCheckRes.error) avisos.push('Conferências de supervisora indisponíveis (verifique console)');
 
-  _relData    = { aptos, chamados, retrabalhos, equipe, history, confChecklists, limpChecklists, userNames, aptoById, sessoes, parametros, avisos };
+  _relData    = { aptos, chamados, retrabalhos, equipe, history, confChecklists, limpChecklists, limpezaSessoes, userNames, aptoById, sessoes, parametros, avisos };
   _relFiltros = { dtIni:'', dtFim:'', andar:'', camareira:'', status:'', apto:'', tipo:'', prioridade:'', situacaoPausa:'' };
 
   _relRenderShell();
@@ -724,79 +730,171 @@ function _relAbaSemResp(el) {
 
 // ── 6. TEMPO DE LIMPEZA ──────────────────────────────────────────
 
+let _tlFiltroTipo  = '';
+let _tlSoAcima     = false;
+
+function _tlMetaMs(tipo) {
+  const p = _relData.parametros;
+  if (tipo === 'permanencia')   return p.tempo_permanencia    * 60000;
+  if (tipo === 'pos_manutencao') return p.tempo_pos_manutencao * 60000;
+  return p.tempo_saida * 60000; // saida (default)
+}
+
+function _tlLabelTipo(tipo) {
+  if (tipo === 'permanencia')    return 'Permanência';
+  if (tipo === 'pos_manutencao') return 'Pós-manutenção';
+  if (tipo === 'saida')          return 'Saída';
+  return tipo || '—';
+}
+
+function _tlFiltrarSessoes() {
+  const f  = _relFiltros;
+  const ab = _relData.aptoById;
+  return (_relData.limpezaSessoes || []).filter(s => {
+    const dt = (s.inicio_at || '').slice(0,10);
+    if (f.dtIni && dt < f.dtIni) return false;
+    if (f.dtFim && dt > f.dtFim) return false;
+    if (f.camareira && s.camareira_id !== f.camareira) return false;
+    if (_tlFiltroTipo && s.tipo_limpeza !== _tlFiltroTipo) return false;
+    if (f.apto) {
+      const a = ab[s.apartment_id];
+      if (!a || !String(a.numero||'').toLowerCase().includes(f.apto.toLowerCase())) return false;
+    }
+    if (f.andar) {
+      const a = ab[s.apartment_id];
+      if (!a || String(a.andar) !== String(f.andar)) return false;
+    }
+    if (_tlSoAcima) {
+      if (!s.fim_at) return false;
+      const dur = new Date(s.fim_at) - new Date(s.inicio_at);
+      if (dur <= _tlMetaMs(s.tipo_limpeza)) return false;
+    }
+    return true;
+  });
+}
+
+function _tlExportCsv(sessoes) {
+  const ab = _relData.aptoById;
+  const cols = ['Apto','Andar','Camareira','Tipo','Início','Fim','Duração (min)','Estimado (min)','Situação'];
+  const linhas = sessoes.map(s => {
+    const a    = ab[s.apartment_id];
+    const dur  = s.fim_at ? Math.round((new Date(s.fim_at) - new Date(s.inicio_at)) / 60000) : '';
+    const meta = Math.round(_tlMetaMs(s.tipo_limpeza) / 60000);
+    const sit  = !s.fim_at ? 'Em andamento' : dur <= meta ? 'No prazo' : 'Acima do estimado';
+    return [
+      a?.numero||'', a?.andar!=null?a.andar+'º':'', _relNome(s.camareira_id),
+      _tlLabelTipo(s.tipo_limpeza), _fmtDt(s.inicio_at), _fmtDt(s.fim_at),
+      dur, meta, sit,
+    ].map(v => `"${String(v??'').replace(/"/g,'""')}"`).join(',');
+  });
+  const csv  = [cols.join(','), ...linhas].join('\r\n');
+  const blob = new Blob(['﻿'+csv], { type:'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'tempo-limpeza.csv'; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 3000);
+}
+
 function _relAbaTempoLimpeza(el) {
-  const sessoes = _fSessoes(_relData.sessoes);
-  const { aptoById, userNames } = _relData;
+  const sessoes  = _tlFiltrarSessoes();
+  const ab       = _relData.aptoById;
+  const concluidas = sessoes.filter(s => s.fim_at);
+  const andamento  = sessoes.filter(s => !s.fim_at);
 
-  const concluidas = sessoes.filter(s=>s.durBruta!=null);
-  const canceladas = sessoes.filter(s=>s.statusFinal==='sujo'||s.statusFinal==='livre');
-  const pausadas   = sessoes.filter(s=>s.pausas.length>0);
+  // Calcula durações e situação
+  const enriquecidas = concluidas.map(s => {
+    const dur  = new Date(s.fim_at) - new Date(s.inicio_at);
+    const meta = _tlMetaMs(s.tipo_limpeza);
+    return { ...s, durMs: dur, metaMs: meta, noPrazo: dur <= meta };
+  });
 
-  const avgBruto = concluidas.length
-    ? _fmtDur(concluidas.reduce((s,x)=>s+x.durBruta,0)/concluidas.length) : '—';
-  const avgPausado = pausadas.length
-    ? _fmtDur(pausadas.reduce((s,x)=>s+x.durPausada,0)/pausadas.length) : '—';
+  const total       = sessoes.length;
+  const noPrazo     = enriquecidas.filter(s=>s.noPrazo).length;
+  const pctPrazo    = enriquecidas.length ? Math.round(noPrazo/enriquecidas.length*100) : null;
+  const avgMs       = enriquecidas.length ? enriquecidas.reduce((acc,s)=>acc+s.durMs,0)/enriquecidas.length : null;
+  const maxS        = enriquecidas.length ? enriquecidas.reduce((mx,s)=>s.durMs>mx.durMs?s:mx) : null;
 
   // Tempo médio por camareira
   const byCam = {};
-  concluidas.forEach(s=>{
+  enriquecidas.forEach(s => {
     if (!s.camareira_id) return;
-    if (!byCam[s.camareira_id]) byCam[s.camareira_id]={cnt:0,total:0};
+    if (!byCam[s.camareira_id]) byCam[s.camareira_id] = { cnt:0, total:0 };
     byCam[s.camareira_id].cnt++;
-    byCam[s.camareira_id].total += s.durBruta;
+    byCam[s.camareira_id].total += s.durMs;
   });
-  const camHtml = Object.entries(byCam).sort((a,b)=>b[1].total/b[1].cnt-a[1].total/a[1].cnt).slice(0,10)
-    .map(([uid,d])=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border2);">
+  const camHtml = Object.entries(byCam)
+    .sort((a,b) => b[1].total/b[1].cnt - a[1].total/a[1].cnt).slice(0,10)
+    .map(([uid,d]) => `<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border2);">
       <span>${_relNome(uid)}</span><span>${_fmtDur(d.total/d.cnt)}</span></div>`).join('')
     || '<p style="font-size:12px;color:var(--text3);">—</p>';
 
-  // Por andar
-  const byAndar = {};
-  concluidas.forEach(s=>{
-    const a = aptoById[s.aptoId]; const andar = a?.andar??'?';
-    if (!byAndar[andar]) byAndar[andar]={cnt:0,total:0};
-    byAndar[andar].cnt++; byAndar[andar].total+=s.durBruta;
+  // Tempo médio por tipo
+  const byTipo = {};
+  enriquecidas.forEach(s => {
+    const t = s.tipo_limpeza || 'saida';
+    if (!byTipo[t]) byTipo[t] = { cnt:0, total:0, meta: s.metaMs };
+    byTipo[t].cnt++; byTipo[t].total += s.durMs;
   });
-  const andarHtml = Object.entries(byAndar).sort((a,b)=>Number(a[0])-Number(b[0]))
-    .map(([an,d])=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border2);">
-      <span>${an}º andar</span><span>${_fmtDur(d.total/d.cnt)}</span></div>`).join('')
-    || '<p style="font-size:12px;color:var(--text3);">—</p>';
+  const tipoHtml = Object.entries(byTipo)
+    .map(([t,d]) => {
+      const avg = d.total/d.cnt;
+      const ok  = avg <= d.meta;
+      return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border2);">
+        <span>${_tlLabelTipo(t)} <span style="font-size:10px;color:var(--text3);">(meta ${_fmtDur(d.meta)})</span></span>
+        <span style="font-weight:700;color:${ok?'var(--success)':'var(--danger);'};">${_fmtDur(avg)}</span></div>`;
+    }).join('') || '<p style="font-size:12px;color:var(--text3);">—</p>';
 
-  // Tabela detalhada
-  const rows = sessoes.sort((a,b)=>b.inicio.localeCompare(a.inicio)).slice(0,200).map(s=>{
-    const a = aptoById[s.aptoId];
+  // Tabela principal
+  const rows = [...enriquecidas.map(s => {
+    const a   = ab[s.apartment_id];
+    const sit = s.noPrazo
+      ? `<span style="color:var(--success);font-weight:700;">✅ No prazo</span>`
+      : `<span style="color:var(--danger);font-weight:700;">⚠️ Acima</span>`;
     return [
-      _fmtDt(s.inicio),
-      a?(a.numero||'—'):'—',
-      a&&a.andar!=null?a.andar+'º':'—',
-      _relNome(s.camareira_id),
-      _fmtDt(s.inicio),
-      s.pausas.map(_fmtDt).join(', ')||'—',
-      s.retomadas.map(_fmtDt).join(', ')||'—',
-      s.fim&&(s.statusFinal==='sujo'||s.statusFinal==='livre')?_fmtDt(s.fim):'—',
-      _fmtDt(s.fim),
-      _fmtDur(s.durBruta),
-      s.durPausada?_fmtDur(s.durPausada):'—',
-      s.durLiquida&&s.durPausada?_fmtDur(s.durLiquida):'—',
-      s.statusFinal||'em andamento',
+      a?.numero||'—', a?.andar!=null?a.andar+'º':'—',
+      _relNome(s.camareira_id), _tlLabelTipo(s.tipo_limpeza),
+      _fmtDt(s.inicio_at), _fmtDt(s.fim_at),
+      _fmtDur(s.durMs), _fmtDur(s.metaMs), sit,
     ];
-  });
+  }), ...andamento.map(s => {
+    const a = ab[s.apartment_id];
+    return [
+      a?.numero||'—', a?.andar!=null?a.andar+'º':'—',
+      _relNome(s.camareira_id), _tlLabelTipo(s.tipo_limpeza),
+      _fmtDt(s.inicio_at), '—', '—', _fmtDur(_tlMetaMs(s.tipo_limpeza)),
+      `<span style="color:var(--primary);font-weight:700;">🔄 Em andamento</span>`,
+    ];
+  })];
 
   el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+      <select onchange="_tlFiltroTipo=this.value;_relAbaTempoLimpeza(document.getElementById('rel-aba-conteudo'))"
+        style="padding:5px 8px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:12px;">
+        <option value="" ${!_tlFiltroTipo?'selected':''}>Todos os tipos</option>
+        <option value="saida" ${_tlFiltroTipo==='saida'?'selected':''}>Saída</option>
+        <option value="permanencia" ${_tlFiltroTipo==='permanencia'?'selected':''}>Permanência</option>
+        <option value="pos_manutencao" ${_tlFiltroTipo==='pos_manutencao'?'selected':''}>Pós-manutenção</option>
+      </select>
+      <label style="font-size:12px;display:flex;align-items:center;gap:5px;cursor:pointer;">
+        <input type="checkbox" ${_tlSoAcima?'checked':''} onchange="_tlSoAcima=this.checked;_relAbaTempoLimpeza(document.getElementById('rel-aba-conteudo'))">
+        Somente acima do estimado
+      </label>
+      <button class="btn btn-ghost btn-sm" onclick="_tlExportCsv(_tlFiltrarSessoes())">⬇ CSV</button>
+    </div>
     <div class="stats-grid" style="margin-bottom:16px;">
-      ${_relCard('Sessões registradas', sessoes.length,'','s-blue')}
-      ${_relCard('Com tempo calculado', concluidas.length,'','s-green')}
-      ${_relCard('Canceladas', canceladas.length,'','s-orange')}
-      ${_relCard('Com pausas', pausadas.length,'','s-gray')}
-      ${avgBruto!=='—'?_relCard('Tempo médio bruto', avgBruto,'','s-blue'):''}
-      ${avgPausado!=='—'?_relCard('Tempo médio pausado', avgPausado,'','s-gray'):''}
+      ${_relCard('Total de limpezas', total, '', 's-blue')}
+      ${_relCard('Concluídas', enriquecidas.length, `${andamento.length} em andamento`, 's-green')}
+      ${pctPrazo!==null ? _relCard('No prazo', pctPrazo+'%', `${noPrazo} de ${enriquecidas.length}`, pctPrazo>=80?'s-green':'s-orange') : ''}
+      ${avgMs!==null ? _relCard('Tempo médio', _fmtDur(avgMs), '', 's-blue') : ''}
+      ${maxS ? _relCard('Mais demorada', _fmtDur(maxS.durMs), `Apto ${ab[maxS.apartment_id]?.numero||'—'}`, 's-gray') : ''}
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
       <div class="card"><div class="card-title" style="margin-bottom:8px;">Tempo médio por camareira</div>${camHtml}</div>
-      <div class="card"><div class="card-title" style="margin-bottom:8px;">Tempo médio por andar</div>${andarHtml}</div>
+      <div class="card"><div class="card-title" style="margin-bottom:8px;">Tempo médio por tipo vs meta</div>${tipoHtml}</div>
     </div>
-    <div class="card"><div class="card-title" style="margin-bottom:10px;">Sessões de limpeza (${sessoes.length})</div>
-      ${_relTable(['Data','Apto','Andar','Camareira','Início','Pausas','Retomadas','Cancelamento','Conclusão','T. Bruto','T. Pausado','T. Líquido','Status final'], rows)}
+    <div class="card">
+      <div class="card-title" style="margin-bottom:10px;">Detalhamento (${rows.length})</div>
+      ${_relTable(['Apto','Andar','Camareira','Tipo','Início','Fim','Duração','Estimado','Situação'], rows, 300)}
     </div>`;
 }
 
