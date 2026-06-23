@@ -1536,8 +1536,9 @@ function _selecionarTipoLimpeza(nome, idx, total) {
   if (permFields) {
     permFields.style.display = isPerm ? '' : 'none';
     if (isPerm) {
-      document.getElementById('checklist-perm-pessoas').value = '';
-      document.getElementById('checklist-perm-bagagem').value = '';
+      document.getElementById('checklist-perm-pessoas').value  = '';
+      document.getElementById('checklist-perm-criancas').value = '';
+      document.getElementById('checklist-perm-bagagem').value  = '';
     }
   }
 }
@@ -1583,7 +1584,7 @@ async function concluirChecklist() {
     const _pVal = parseInt(document.getElementById('checklist-perm-pessoas')?.value);
     const _bVal = document.getElementById('checklist-perm-bagagem')?.value;
     if (!_pVal || _pVal < 1) {
-      toast('Qtd. Pessoas é obrigatório para Permanência (mínimo 1)', 'error');
+      toast('Qtd. Adultos é obrigatório para Permanência (mínimo 1)', 'error');
       document.getElementById('checklist-perm-pessoas')?.focus();
       return;
     }
@@ -1594,8 +1595,9 @@ async function concluirChecklist() {
     }
   }
 
-  const qtdPessoas = isPerm ? (parseInt(document.getElementById('checklist-perm-pessoas')?.value) || null) : null;
-  const qtdBagagem = isPerm ? (parseInt(document.getElementById('checklist-perm-bagagem')?.value) ?? null) : null;
+  const qtdPessoas  = isPerm ? (parseInt(document.getElementById('checklist-perm-pessoas')?.value)  || null) : null;
+  const qtdCriancas = isPerm ? (parseInt(document.getElementById('checklist-perm-criancas')?.value) ?? null) : null;
+  const qtdBagagem  = isPerm ? (parseInt(document.getElementById('checklist-perm-bagagem')?.value)  ?? null) : null;
 
   const { error: ckErr } = await supabaseClient.from('limpeza_checklists').insert({
     apartment_id: selectedAptoId,
@@ -1605,8 +1607,9 @@ async function concluirChecklist() {
     respostas,
     confirmacao_geral: true,
     obs_geral:    obsGeral || null,
-    ...(qtdPessoas !== null ? { qtd_pessoas: qtdPessoas } : {}),
-    ...(qtdBagagem !== null ? { qtd_bagagem: qtdBagagem } : {}),
+    ...(qtdPessoas  !== null ? { qtd_pessoas:  qtdPessoas  } : {}),
+    ...(qtdCriancas !== null ? { qtd_criancas: qtdCriancas } : {}),
+    ...(qtdBagagem  !== null ? { qtd_bagagem:  qtdBagagem  } : {}),
   });
   if (ckErr) console.warn('Checklist não salvo:', ckErr.message);
 

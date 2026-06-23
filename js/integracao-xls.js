@@ -214,6 +214,10 @@ async function parseIntegracaoXlsFile(file) {
           const statusGov   = normalizarStatusGovernanca(sgOriginal);
           const adultos     = normalizarAdultos(row[9]);
           const dataPartida = normalizarDataPartida(row[12]);
+          // Col O (índice 14): formato "adultos/criancas1/criancas2"
+          const colO        = String(row[14] ?? '').trim();
+          const colOPartes  = colO.split('/').map(p => parseInt(p.trim()) || 0);
+          const criancas    = (colOPartes[1] || 0) + (colOPartes[2] || 0);
 
           // Status não reconhecido é inconsistência, mas não bloqueia
           const incApto = !statusApto  && saOriginal ? `Status apto não reconhecido: "${saOriginal}"` : null;
@@ -226,6 +230,7 @@ async function parseIntegracaoXlsFile(file) {
             statusApto,
             statusGov,
             adultos,
+            criancas,
             dataPartida,
             conflito:      false,
             incApto,
@@ -804,6 +809,7 @@ async function _xlsConfirmar(substituir = false, modo = 'geral') {
     status_governanca:         r.statusApto?.interno   || null,  // STATUS APTO → campo status_governanca (limpeza)
     status_governanca_original: r.saOriginal           || null,
     adultos:                   r.adultos               ?? 0,
+    criancas:                  r.criancas              ?? 0,
     data_partida:              r.dataPartida           || null,
   }));
 
