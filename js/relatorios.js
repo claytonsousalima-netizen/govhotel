@@ -1706,12 +1706,13 @@ function _discBadge(v) {
 // status_apto   = STATUS GOV do XLS  (ocupação: vago/ocupado/bloqueado/nao_perturbe/nao_quis_arrumacao)
 // status_governanca = STATUS APTO do XLS (limpeza: limpo/sujo/limpando/inspecao/manutencao)
 
-function calcularDiscrepanciasIntegracaoXls(r, dataIntegracao, qtdPessoasLimpeza) {
+function calcularDiscrepanciasIntegracaoXls(r, dataIntegracao, qtdPessoasLimpeza, qtdCriancasLimpeza) {
   const disc = [];
-  const gov     = r.status_apto        || '';   // ocupação
-  const limpeza = r.status_governanca  || '';   // limpeza
-  const adultos = r.adultos ?? 0;
-  const partida = r.data_partida || '';
+  const gov     = r.status_apto        || '';
+  const limpeza = r.status_governanca  || '';
+  const adultos  = r.adultos  ?? 0;
+  const criancas = r.criancas ?? 0;
+  const partida  = r.data_partida || '';
 
   // Regra 1: Ocupado sem hóspedes informados
   if (gov === 'ocupado' && adultos === 0)
@@ -1729,19 +1730,30 @@ function calcularDiscrepanciasIntegracaoXls(r, dataIntegracao, qtdPessoasLimpeza
   if (gov === 'ocupado' && ['limpando','inspecao','sujo'].includes(limpeza))
     disc.push('Ocupado com status de arrumação/conferência');
 
-  // Regra 5: Possível saída do dia (partida = data_integracao e está ocupado)
+  // Regra 5: Possível saída do dia
   if (partida && partida === dataIntegracao && gov === 'ocupado')
     disc.push('Possível saída do dia');
 
-  // Regras 6 e 7 — comparação com o que a camareira registrou na Permanência
-  if (qtdPessoasLimpeza != null) {
-    // Regra 6: Qtd. de hóspedes diverge entre XLS e limpeza
-    if (adultos !== qtdPessoasLimpeza)
-      disc.push(`Qtd. hóspedes diverge — XLS: ${adultos}, Limpeza: ${qtdPessoasLimpeza}`);
+  // Regras 6–9 — comparação com o que a camareira registrou na Permanência
+  const temLimpeza = qtdPessoasLimpeza != null || qtdCriancasLimpeza != null;
+  if (temLimpeza) {
+    // Regra 6: adultos divergem
+    if (qtdPessoasLimpeza != null && adultos !== qtdPessoasLimpeza)
+      disc.push(`Adultos divergem — XLS: ${adultos}, Limpeza: ${qtdPessoasLimpeza}`);
 
-    // Regra 7: XLS diz Vago mas camareira encontrou pessoas
-    if (gov === 'vago' && qtdPessoasLimpeza > 0)
-      disc.push(`Vago no XLS mas camareira registrou ${qtdPessoasLimpeza} pessoa(s)`);
+    // Regra 7: crianças divergem
+    if (qtdCriancasLimpeza != null && criancas !== qtdCriancasLimpeza)
+      disc.push(`Crianças divergem — XLS: ${criancas}, Limpeza: ${qtdCriancasLimpeza}`);
+
+    // Regra 8: XLS diz Vago mas camareira encontrou hóspedes
+    const totalLimpeza = (qtdPessoasLimpeza ?? 0) + (qtdCriancasLimpeza ?? 0);
+    if (gov === 'vago' && totalLimpeza > 0)
+      disc.push(`Vago no XLS mas camareira registrou ${totalLimpeza} hóspede(s)`);
+
+    // Regra 9: total de hóspedes diverge (adultos + crianças)
+    const totalXls = adultos + criancas;
+    if (totalXls !== totalLimpeza && !disc.some(d => d.startsWith('Adultos divergem') || d.startsWith('Crianças divergem')))
+      disc.push(`Total hóspedes diverge — XLS: ${totalXls}, Limpeza: ${totalLimpeza}`);
   }
 
   return disc;
@@ -1758,16 +1770,18 @@ function _discObs(r) {
 
 // ── Exportação CSV ────────────────────────────────────────────────
 function _discExportarCsv(registros, dataIntegracao) {
-  const header = ['Apto','Status Apto','Status Governança','Adultos XLS','Pessoas (Limpeza)','Data Partida','Discrepâncias','Observação'];
+  const header = ['Apto','Status Apto','Status Governança','Adultos XLS','Crianças XLS','Adultos Limpeza','Crianças Limpeza','Data Partida','Discrepâncias','Observação'];
   const linhas = registros.map(r => {
-    const disc = calcularDiscrepanciasIntegracaoXls(r, dataIntegracao, r.qtdPessoasLimpeza ?? null);
+    const disc = calcularDiscrepanciasIntegracaoXls(r, dataIntegracao, r.qtdPessoasLimpeza ?? null, r.qtdCriancasLimpeza ?? null);
     const obs  = _discObs(r);
     return [
       r.apto,
       _discLabel(r.status_apto),
       _discLabel(r.status_governanca),
-      r.adultos ?? 0,
-      r.qtdPessoasLimpeza ?? '',
+      r.adultos  ?? 0,
+      r.criancas ?? 0,
+      r.qtdPessoasLimpeza  ?? '',
+      r.qtdCriancasLimpeza ?? '',
       r.data_partida || '',
       disc.join(' | '),
       obs,
@@ -1860,15 +1874,15 @@ async function _discCarregarERender() {
   const [xlsRes, limpRes] = await Promise.all([
     supabaseClient
       .from('integracao_xls_status_diario')
-      .select('apto, status_apto, status_apto_original, status_governanca, status_governanca_original, adultos, data_partida, data_integracao')
+      .select('apto, status_apto, status_apto_original, status_governanca, status_governanca_original, adultos, criancas, data_partida, data_integracao')
       .eq('hotel_id', _relHotelId)
       .eq('data_integracao', _discFiltros.data)
       .order('apto'),
     supabaseClient
       .from('limpeza_checklists')
-      .select('apartment_id, qtd_pessoas, apartments(numero)')
+      .select('apartment_id, qtd_pessoas, qtd_criancas, apartments(numero)')
       .eq('hotel_id', _relHotelId)
-      .not('qtd_pessoas', 'is', null)
+      .eq('tipo_limpeza', 'permanencia')
       .gte('created_at', dataInicio)
       .lte('created_at', dataFim),
   ]);
@@ -1888,15 +1902,22 @@ async function _discCarregarERender() {
     return;
   }
 
-  // Monta mapa apto → qtd_pessoas registrada pela camareira (Permanência)
+  // Monta mapa apto → { pessoas, criancas } registrado pela camareira (Permanência)
   const mapLimpeza = {};
   (limpRes.data || []).forEach(c => {
     const num = c.apartments?.numero;
-    if (num && c.qtd_pessoas != null) mapLimpeza[num] = c.qtd_pessoas;
+    if (num) mapLimpeza[num] = {
+      pessoas:  c.qtd_pessoas  ?? null,
+      criancas: c.qtd_criancas ?? null,
+    };
   });
 
-  // Enriquece cada registro com qtdPessoasLimpeza para uso no CSV e cálculo
-  _discDadosAtuais = data.map(r => ({ ...r, qtdPessoasLimpeza: mapLimpeza[r.apto] ?? null }));
+  // Enriquece cada registro com dados de limpeza para uso no CSV e cálculo
+  _discDadosAtuais = data.map(r => ({
+    ...r,
+    qtdPessoasLimpeza:   mapLimpeza[r.apto]?.pessoas  ?? null,
+    qtdCriancasLimpeza:  mapLimpeza[r.apto]?.criancas ?? null,
+  }));
 
   // Aplica filtros de tela
   let filtrados = data.filter(r => {
@@ -1907,12 +1928,17 @@ async function _discCarregarERender() {
   });
 
   // Calcula discrepâncias de cada registro, cruzando com dados da limpeza
-  const comDisc = filtrados.map(r => ({
-    ...r,
-    qtdPessoasLimpeza: mapLimpeza[r.apto] ?? null,
-    disc: calcularDiscrepanciasIntegracaoXls(r, _discFiltros.data, mapLimpeza[r.apto] ?? null),
-    obs:  _discObs(r),
-  }));
+  const comDisc = filtrados.map(r => {
+    const limpPessoas  = mapLimpeza[r.apto]?.pessoas  ?? null;
+    const limpCriancas = mapLimpeza[r.apto]?.criancas ?? null;
+    return {
+      ...r,
+      qtdPessoasLimpeza:  limpPessoas,
+      qtdCriancasLimpeza: limpCriancas,
+      disc: calcularDiscrepanciasIntegracaoXls(r, _discFiltros.data, limpPessoas, limpCriancas),
+      obs:  _discObs(r),
+    };
+  });
 
   if (_discFiltros.apenasDisc) {
     filtrados = comDisc.filter(r => r.disc.length > 0);
@@ -1938,15 +1964,21 @@ async function _discCarregarERender() {
     const obsTag = r.obs
       ? `<span style="font-size:11px;color:#6b7280;font-style:italic;">${r.obs}</span>`
       : '';
-    const limpPessoas = r.qtdPessoasLimpeza != null
-      ? `<span style="font-weight:600;">${r.qtdPessoasLimpeza}</span> <span style="font-size:10px;color:#6b7280;">(limpeza)</span>`
-      : '<span style="color:#9ca3af;font-size:11px;">—</span>';
+    const _cel = (xlsVal, limpVal) => {
+      if (limpVal == null) return `<span style="color:#6b7280;">${xlsVal}</span>`;
+      const dif = xlsVal !== limpVal;
+      const style = dif ? 'font-weight:700;color:#991b1b;' : 'color:#16a34a;font-weight:600;';
+      return `<span style="${style}">${xlsVal}</span>`
+           + ` <span style="font-size:10px;color:#6b7280;">XLS</span>`
+           + ` / <span style="${style}">${limpVal}</span>`
+           + ` <span style="font-size:10px;color:#6b7280;">Lim.</span>`;
+    };
     return [
       `<strong>${r.apto}</strong>`,
       _discBadge(r.status_apto),
       _discBadge(r.status_governanca),
-      `${r.adultos ?? 0}`,
-      limpPessoas,
+      _cel(r.adultos ?? 0, r.qtdPessoasLimpeza),
+      _cel(r.criancas ?? 0, r.qtdCriancasLimpeza),
       r.data_partida ? r.data_partida.split('-').reverse().join('/') : '—',
       discTags || '<span style="color:#9ca3af;font-size:11px;">—</span>',
       obsTag || '—',
@@ -1959,7 +1991,7 @@ async function _discCarregarERender() {
   const tabelaHtml = filtrados.length
     ? `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;">
         <thead><tr style="background:var(--surface2,#f9fafb);">
-          ${['Apto','Status Apto','Status Gov (Limpeza)','Adultos XLS','Limpeza','Data Partida','Tipo de Discrepância','Observação']
+          ${['Apto','Status Apto','Status Gov (Limpeza)','Adultos','Crianças','Data Partida','Tipo de Discrepância','Observação']
             .map(c=>`<th style="text-align:left;padding:8px 10px;border-bottom:2px solid var(--border);color:var(--text2);white-space:nowrap;font-size:12px;">${c}</th>`).join('')}
         </tr></thead>
         <tbody>${rows.map(r=>`<tr>${r}</tr>`).join('')}</tbody>
