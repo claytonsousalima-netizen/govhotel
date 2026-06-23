@@ -907,7 +907,6 @@ function _xlsConfirmarSubstituicao(mensagemRpc, modo) {
     modal = document.createElement('div');
     modal.id        = modalId;
     modal.className = 'modal-overlay';
-    modal.dataset.obrigatorio = 'true';
     modal.innerHTML = `
       <div class="modal" style="max-width:460px;">
         <div class="modal-header">
