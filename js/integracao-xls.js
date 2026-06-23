@@ -650,102 +650,179 @@ function _xlsSetModo(modo) {
   }
 }
 
+// Deriva a nova ocupação (status_apto) a partir do XLS col G
+function _xlsNovaOcupacao(xlsApto) {
+  if (xlsApto === 'ocupado' || xlsApto === 'nao_perturbe') return 'Ocupado';
+  if (xlsApto === 'vago')      return 'Vago';
+  if (xlsApto === 'bloqueado') return 'Bloqueado';
+  return null; // XLS não especifica → sem alteração
+}
+
 function _xlsRenderTabelaConfronto(el, linhas, total) {
   const modo = _xlsModoSelecionado;
   const _SL  = (typeof _STATUS_LABELS !== 'undefined') ? _STATUS_LABELS : {};
   const _SI  = (typeof _STATUS_ICONS  !== 'undefined') ? _STATUS_ICONS  : {};
-  const _COR = {
+  const _COR_LIMP = {
     livre:'#27ae60', sujo:'#e67e22', limpando:'#2e86c1', pausado:'#f39c12',
     conferencia:'#8e44ad', limpo:'#1abc9c', reprovado:'#e74c3c',
     bloqueado:'#c0392b', ocupado:'#7f8c8d', manutencao:'#f1c40f', inspecao:'#0891b2',
   };
+  const _COR_OCUP = { Vago:'#27ae60', Ocupado:'#7f8c8d', Bloqueado:'#c0392b' };
 
-  const _badge = (interno, destaque) => {
+  const _badgeL = (interno, destaque) => {
     if (!interno) return '<span style="color:#9ca3af;font-size:11px;">—</span>';
-    const cor   = _COR[interno] || '#6b7280';
+    const cor   = _COR_LIMP[interno] || '#6b7280';
     const lbl   = _SL[interno] || interno;
     const ico   = _SI[interno] || '';
-    const borda = destaque ? `border:2px solid ${cor};` : `border:1px solid ${cor}55;`;
-    return `<span style="display:inline-block;padding:2px 9px;border-radius:6px;font-size:11px;font-weight:700;background:${cor}22;color:${cor};${borda}">${ico} ${lbl}</span>`;
+    const borda = destaque ? `border:2px solid ${cor};` : `border:1px solid ${cor}44;`;
+    return `<span style="display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;background:${cor}22;color:${cor};${borda}">${ico} ${lbl}</span>`;
   };
+  const _badgeO = (val, destaque) => {
+    if (!val) return '<span style="color:#9ca3af;font-size:11px;">—</span>';
+    const cor   = _COR_OCUP[val] || '#6b7280';
+    const borda = destaque ? `border:2px solid ${cor};` : `border:1px solid ${cor}44;`;
+    return `<span style="display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;background:${cor}22;color:${cor};${borda}">🏠 ${val}</span>`;
+  };
+  const _seta = `<span style="color:#9ca3af;font-size:13px;padding:0 4px;">→</span>`;
+  const _ok   = `<span style="color:#16a34a;font-size:11px;font-weight:600;">✔ sem alteração</span>`;
 
-  // Para cada linha, resolve resultado do modo atual
-  const comResultado = linhas.map(l => {
-    const resultado = modo === 'geral' ? l.geralResultado : l.statusAptoResultado;
-    const muda      = resultado !== l.sistStatus;
-    // Descrição do que muda
-    let impacto = '';
-    if (!muda) {
-      impacto = '<span style="color:#16a34a;font-size:11px;font-weight:600;">✔ Sem alteração</span>';
-    } else if (modo === 'geral') {
-      const partes = [];
-      // ocupação
-      const ocupAtual = l.sist?.status_apto || '';
-      const novaOcup  = _calcGeralStatusApto(l.xlsApto);
-      if (novaOcup && novaOcup !== ocupAtual) partes.push(`Ocupação: ${_SL[ocupAtual]||ocupAtual} → ${_SL[novaOcup]||novaOcup}`);
-      partes.push(`Governança: ${_SL[l.sistStatus]||l.sistStatus} → ${_SL[resultado]||resultado}`);
-      impacto = `<span style="font-size:10px;color:#6b7280;">${partes.join(' · ')}</span>`;
-    } else {
-      const ocupAtual = l.sist?.status_apto || '';
-      impacto = `<span style="font-size:10px;color:#6b7280;">Ocupação: ${_SL[ocupAtual]||ocupAtual} → ${_SL[resultado]||resultado}</span>`;
-    }
-    return { ...l, resultado, muda, impacto };
+  // Enriquece cada linha com os valores calculados
+  const linhasCalc = linhas.map(l => {
+    const novaLimpezaGeral = l.geralResultado;              // novo status (limpeza) no modo geral
+    const novaLimpezaSA    = l.statusAptoResultado;         // novo status (limpeza) no modo status_apto
+    const novaOcupacao     = _xlsNovaOcupacao(l.xlsApto);  // novo status_apto (ocupação) — igual nos dois modos
+    const ocupAtual        = l.sist?.status_apto || null;
+
+    const mudaLimpezaG  = novaLimpezaGeral !== l.sistStatus;
+    const mudaLimpezaSA = novaLimpezaSA    !== l.sistStatus;
+    const mudaOcupacao  = novaOcupacao !== null && novaOcupacao !== ocupAtual;
+
+    const mudaNoModo = modo === 'geral'
+      ? (mudaLimpezaG || mudaOcupacao)
+      : (mudaOcupacao || mudaLimpezaSA);
+
+    return { ...l, novaLimpezaGeral, novaLimpezaSA, novaOcupacao, ocupAtual,
+             mudaLimpezaG, mudaLimpezaSA, mudaOcupacao, mudaNoModo };
   });
 
-  const comMudanca = comResultado.filter(l => l.muda);
-  const semMudanca = comResultado.filter(l => !l.muda);
+  const comMudanca = linhasCalc.filter(l => l.mudaNoModo);
+  const semMudanca = linhasCalc.filter(l => !l.mudaNoModo);
 
   const tabelaEl = document.getElementById('xls-conf-tabela');
   if (!tabelaEl) return;
 
   if (comMudanca.length === 0) {
     tabelaEl.innerHTML = `<div style="text-align:center;padding:20px;color:#16a34a;font-weight:600;">
-      ✅ Nenhuma alteração seria feita com o modo <strong>${modo === 'geral' ? 'Integrar Geral' : 'Integrar Status Apto'}</strong>.
+      ✅ Nenhuma alteração seria feita com este modo.
     </div>`;
     return;
   }
 
-  tabelaEl.innerHTML = `
-    <table style="width:100%;border-collapse:collapse;font-size:12px;">
-      <thead>
-        <tr style="background:#f3f4f6;text-align:left;">
-          <th style="padding:8px 10px;border-bottom:2px solid #e5e7eb;width:60px;">Apto</th>
-          <th style="padding:8px 10px;border-bottom:2px solid #e5e7eb;">Status Atual</th>
-          <th style="padding:8px 10px;border-bottom:2px solid #e5e7eb;width:28px;text-align:center;"></th>
-          <th style="padding:8px 10px;border-bottom:2px solid #e5e7eb;">Ficará assim</th>
-          <th style="padding:8px 10px;border-bottom:2px solid #e5e7eb;">O que muda</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${comMudanca.map(l => `
-          <tr style="border-bottom:1px solid #f3f4f6;">
-            <td style="padding:8px 10px;font-weight:700;font-size:13px;">${l.r.numero}</td>
-            <td style="padding:8px 10px;">${_badge(l.sistStatus, false)}</td>
-            <td style="padding:8px 10px;text-align:center;color:#9ca3af;font-size:14px;">→</td>
-            <td style="padding:8px 10px;">${_badge(l.resultado, true)}</td>
-            <td style="padding:8px 10px;">${l.impacto}</td>
-          </tr>`).join('')}
-      </tbody>
-    </table>
-    ${semMudanca.length > 0 ? `
-      <div style="margin-top:12px;">
-        <button onclick="_xlsToggleSemMudanca(this)"
-          style="background:none;border:none;cursor:pointer;font-size:11px;color:#6b7280;padding:4px 0;text-decoration:underline;">
-          ▶ Ver ${semMudanca.length} apto(s) sem alteração
-        </button>
-        <div id="xls-sem-mudanca" style="display:none;margin-top:8px;">
-          <table style="width:100%;border-collapse:collapse;font-size:11px;opacity:.7;">
-            <tbody>
-              ${semMudanca.map(l => `
-                <tr style="border-bottom:1px solid #f9fafb;">
-                  <td style="padding:5px 10px;font-weight:600;width:60px;">${l.r.numero}</td>
-                  <td style="padding:5px 10px;">${_badge(l.sistStatus, false)}</td>
-                  <td style="padding:5px 10px;color:#16a34a;font-size:11px;font-weight:600;">✔ Sem alteração</td>
-                </tr>`).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>` : ''}`;
+  if (modo === 'status_apto') {
+    // ── Integrar Status Apto: foco em Ocupação (status_apto) ────────────────
+    // Mostra somente linhas onde a ocupação muda; limpeza exibida como efeito colateral pequeno
+    tabelaEl.innerHTML = `
+      <div style="font-size:11px;color:#6b7280;margin-bottom:8px;padding:6px 10px;background:#f9fafb;border-radius:6px;border:1px solid #e5e7eb;">
+        Atualiza apenas a <strong>Ocupação</strong> (Vago / Ocupado / Bloqueado). O status de limpeza só muda como efeito colateral da mudança de ocupação.
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead>
+          <tr style="background:#f3f4f6;text-align:left;">
+            <th style="padding:8px 10px;border-bottom:2px solid #e5e7eb;width:60px;">Apto</th>
+            <th style="padding:8px 10px;border-bottom:2px solid #e5e7eb;" colspan="3">Ocupação (status_apto)</th>
+            <th style="padding:8px 10px;border-bottom:2px solid #e5e7eb;">Limpeza (efeito)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${comMudanca.map(l => {
+            const limpEfeito = l.mudaLimpezaSA
+              ? `${_badgeL(l.sistStatus,false)} ${_seta} ${_badgeL(l.novaLimpezaSA,true)}`
+              : _ok;
+            const ocupCell = l.mudaOcupacao
+              ? `${_badgeO(l.ocupAtual,false)} ${_seta} ${_badgeO(l.novaOcupacao,true)}`
+              : _ok;
+            return `<tr style="border-bottom:1px solid #f3f4f6;">
+              <td style="padding:8px 10px;font-weight:700;font-size:13px;">${l.r.numero}</td>
+              <td style="padding:8px 10px;" colspan="3">${ocupCell}</td>
+              <td style="padding:8px 10px;">${limpEfeito}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+      ${_xlsSemMudancaHtml(semMudanca, _badgeO, _badgeL, _ok, modo)}`;
+
+  } else {
+    // ── Integrar Geral: mostra Limpeza E Ocupação separadas ─────────────────
+    tabelaEl.innerHTML = `
+      <div style="font-size:11px;color:#6b7280;margin-bottom:8px;padding:6px 10px;background:#f9fafb;border-radius:6px;border:1px solid #e5e7eb;">
+        Atualiza o <strong>Status de Limpeza</strong> (Sujo, Limpo, Arrumação, etc.) <em>e</em> a <strong>Ocupação</strong> (Vago / Ocupado / Bloqueado) conforme o XLS.
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead>
+          <tr style="background:#f3f4f6;text-align:left;">
+            <th style="padding:8px 10px;border-bottom:2px solid #e5e7eb;width:60px;" rowspan="2">Apto</th>
+            <th style="padding:8px 10px;border-bottom:1px solid #e5e7eb;border-right:2px solid #e5e7eb;" colspan="3">
+              🧹 Limpeza (status)
+            </th>
+            <th style="padding:8px 10px;border-bottom:1px solid #e5e7eb;" colspan="3">
+              🏠 Ocupação (status_apto)
+            </th>
+          </tr>
+          <tr style="background:#f3f4f6;text-align:left;font-size:10px;color:#9ca3af;font-weight:500;">
+            <th style="padding:4px 10px;border-bottom:2px solid #e5e7eb;">Atual</th>
+            <th style="padding:4px 4px;border-bottom:2px solid #e5e7eb;"></th>
+            <th style="padding:4px 10px;border-bottom:2px solid #e5e7eb;border-right:2px solid #e5e7eb;">Ficará</th>
+            <th style="padding:4px 10px;border-bottom:2px solid #e5e7eb;">Atual</th>
+            <th style="padding:4px 4px;border-bottom:2px solid #e5e7eb;"></th>
+            <th style="padding:4px 10px;border-bottom:2px solid #e5e7eb;">Ficará</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${comMudanca.map(l => {
+            const limpAtual = _badgeL(l.sistStatus, false);
+            const limpNova  = l.mudaLimpezaG ? _badgeL(l.novaLimpezaGeral, true) : _ok;
+            const limpSeta  = l.mudaLimpezaG ? _seta : '';
+            const ocupAtualB = _badgeO(l.ocupAtual, false);
+            const ocupNova  = l.mudaOcupacao ? _badgeO(l.novaOcupacao, true) : _ok;
+            const ocupSeta  = l.mudaOcupacao ? _seta : '';
+            return `<tr style="border-bottom:1px solid #f3f4f6;">
+              <td style="padding:8px 10px;font-weight:700;font-size:13px;">${l.r.numero}</td>
+              <td style="padding:8px 10px;">${limpAtual}</td>
+              <td style="padding:8px 2px;">${limpSeta}</td>
+              <td style="padding:8px 10px;border-right:2px solid #f3f4f6;">${limpNova}</td>
+              <td style="padding:8px 10px;">${ocupAtualB}</td>
+              <td style="padding:8px 2px;">${ocupSeta}</td>
+              <td style="padding:8px 10px;">${ocupNova}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+      ${_xlsSemMudancaHtml(semMudanca, _badgeO, _badgeL, _ok, modo)}`;
+  }
+}
+
+function _xlsSemMudancaHtml(semMudanca, _badgeO, _badgeL, _ok, modo) {
+  if (!semMudanca.length) return '';
+  return `
+    <div style="margin-top:12px;">
+      <button onclick="_xlsToggleSemMudanca(this)"
+        style="background:none;border:none;cursor:pointer;font-size:11px;color:#6b7280;padding:4px 0;text-decoration:underline;">
+        ▶ Ver ${semMudanca.length} apto(s) sem alteração neste modo
+      </button>
+      <div id="xls-sem-mudanca" style="display:none;margin-top:8px;opacity:.65;">
+        <table style="width:100%;border-collapse:collapse;font-size:11px;">
+          <tbody>
+            ${semMudanca.map(l => `
+              <tr style="border-bottom:1px solid #f9fafb;">
+                <td style="padding:4px 10px;font-weight:600;width:60px;">${l.r.numero}</td>
+                <td style="padding:4px 10px;">${_badgeL(l.sistStatus,false)}</td>
+                <td style="padding:4px 10px;">${_badgeO(l.ocupAtual,false)}</td>
+                <td style="padding:4px 10px;color:#16a34a;font-weight:600;">✔ Sem alteração</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
 }
 
 function _xlsToggleSemMudanca(btn) {
@@ -753,17 +830,8 @@ function _xlsToggleSemMudanca(btn) {
   if (!div) return;
   const aberto = div.style.display !== 'none';
   div.style.display = aberto ? 'none' : '';
-  btn.textContent   = aberto
-    ? `▶ Ver ${div.querySelectorAll('tr').length} apto(s) sem alteração`
-    : `▼ Ocultar aptos sem alteração`;
-}
-
-// Helper: qual status_apto o modo geral atribuiria
-function _calcGeralStatusApto(xlsApto) {
-  if (xlsApto === 'ocupado' || xlsApto === 'nao_perturbe') return 'Ocupado';
-  if (xlsApto === 'vago')     return 'Vago';
-  if (xlsApto === 'bloqueado') return 'Bloqueado';
-  return null;
+  const n = div.querySelectorAll('tr').length;
+  btn.textContent = aberto ? `▶ Ver ${n} apto(s) sem alteração neste modo` : `▼ Ocultar aptos sem alteração`;
 }
 
 function _xlsRenderDivergencias(registros, sistemaMap) {
@@ -822,9 +890,18 @@ function _xlsRenderDivergencias(registros, sistemaMap) {
     return { r, sist, xlsGov, xlsApto, sistStatus, geralResultado, statusAptoResultado };
   }).filter(Boolean);
 
-  const total         = linhas.length;
-  const comMudancaG   = linhas.filter(l => l.geralResultado     !== l.sistStatus).length;
-  const comMudancaSA  = linhas.filter(l => l.statusAptoResultado !== l.sistStatus).length;
+  const total = linhas.length;
+  // Contagem real de alterações por modo (usando mesma lógica do _xlsRenderTabelaConfronto)
+  const comMudancaG = linhas.filter(l => {
+    const novaOcup = _xlsNovaOcupacao(l.xlsApto);
+    return l.geralResultado !== l.sistStatus ||
+           (novaOcup !== null && novaOcup !== (l.sist?.status_apto || null));
+  }).length;
+  const comMudancaSA = linhas.filter(l => {
+    const novaOcup = _xlsNovaOcupacao(l.xlsApto);
+    return (novaOcup !== null && novaOcup !== (l.sist?.status_apto || null)) ||
+           l.statusAptoResultado !== l.sistStatus;
+  }).length;
 
   // Guarda dados para re-render ao trocar modo
   el._dadosLinhas = linhas;
