@@ -117,6 +117,10 @@ async function _carregarDashboard(hotelId) {
   const reprovado  = aptosArr.filter(a => a.status === 'reprovado').length;
   const bloqueado  = aptosArr.filter(a => a.status === 'bloqueado').length;
   const manutencao = aptosArr.filter(a => a.status === 'manutencao').length;
+  const ocupado    = aptosArr.filter(a => a.status === 'ocupado').length;
+  const inspecao   = aptosArr.filter(a => a.status === 'inspecao').length;
+  const reservado  = aptosArr.filter(a => a.status === 'reservado').length;
+  const site       = aptosArr.filter(a => a.status === 'site').length;
   const abertos    = chamArr.filter(c => c.status === 'aberto').length;
   const andamento  = chamArr.filter(c => c.status === 'andamento').length;
 
@@ -187,6 +191,30 @@ async function _carregarDashboard(hotelId) {
           <div class="stat-label">Em manutenção</div>
           <div class="stat-value" style="color:#b45309;">${manutencao}</div>
           <div class="stat-sub">aguardando reparo</div>
+        </div>` : ''}
+        ${ocupado > 0 ? `
+        <div class="stat-card" style="border-top:3px solid #7f8c8d;">
+          <div class="stat-label">Ocupados</div>
+          <div class="stat-value" style="color:#7f8c8d;">${ocupado}</div>
+          <div class="stat-sub">hóspedes no apto</div>
+        </div>` : ''}
+        ${inspecao > 0 ? `
+        <div class="stat-card" style="border-top:3px solid #0891b2;">
+          <div class="stat-label">Inspeção</div>
+          <div class="stat-value" style="color:#0891b2;">${inspecao}</div>
+          <div class="stat-sub">aguardando inspeção</div>
+        </div>` : ''}
+        ${reservado > 0 ? `
+        <div class="stat-card" style="border-top:3px solid #6366f1;">
+          <div class="stat-label">Reservados</div>
+          <div class="stat-value" style="color:#6366f1;">${reservado}</div>
+          <div class="stat-sub">reserva confirmada</div>
+        </div>` : ''}
+        ${site > 0 ? `
+        <div class="stat-card" style="border-top:3px solid #8b5cf6;">
+          <div class="stat-label">Site</div>
+          <div class="stat-value" style="color:#8b5cf6;">${site}</div>
+          <div class="stat-sub">bloqueado pelo site</div>
         </div>` : ''}
       </div>
     </div>
