@@ -673,6 +673,13 @@ async function _xlsConfirmar(substituir = false) {
 
     toast(msgSucesso, 'success');
 
+    // Aviso de aptos pausados preservados
+    const aptosPausados = data?.aptos_pausados;
+    if (Array.isArray(aptosPausados) && aptosPausados.length > 0) {
+      const lista = aptosPausados.join(', ');
+      _xlsExibirAvisoPausados(aptosPausados.length, lista);
+    }
+
     // Desabilita botão confirmar para evitar dupla gravação
     if (btnConf) { btnConf.disabled = true; btnConf.textContent = '✅ Integração salva'; }
 
@@ -690,6 +697,43 @@ async function _xlsConfirmar(substituir = false) {
 }
 
 // ── Diálogo de confirmação de substituição ────────────────────────────────────
+function _xlsExibirAvisoPausados(qtd, lista) {
+  const modalId = 'modal-xls-pausados';
+  let modal = document.getElementById(modalId);
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id        = modalId;
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal" style="max-width:480px;">
+        <div class="modal-header">
+          <div class="modal-title">⏸ Apartamentos em Pausa — status preservado</div>
+          <button class="btn-close" onclick="closeModal('${modalId}')">✕</button>
+        </div>
+        <div class="modal-body">
+          <p style="margin:0 0 12px;font-size:14px;color:#374151;line-height:1.6;">
+            <strong id="xls-pausados-qtd"></strong> apartamento(s) estão com limpeza pausada e
+            <strong>não tiveram o status de governança alterado</strong> pela integração XLS.
+            O status de ocupação (Vago/Ocupado) foi atualizado normalmente.
+          </p>
+          <div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:10px 14px;font-size:13px;color:#92400e;">
+            ⚠️ Aptos pausados: <strong id="xls-pausados-lista"></strong>
+          </div>
+          <p style="margin:12px 0 0;font-size:12px;color:#6b7280;">
+            Retome ou conclua a limpeza no fluxo de governança para liberar esses apartamentos.
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" onclick="closeModal('${modalId}')">Entendido</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+  }
+  document.getElementById('xls-pausados-qtd').textContent  = qtd;
+  document.getElementById('xls-pausados-lista').textContent = lista;
+  openModal(modalId);
+}
+
 function _xlsConfirmarSubstituicao(mensagemRpc) {
   // Reutiliza o padrão de modal existente no projeto se disponível,
   // caso contrário usa confirm() nativo como fallback seguro
