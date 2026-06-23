@@ -884,18 +884,14 @@ function _govSyncParaStatus(status) {
 }
 
 function _aptoSyncParaStatus(status) {
+  // Apenas status de ocupação alteram status_apto.
+  // Status de limpeza/governança (sujo, limpando, conferencia, etc.) preservam o status_apto atual.
   const mapa = {
-    livre:       'Vago',
-    sujo:        'Vago',
-    limpando:    'Vago',
-    pausado:     'Vago',
-    conferencia: 'Vago',
-    limpo:       'Vago',
-    reprovado:   'Vago',
-    ocupado:     'Ocupado',
-    bloqueado:   'Bloqueado',
-    manutencao:  'Bloqueado',
-    inspecao:    'Bloqueado',
+    livre:      'Vago',
+    ocupado:    'Ocupado',
+    bloqueado:  'Bloqueado',
+    manutencao: 'Bloqueado',
+    inspecao:   'Bloqueado',
   };
   return mapa[status] ?? null;
 }
