@@ -640,58 +640,97 @@ function _xlsRenderDivergencias(registros, sistemaMap) {
   const _SL = (typeof _STATUS_LABELS !== 'undefined') ? _STATUS_LABELS : {};
   const _SI = (typeof _STATUS_ICONS  !== 'undefined') ? _STATUS_ICONS  : {};
 
-  // Cores por status interno
   const _COR = {
     livre:'#27ae60', sujo:'#e67e22', limpando:'#2e86c1', pausado:'#f39c12',
     conferencia:'#8e44ad', limpo:'#1abc9c', reprovado:'#e74c3c',
     bloqueado:'#c0392b', ocupado:'#7f8c8d', manutencao:'#f1c40f', inspecao:'#0891b2',
   };
 
-  // Statuses de governança "ativos" — que o modo Status Apto preserva
-  const _GOV_ATIVOS = new Set(['sujo','limpando','pausado','conferencia','limpo','reprovado','inspecao','manutencao']);
+  // Espelha a lógica CASE do RPC modo 'geral'
+  function _calcGeral(xlsApto, xlsGov, sistAtual) {
+    if (sistAtual === 'pausado') return 'pausado';
+    if (xlsApto === 'bloqueado') return 'bloqueado';
+    if (xlsApto === 'nao_perturbe') return 'ocupado';
+    if (xlsApto === 'ocupado') {
+      if (xlsGov === 'limpo')       return 'ocupado';
+      if (xlsGov === 'sujo')        return 'sujo';
+      if (xlsGov === 'conferencia') return 'conferencia';
+      if (xlsGov === 'inspecao')    return 'inspecao';
+      if (xlsGov === 'manutencao')  return 'manutencao';
+      if (xlsGov === 'nao_perturbe' || xlsGov === 'nao_quis_arrumacao') return 'ocupado';
+    }
+    if (xlsApto === 'vago') {
+      if (xlsGov === 'limpo')       return 'livre';
+      if (xlsGov === 'sujo')        return 'sujo';
+      if (xlsGov === 'conferencia') return 'conferencia';
+      if (xlsGov === 'inspecao')    return 'inspecao';
+      if (xlsGov === 'manutencao')  return 'manutencao';
+    }
+    if (xlsGov === 'reservado' || xlsGov === 'site') return 'ocupado';
+    if (xlsGov === 'manutencao') return 'manutencao';
+    return sistAtual;
+  }
+
+  // Espelha a lógica CASE do RPC modo 'status_apto'
+  function _calcStatusApto(xlsApto, sistAtual) {
+    if (sistAtual === 'pausado') return 'pausado';
+    if (xlsApto === 'bloqueado') return 'bloqueado';
+    if ((xlsApto === 'ocupado' || xlsApto === 'nao_perturbe') &&
+        (sistAtual === 'livre' || sistAtual === 'sujo' || sistAtual === 'limpo')) return 'ocupado';
+    if (xlsApto === 'vago' && sistAtual === 'ocupado') return 'sujo';
+    return sistAtual;
+  }
 
   const linhas = registros.map(r => {
     const sist = sistemaMap[r.numero];
-    if (!sist) return null;  // apto do XLS não encontrado no sistema
+    if (!sist) return null;
 
-    const xlsGovInterno = r.statusApto?.interno || null;   // col D mapeado
-    const sistStatus    = sist.status;
+    const xlsGov     = r.statusApto?.interno || null;  // col D (limpeza)
+    const xlsApto    = r.statusGov?.interno  || null;  // col G (ocupação)
+    const sistStatus = sist.status;
 
-    // Verifica se há divergência de governança
-    const igualGov = xlsGovInterno === sistStatus;
+    const geralResultado     = _calcGeral(xlsApto, xlsGov, sistStatus);
+    const statusAptoResultado = _calcStatusApto(xlsApto, sistStatus);
 
-    // O que o modo Status Apto faria: preserva statuses gov ativos
-    const govAtivo = _GOV_ATIVOS.has(sistStatus);
+    const mudaGeral     = geralResultado      !== sistStatus;
+    const mudaStatusApto = statusAptoResultado !== sistStatus;
 
-    return { r, sist, xlsGovInterno, sistStatus, igualGov, govAtivo };
+    return { r, xlsGov, xlsApto, sistStatus, geralResultado, statusAptoResultado, mudaGeral, mudaStatusApto };
   }).filter(Boolean);
 
-  const divergentes = linhas.filter(l => !l.igualGov);
+  // Divergência real: qualquer modo causaria mudança
+  const divergentes = linhas.filter(l => l.mudaGeral || l.mudaStatusApto);
   const total       = linhas.length;
 
-  const _badge = (interno) => {
+  const _badge = (interno, destaque) => {
     if (!interno) return '<span style="color:#9ca3af;">—</span>';
     const cor  = _COR[interno] || '#6b7280';
     const lbl  = _SL[interno] || interno;
     const ico  = _SI[interno] || '';
+    const borda = destaque ? `border:2px solid ${cor};` : `border:1px solid ${cor}55;`;
     return `<span style="display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;
-      background:${cor}22;color:${cor};border:1px solid ${cor}55;">${ico} ${lbl}</span>`;
+      background:${cor}22;color:${cor};${borda}">${ico} ${lbl}</span>`;
+  };
+
+  const _acaoCell = (resultado, sistAtual, mudaria) => {
+    if (!mudaria) return `<span style="color:#16a34a;font-size:11px;font-weight:600;">✔ Sem alteração</span>`;
+    return _badge(resultado, true);
   };
 
   el.innerHTML = `
     <div class="card" style="padding:20px 24px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
         <div style="font-weight:700;font-size:14px;">🔍 Confronto Governança — XLS vs Sistema</div>
-        <div style="font-size:12px;color:#6b7280;">${divergentes.length} divergência${divergentes.length !== 1 ? 's' : ''} em ${total} apartamento${total !== 1 ? 's' : ''}</div>
+        <div style="font-size:12px;color:#6b7280;">${divergentes.length} apto${divergentes.length !== 1 ? 's' : ''} com alteração em ${total} apartamento${total !== 1 ? 's' : ''}</div>
       </div>
 
       <div style="background:#f0f9ff;border:1px solid #93c5fd;border-radius:8px;padding:10px 14px;font-size:12px;color:#1e40af;margin-bottom:14px;line-height:1.6;">
         <strong>📊 Integrar Geral</strong> — atualiza ocupação <em>e</em> governança conforme o XLS.<br>
-        <strong>🏠 Integrar Status Apto</strong> — atualiza apenas Vago/Ocupado/Bloqueado; preserva status de governança do sistema${_GOV_ATIVOS.size ? ' (sujo, limpando, arrumação, etc.)' : ''}.
+        <strong>🏠 Integrar Status Apto</strong> — atualiza apenas Vago/Ocupado/Bloqueado; preserva status de governança do sistema (sujo, arrumação, etc.).
       </div>
 
       ${divergentes.length === 0
-        ? `<div style="text-align:center;padding:20px;color:#16a34a;font-weight:600;">✅ Sem divergências de governança entre XLS e sistema.</div>`
+        ? `<div style="text-align:center;padding:20px;color:#16a34a;font-weight:600;">✅ XLS e sistema estão sincronizados — nenhuma alteração seria feita.</div>`
         : `<div style="overflow-x:auto;">
         <table style="width:100%;border-collapse:collapse;font-size:12px;">
           <thead>
@@ -704,19 +743,13 @@ function _xlsRenderDivergencias(registros, sistemaMap) {
             </tr>
           </thead>
           <tbody>
-            ${divergentes.map(l => {
-              const acaoGeral    = _badge(l.xlsGovInterno || l.sistStatus);
-              const acaoApenasApto = l.govAtivo
-                ? `<span style="color:#16a34a;font-weight:600;font-size:11px;">✔ Preserva (${_SL[l.sistStatus]||l.sistStatus})</span>`
-                : _badge(l.xlsGovInterno || l.sistStatus);
-              return `<tr style="border-bottom:1px solid #f3f4f6;">
+            ${divergentes.map(l => `<tr style="border-bottom:1px solid #f3f4f6;">
                 <td style="padding:7px 10px;font-weight:700;">${l.r.numero}</td>
-                <td style="padding:7px 10px;">${_badge(l.xlsGovInterno)}</td>
+                <td style="padding:7px 10px;">${_badge(l.xlsGov)}</td>
                 <td style="padding:7px 10px;">${_badge(l.sistStatus)}</td>
-                <td style="padding:7px 10px;">${acaoGeral}</td>
-                <td style="padding:7px 10px;">${acaoApenasApto}</td>
-              </tr>`;
-            }).join('')}
+                <td style="padding:7px 10px;">${_acaoCell(l.geralResultado, l.sistStatus, l.mudaGeral)}</td>
+                <td style="padding:7px 10px;">${_acaoCell(l.statusAptoResultado, l.sistStatus, l.mudaStatusApto)}</td>
+              </tr>`).join('')}
           </tbody>
         </table>
       </div>`}
