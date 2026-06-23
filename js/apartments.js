@@ -2298,8 +2298,8 @@ function renderAptoKanban() {
 
   board.innerHTML = colsFiltradas.map(col => {
     const items = lista.filter(a => a.status === col.key);
-    // Oculta colunas sem apartamentos (exceto quando filtro de status específico está ativo)
-    if (!items.length && _aptoFiltros.status === 'todos') return '';
+    // Oculta coluna apenas quando filtro de status específico está ativo e não é este status
+    if (!items.length && _aptoFiltros.status !== 'todos' && _aptoFiltros.status !== col.key) return '';
     return `<div class="kanban-col">
       <div class="kanban-col-title" style="color:${col.color};">
         ${col.label} <span class="kanban-count">${items.length}</span>
