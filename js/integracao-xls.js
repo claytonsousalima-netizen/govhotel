@@ -775,7 +775,7 @@ function _xlsRenderTabelaConfronto(el, linhas, total) {
         <thead>
           <tr style="background:#f3f4f6;text-align:left;">
             <th style="padding:8px 10px;border-bottom:2px solid #e5e7eb;width:60px;">Apto</th>
-            <th style="padding:8px 10px;border-bottom:2px solid #e5e7eb;border-right:2px solid #e5e7eb;" colspan="3">🏠 Ocupação (Col G do XLS)</th>
+            <th style="padding:8px 10px;border-bottom:2px solid #e5e7eb;border-right:2px solid #e5e7eb;" colspan="3">🏠 Ocupação (Sistema x XLS)</th>
             <th style="padding:8px 10px;border-bottom:2px solid #e5e7eb;" colspan="3">🧹 Limpeza (efeito colateral)</th>
           </tr>
         </thead>
@@ -808,8 +808,8 @@ function _xlsRenderTabelaConfronto(el, linhas, total) {
         <thead>
           <tr style="background:#f3f4f6;text-align:left;">
             <th style="padding:8px 10px;border-bottom:2px solid #e5e7eb;width:60px;">Apto</th>
-            <th style="padding:8px 10px;border-bottom:2px solid #e5e7eb;border-right:2px solid #e5e7eb;" colspan="3">🧹 Limpeza — Col D (Status Gov)</th>
-            <th style="padding:8px 10px;border-bottom:2px solid #e5e7eb;" colspan="3">🏠 Ocupação — Col G (Status Apto)</th>
+            <th style="padding:8px 10px;border-bottom:2px solid #e5e7eb;border-right:2px solid #e5e7eb;" colspan="3">🧹 Limpeza (Sistema x XLS)</th>
+            <th style="padding:8px 10px;border-bottom:2px solid #e5e7eb;" colspan="3">🏠 Ocupação (Sistema x XLS)</th>
           </tr>
         </thead>
         <tbody>
