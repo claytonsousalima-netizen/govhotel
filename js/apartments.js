@@ -278,11 +278,14 @@ function renderCadastroTableDb(filter = '') {
 
     do_andar.forEach(a => {
       const cam = equipe.find(e => e.id === a.camareira_id);
-      const statusColor = {
+      const _stColors = {
         livre:'#27ae60', sujo:'#e67e22', limpando:'#2e86c1', pausado:'#f39c12',
         conferencia:'#8e44ad', limpo:'#1abc9c', reprovado:'#e74c3c',
-        bloqueado:'#c0392b', ocupado:'#7f8c8d', manutencao:'#f1c40f'
-      }[a.status] || '#999';
+        bloqueado:'#c0392b', ocupado:'#7f8c8d', manutencao:'#f1c40f', inspecao:'#0891b2',
+      };
+      const statusColor = _stColors[a.status] || '#999';
+      const statusLabel = (typeof _STATUS_LABELS !== 'undefined' && _STATUS_LABELS[a.status]) || a.status;
+      const statusIcon  = (typeof _STATUS_ICONS  !== 'undefined' && _STATUS_ICONS[a.status])  || '';
 
       html += `<tr>
         <td>
@@ -296,7 +299,7 @@ function renderCadastroTableDb(filter = '') {
         <td>${a.tipo}</td>
         <td><span class="badge" style="background:#eef;color:#556;">${a.categoria}</span></td>
         <td>${a.leitos} leito${a.leitos !== 1 ? 's' : ''}</td>
-        <td><span class="badge badge-${a.status}">${a.status}</span></td>
+        <td><span class="badge badge-${a.status}" style="background:${statusColor}22;color:${statusColor};border:1px solid ${statusColor}55;">${statusIcon} ${statusLabel}</span></td>
         <td>${cam
           ? `<div style="font-size:12px;font-weight:600;">${cam.nome}</div>`
           : '<span style="color:var(--text3);font-size:12px;">—</span>'
