@@ -251,16 +251,16 @@ async function _carregarDashboard(hotelId) {
       <div class="card" style="padding:16px 18px;">
         <div class="card-title" style="margin-bottom:14px;">Governança — Indicadores do Dia</div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;">
-          ${_govCard('Sujos',          sujo,       '#e67e22', 'aguardando limpeza')}
-          ${sujoSemCam > 0 ? _govCard('Sujos sem cam.', sujoSemCam, '#c0392b', 'sem responsável') : ''}
-          ${_govCard('Em Limpeza',      limpando,   '#2e86c1', 'em andamento')}
-          ${_govCard('Pausados',       pausado,    '#f39c12', 'limpeza interrompida')}
-          ${_govCard('Arrumação',      conferencia,'#8e44ad', 'aguardando arrumação')}
-          ${_govCard('Limpos',         limpo,      '#27ae60', 'prontos')}
-          ${_govCard('Reprovados',     reprovado,  '#c0392b', 'exigem retrabalho')}
-          ${_govCard('Chamados abertos', govAbertos,   '#e74c3c', 'gov. em aberto')}
-          ${_govCard('Atrasados',       govAtrasados, '#c0392b', 'prazo vencido')}
-          ${_govCard('Retrabalhos abertos', retrabalhos, '#e67e22', 'aguardando refazer')}
+          ${sujo       > 0 ? _govCard('Sujos',             sujo,        '#e67e22', 'aguardando limpeza')    : ''}
+          ${sujoSemCam > 0 ? _govCard('Sujos sem cam.',    sujoSemCam,  '#c0392b', 'sem responsável')       : ''}
+          ${limpando   > 0 ? _govCard('Em Limpeza',        limpando,    '#2e86c1', 'em andamento')          : ''}
+          ${pausado    > 0 ? _govCard('Pausados',          pausado,     '#f39c12', 'limpeza interrompida')  : ''}
+          ${conferencia> 0 ? _govCard('Arrumação',         conferencia, '#8e44ad', 'aguardando arrumação')  : ''}
+          ${limpo      > 0 ? _govCard('Limpos',            limpo,       '#27ae60', 'prontos')               : ''}
+          ${reprovado  > 0 ? _govCard('Reprovados',        reprovado,   '#c0392b', 'exigem retrabalho')     : ''}
+          ${govAbertos > 0 ? _govCard('Chamados abertos',  govAbertos,  '#e74c3c', 'gov. em aberto')        : ''}
+          ${govAtrasados>0 ? _govCard('Atrasados',         govAtrasados,'#c0392b', 'prazo vencido')         : ''}
+          ${retrabalhos> 0 ? _govCard('Retrabalhos abertos',retrabalhos,'#e67e22', 'aguardando refazer')    : ''}
         </div>
       </div>`;
   }
