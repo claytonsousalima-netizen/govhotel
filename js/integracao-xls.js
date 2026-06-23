@@ -41,6 +41,8 @@ let _xlsIgnoradas         = 0;
 let _xlsInconsistencias   = [];   // conflitos de duplicata (excluídos do import)
 let _xlsNaoReconhecidos   = [];   // status inválido mas importados parcialmente
 let _xlsArquivoNome       = '';   // nome do arquivo — salvo na validação para uso no confirmar
+let _xlsStatusSistema     = {};   // mapa numero → { status, status_apto } atual do banco
+let _xlsModoConfirmacao   = 'geral'; // modo guardado quando modal de substituição abre
 
 // ══════════════════════════════════════════════════════════════════════════════
 // FUNÇÕES DE NORMALIZAÇÃO (Etapa 4)
@@ -403,11 +405,21 @@ function renderIntegracaoXls() {
         </div>
       </div>
 
+      <!-- Confronto XLS vs Sistema -->
+      <div id="xls-divergencias" style="display:none;margin-bottom:20px;"></div>
+
       <!-- Ação final -->
-      <div style="display:flex;justify-content:flex-end;gap:12px;flex-wrap:wrap;">
-        <button class="btn btn-outline" onclick="_xlsReset()">🔄 Limpar</button>
-        <button class="btn btn-primary" id="xls-btn-confirmar" disabled onclick="_xlsConfirmar(false)">
-          ✅ Confirmar integração
+      <div style="display:flex;justify-content:flex-end;gap:12px;flex-wrap:wrap;align-items:center;">
+        <button class="btn btn-outline" onclick="_xlsReset()">🗑️ Limpar</button>
+        <button class="btn btn-outline" id="xls-btn-status-apto" disabled
+                onclick="_xlsConfirmar(false,'status_apto')"
+                title="Atualiza apenas Vago / Ocupado / Bloqueado — preserva status de governança do sistema">
+          🏠 Integrar Status Apto
+        </button>
+        <button class="btn btn-primary" id="xls-btn-geral" disabled
+                onclick="_xlsConfirmar(false,'geral')"
+                title="Integração completa: atualiza status de ocupação e governança">
+          📊 Integrar Geral
         </button>
       </div>
 
@@ -480,6 +492,14 @@ function _xlsLimparResultados() {
   if (preview) preview.style.display = 'none';
   if (avisos)  avisos.style.display  = 'none';
   if (btnConf) btnConf.disabled      = true;
+
+  const divDiv  = document.getElementById('xls-divergencias');
+  const btnGA   = document.getElementById('xls-btn-geral');
+  const btnSA   = document.getElementById('xls-btn-status-apto');
+  if (divDiv)  divDiv.style.display = 'none';
+  if (btnGA)   btnGA.disabled       = true;
+  if (btnSA)   btnSA.disabled       = true;
+  _xlsStatusSistema = {};
 }
 
 async function _xlsValidar() {
@@ -507,18 +527,22 @@ async function _xlsValidar() {
     // Linhas com status não reconhecido (importadas parcialmente)
     const naoReconhecidos = rows.filter(r => !r.conflito && (r.incApto || r.incGov));
 
-    // Consulta aptos do arquivo que estão pausados no sistema
+    // Consulta status atual de todos os aptos do arquivo no sistema
     let aptosPausadosValidacao = [];
+    _xlsStatusSistema = {};
     try {
       const numerosNoArquivo = [...new Set(rows.map(r => r.numero).filter(Boolean))];
       if (numerosNoArquivo.length && hotelId) {
-        const { data: pausados } = await supabaseClient
+        const { data: aptosDB } = await supabaseClient
           .from('apartments')
-          .select('numero')
+          .select('numero, status, status_apto')
           .eq('hotel_id', hotelId)
-          .eq('status', 'pausado')
+          .eq('ativo', true)
           .in('numero', numerosNoArquivo);
-        aptosPausadosValidacao = (pausados || []).map(a => a.numero).sort();
+        (aptosDB || []).forEach(a => { _xlsStatusSistema[a.numero] = a; });
+        aptosPausadosValidacao = (aptosDB || [])
+          .filter(a => a.status === 'pausado')
+          .map(a => a.numero).sort();
       }
     } catch (_) { /* não bloqueia a validação */ }
 
@@ -561,9 +585,18 @@ async function _xlsValidar() {
     _xlsInconsistencias   = conflitos;          // conflitos duplicados (excluídos do import)
     _xlsNaoReconhecidos   = naoReconhecidos;    // status inválido (importados parcialmente)
 
-    // Habilita confirmar somente se há registros válidos
+    // Divergências: confronto XLS governança vs sistema
+    _xlsRenderDivergencias(_xlsRegistrosValidos, _xlsStatusSistema);
+
+    // Habilita botões de integração
+    const temRegistros = _xlsRegistrosValidos.length > 0;
+    const btnGA  = document.getElementById('xls-btn-geral');
+    const btnSA  = document.getElementById('xls-btn-status-apto');
+    if (btnGA)  btnGA.disabled  = !temRegistros;
+    if (btnSA)  btnSA.disabled  = !temRegistros;
+    // mantém botão legado desabilitado (já não aparece na UI nova)
     const btnConf = document.getElementById('xls-btn-confirmar');
-    if (btnConf) btnConf.disabled = _xlsRegistrosValidos.length === 0;
+    if (btnConf) btnConf.disabled = true;
 
   } catch (err) {
     toast('Erro ao processar arquivo: ' + err.message, 'error');
@@ -596,6 +629,101 @@ function _xlsRenderResumo(r) {
   document.getElementById('xls-resumo').style.display = '';
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// CONFRONTO XLS vs SISTEMA
+// ══════════════════════════════════════════════════════════════════════════════
+
+function _xlsRenderDivergencias(registros, sistemaMap) {
+  const el = document.getElementById('xls-divergencias');
+  if (!el) return;
+
+  const _SL = (typeof _STATUS_LABELS !== 'undefined') ? _STATUS_LABELS : {};
+  const _SI = (typeof _STATUS_ICONS  !== 'undefined') ? _STATUS_ICONS  : {};
+
+  // Cores por status interno
+  const _COR = {
+    livre:'#27ae60', sujo:'#e67e22', limpando:'#2e86c1', pausado:'#f39c12',
+    conferencia:'#8e44ad', limpo:'#1abc9c', reprovado:'#e74c3c',
+    bloqueado:'#c0392b', ocupado:'#7f8c8d', manutencao:'#f1c40f', inspecao:'#0891b2',
+  };
+
+  // Statuses de governança "ativos" — que o modo Status Apto preserva
+  const _GOV_ATIVOS = new Set(['sujo','limpando','pausado','conferencia','limpo','reprovado','inspecao','manutencao']);
+
+  const linhas = registros.map(r => {
+    const sist = sistemaMap[r.numero];
+    if (!sist) return null;  // apto do XLS não encontrado no sistema
+
+    const xlsGovInterno = r.statusApto?.interno || null;   // col D mapeado
+    const sistStatus    = sist.status;
+
+    // Verifica se há divergência de governança
+    const igualGov = xlsGovInterno === sistStatus;
+
+    // O que o modo Status Apto faria: preserva statuses gov ativos
+    const govAtivo = _GOV_ATIVOS.has(sistStatus);
+
+    return { r, sist, xlsGovInterno, sistStatus, igualGov, govAtivo };
+  }).filter(Boolean);
+
+  const divergentes = linhas.filter(l => !l.igualGov);
+  const total       = linhas.length;
+
+  const _badge = (interno) => {
+    if (!interno) return '<span style="color:#9ca3af;">—</span>';
+    const cor  = _COR[interno] || '#6b7280';
+    const lbl  = _SL[interno] || interno;
+    const ico  = _SI[interno] || '';
+    return `<span style="display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;
+      background:${cor}22;color:${cor};border:1px solid ${cor}55;">${ico} ${lbl}</span>`;
+  };
+
+  el.innerHTML = `
+    <div class="card" style="padding:20px 24px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+        <div style="font-weight:700;font-size:14px;">🔍 Confronto Governança — XLS vs Sistema</div>
+        <div style="font-size:12px;color:#6b7280;">${divergentes.length} divergência${divergentes.length !== 1 ? 's' : ''} em ${total} apartamento${total !== 1 ? 's' : ''}</div>
+      </div>
+
+      <div style="background:#f0f9ff;border:1px solid #93c5fd;border-radius:8px;padding:10px 14px;font-size:12px;color:#1e40af;margin-bottom:14px;line-height:1.6;">
+        <strong>📊 Integrar Geral</strong> — atualiza ocupação <em>e</em> governança conforme o XLS.<br>
+        <strong>🏠 Integrar Status Apto</strong> — atualiza apenas Vago/Ocupado/Bloqueado; preserva status de governança do sistema${_GOV_ATIVOS.size ? ' (sujo, limpando, arrumação, etc.)' : ''}.
+      </div>
+
+      ${divergentes.length === 0
+        ? `<div style="text-align:center;padding:20px;color:#16a34a;font-weight:600;">✅ Sem divergências de governança entre XLS e sistema.</div>`
+        : `<div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead>
+            <tr style="background:#f3f4f6;text-align:left;">
+              <th style="padding:8px 10px;border-bottom:1px solid #e5e7eb;">Apto</th>
+              <th style="padding:8px 10px;border-bottom:1px solid #e5e7eb;">XLS Gov (Col D)</th>
+              <th style="padding:8px 10px;border-bottom:1px solid #e5e7eb;">Sistema Atual</th>
+              <th style="padding:8px 10px;border-bottom:1px solid #e5e7eb;">Integrar Geral</th>
+              <th style="padding:8px 10px;border-bottom:1px solid #e5e7eb;">Integrar Status Apto</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${divergentes.map(l => {
+              const acaoGeral    = _badge(l.xlsGovInterno || l.sistStatus);
+              const acaoApenasApto = l.govAtivo
+                ? `<span style="color:#16a34a;font-weight:600;font-size:11px;">✔ Preserva (${_SL[l.sistStatus]||l.sistStatus})</span>`
+                : _badge(l.xlsGovInterno || l.sistStatus);
+              return `<tr style="border-bottom:1px solid #f3f4f6;">
+                <td style="padding:7px 10px;font-weight:700;">${l.r.numero}</td>
+                <td style="padding:7px 10px;">${_badge(l.xlsGovInterno)}</td>
+                <td style="padding:7px 10px;">${_badge(l.sistStatus)}</td>
+                <td style="padding:7px 10px;">${acaoGeral}</td>
+                <td style="padding:7px 10px;">${acaoApenasApto}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>`}
+    </div>`;
+  el.style.display = '';
+}
+
 function _xlsReset() {
   _xlsRegistrosValidos = [];
   _xlsIgnoradas        = 0;
@@ -618,7 +746,7 @@ function _xlsReset() {
 // ETAPA 5 — GRAVAÇÃO NO SUPABASE VIA RPC
 // ══════════════════════════════════════════════════════════════════════════════
 
-async function _xlsConfirmar(substituir = false) {
+async function _xlsConfirmar(substituir = false, modo = 'geral') {
   // ── Validações de pré-condição ───────────────────────────────────────────
   const hotelId = _xlsGetHotelId();
   if (!hotelId) { toast('Selecione o hotel antes de confirmar.', 'error'); return; }
@@ -651,9 +779,15 @@ async function _xlsConfirmar(substituir = false) {
   const totalIgnoradas       = _xlsIgnoradas;
   const totalInconsistencias = _xlsInconsistencias.length + _xlsNaoReconhecidos.length;
 
-  // ── UI: bloqueia botão durante gravação ──────────────────────────────────
+  // ── UI: bloqueia botões durante gravação ─────────────────────────────────
   const btnConf = document.getElementById('xls-btn-confirmar');
+  const btnGA   = document.getElementById('xls-btn-geral');
+  const btnSA   = document.getElementById('xls-btn-status-apto');
   if (btnConf) { btnConf.disabled = true; btnConf.textContent = '⏳ Salvando...'; }
+  const _btnAtivo = modo === 'status_apto' ? btnSA : btnGA;
+  if (_btnAtivo) { _btnAtivo.disabled = true; _btnAtivo.textContent = '⏳ Salvando...'; }
+  if (_btnAtivo !== btnGA  && btnGA)  btnGA.disabled  = true;
+  if (_btnAtivo !== btnSA  && btnSA)  btnSA.disabled  = true;
 
   try {
     const { data, error } = await supabaseClient.rpc(
@@ -668,6 +802,7 @@ async function _xlsConfirmar(substituir = false) {
         p_total_ignoradas:        totalIgnoradas,
         p_total_inconsistencias:  totalInconsistencias,
         p_substituir:             substituir,
+        p_modo:                   modo,
       }
     );
 
@@ -680,7 +815,7 @@ async function _xlsConfirmar(substituir = false) {
     // ── Trata retornos controlados da RPC ────────────────────────────────
     if (!data?.ok) {
       if (data?.erro === 'ja_existe') {
-        _xlsConfirmarSubstituicao(data.mensagem);
+        _xlsConfirmarSubstituicao(data.mensagem, modo);
         return;
       }
       toast(data?.mensagem || data?.erro || 'Erro ao salvar integração. Tente novamente.', 'error');
@@ -689,32 +824,33 @@ async function _xlsConfirmar(substituir = false) {
 
     // ── Sucesso ──────────────────────────────────────────────────────────
     const totalAtualizados = data?.total_aptos_atualizados ?? totalImportadas;
+    const modoLabel = modo === 'status_apto' ? 'Status Apto' : 'Geral';
     const msgSucesso = substituir
-      ? `Integração substituída. ${totalAtualizados} apartamentos atualizados no sistema.`
-      : `Integração confirmada. ${totalAtualizados} apartamentos atualizados no sistema.`;
+      ? `Integração ${modoLabel} substituída. ${totalAtualizados} apartamentos atualizados.`
+      : `Integração ${modoLabel} confirmada. ${totalAtualizados} apartamentos atualizados.`;
 
     toast(msgSucesso, 'success');
 
     // Aviso de aptos pausados preservados
     const aptosPausados = data?.aptos_pausados;
     if (Array.isArray(aptosPausados) && aptosPausados.length > 0) {
-      const lista = aptosPausados.join(', ');
-      _xlsExibirAvisoPausados(aptosPausados.length, lista);
+      _xlsExibirAvisoPausados(aptosPausados.length, aptosPausados.join(', '));
     }
 
-    // Desabilita botão confirmar para evitar dupla gravação
-    if (btnConf) { btnConf.disabled = true; btnConf.textContent = '✅ Integração salva'; }
+    // Bloqueia todos os botões após gravação bem-sucedida
+    const _labelSalvo = '✅ Integração salva';
+    if (btnConf)  { btnConf.disabled = true; btnConf.textContent = _labelSalvo; }
+    if (btnGA)    { btnGA.disabled   = true; btnGA.textContent   = modo === 'geral'       ? _labelSalvo : '📊 Integrar Geral'; }
+    if (btnSA)    { btnSA.disabled   = true; btnSA.textContent   = modo === 'status_apto' ? _labelSalvo : '🏠 Integrar Status Apto'; }
 
   } catch (err) {
     console.error('_xlsConfirmar:', err);
     toast('Erro ao salvar integração. Tente novamente.', 'error');
   } finally {
-    // Só reabilita se ainda não foi salvo com sucesso
-    const btnAtual = document.getElementById('xls-btn-confirmar');
-    if (btnAtual && btnAtual.textContent !== '✅ Integração salva') {
-      btnAtual.disabled   = false;
-      btnAtual.textContent = '✅ Confirmar integração';
-    }
+    const gaEl = document.getElementById('xls-btn-geral');
+    const saEl = document.getElementById('xls-btn-status-apto');
+    if (gaEl && gaEl.textContent === '⏳ Salvando...') { gaEl.disabled = false; gaEl.textContent = '📊 Integrar Geral'; }
+    if (saEl && saEl.textContent === '⏳ Salvando...') { saEl.disabled = false; saEl.textContent = '🏠 Integrar Status Apto'; }
   }
 }
 
@@ -756,7 +892,8 @@ function _xlsExibirAvisoPausados(qtd, lista) {
   openModal(modalId);
 }
 
-function _xlsConfirmarSubstituicao(mensagemRpc) {
+function _xlsConfirmarSubstituicao(mensagemRpc, modo) {
+  _xlsModoConfirmacao = modo || 'geral';
   // Reutiliza o padrão de modal existente no projeto se disponível,
   // caso contrário usa confirm() nativo como fallback seguro
   const msgExibir = mensagemRpc ||
@@ -784,7 +921,7 @@ function _xlsConfirmarSubstituicao(mensagemRpc) {
               Cancelar
             </button>
             <button class="btn btn-danger"
-                    onclick="closeModal('${modalId}');_xlsConfirmar(true)">
+                    onclick="closeModal('${modalId}');_xlsConfirmar(true,_xlsModoConfirmacao)">
               Sim, substituir
             </button>
           </div>
