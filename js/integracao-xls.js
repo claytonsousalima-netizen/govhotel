@@ -702,7 +702,7 @@ function _xlsRenderTabelaConfronto(el, linhas, total) {
   };
   const _COR_OCUP = { Vago:'#27ae60', Ocupado:'#7f8c8d', Bloqueado:'#c0392b' };
 
-  // Badge para status de limpeza (nunca mostra 'livre'/'vago' — esses são ocupação)
+  // Badge para status de limpeza (nunca mostra 'vago'/'vago' — esses são ocupação)
   const _badgeL = (interno, destaque) => {
     if (!interno) return '<span style="color:#9ca3af;font-size:11px;">—</span>';
     const cor   = _COR_LIMP[interno] || '#6b7280';
@@ -730,17 +730,17 @@ function _xlsRenderTabelaConfronto(el, linhas, total) {
     const novaOcupacao = _xlsNovaOcupacao(l.xlsApto);      // novo status_apto baseado na Col G
     const ocupAtual    = l.sist?.status_apto || null;
 
-    // Status de limpeza atual: extrai da combinação do status atual, excluindo 'livre' e 'ocupado'
-    // 'livre' no sistema = vago+limpo → para exibição de limpeza, é 'limpo'
+    // Status de limpeza atual: extrai da combinação do status atual, excluindo 'vago' e 'ocupado'
+    // 'vago' no sistema = vago+limpo → para exibição de limpeza, é 'limpo'
     // 'ocupado' no sistema = ocupado+limpo → para exibição de limpeza, é 'limpo'
-    const limpAtualDisplay = (l.sistStatus === 'livre' || l.sistStatus === 'ocupado') ? 'limpo' : l.sistStatus;
+    const limpAtualDisplay = (l.sistStatus === 'vago' || l.sistStatus === 'ocupado') ? 'limpo' : l.sistStatus;
 
     const mudaLimpeza  = novaLimpeza  !== null && novaLimpeza  !== limpAtualDisplay;
     const mudaOcupacao = novaOcupacao !== null && novaOcupacao !== ocupAtual;
 
     // Para modo status_apto: também verifica efeito colateral no status de limpeza
     const novaLimpezaSA   = l.statusAptoResultado;
-    const limpSADisplay   = (novaLimpezaSA === 'livre' || novaLimpezaSA === 'ocupado') ? 'limpo' : novaLimpezaSA;
+    const limpSADisplay   = (novaLimpezaSA === 'vago' || novaLimpezaSA === 'ocupado') ? 'limpo' : novaLimpezaSA;
     const mudaLimpezaSA   = limpSADisplay !== limpAtualDisplay;
 
     const mudaNoModo = modo === 'geral'
@@ -870,7 +870,7 @@ function _xlsRenderDivergencias(registros, sistemaMap) {
   if (!el) return;
 
   const _COR = {
-    livre:'#27ae60', sujo:'#e67e22', limpando:'#2e86c1', pausado:'#f39c12',
+    vago:'#27ae60', sujo:'#e67e22', limpando:'#2e86c1', pausado:'#f39c12',
     conferencia:'#8e44ad', limpo:'#1abc9c', reprovado:'#e74c3c',
     bloqueado:'#c0392b', ocupado:'#7f8c8d', manutencao:'#f1c40f', inspecao:'#0891b2',
   };
@@ -889,7 +889,7 @@ function _xlsRenderDivergencias(registros, sistemaMap) {
       if (xlsGov === 'nao_perturbe' || xlsGov === 'nao_quis_arrumacao') return 'ocupado';
     }
     if (xlsApto === 'vago') {
-      if (xlsGov === 'limpo')       return 'livre';
+      if (xlsGov === 'limpo')       return 'vago';
       if (xlsGov === 'sujo')        return 'sujo';
       if (xlsGov === 'conferencia') return 'conferencia';
       if (xlsGov === 'inspecao')    return 'inspecao';
@@ -905,7 +905,7 @@ function _xlsRenderDivergencias(registros, sistemaMap) {
     if (sistAtual === 'pausado') return 'pausado';
     if (xlsApto === 'bloqueado') return 'bloqueado';
     if ((xlsApto === 'ocupado' || xlsApto === 'nao_perturbe') &&
-        (sistAtual === 'livre' || sistAtual === 'sujo' || sistAtual === 'limpo')) return 'ocupado';
+        (sistAtual === 'vago' || sistAtual === 'sujo' || sistAtual === 'limpo')) return 'ocupado';
     if (xlsApto === 'vago' && sistAtual === 'ocupado') return 'sujo';
     return sistAtual;
   }
@@ -926,14 +926,14 @@ function _xlsRenderDivergencias(registros, sistemaMap) {
   const comMudancaG = linhas.filter(l => {
     const novaLimp = _xlsNovaLimpeza(l.xlsGov);
     const novaOcup = _xlsNovaOcupacao(l.xlsApto);
-    const limpAtual = (l.sistStatus === 'livre' || l.sistStatus === 'ocupado') ? 'limpo' : l.sistStatus;
+    const limpAtual = (l.sistStatus === 'vago' || l.sistStatus === 'ocupado') ? 'limpo' : l.sistStatus;
     return (novaLimp !== null && novaLimp !== limpAtual) ||
            (novaOcup !== null && novaOcup !== (l.sist?.status_apto || null));
   }).length;
   const comMudancaSA = linhas.filter(l => {
     const novaOcup = _xlsNovaOcupacao(l.xlsApto);
-    const limpAtual = (l.sistStatus === 'livre' || l.sistStatus === 'ocupado') ? 'limpo' : l.sistStatus;
-    const limpSA    = (l.statusAptoResultado === 'livre' || l.statusAptoResultado === 'ocupado') ? 'limpo' : l.statusAptoResultado;
+    const limpAtual = (l.sistStatus === 'vago' || l.sistStatus === 'ocupado') ? 'limpo' : l.sistStatus;
+    const limpSA    = (l.statusAptoResultado === 'vago' || l.statusAptoResultado === 'ocupado') ? 'limpo' : l.statusAptoResultado;
     return (novaOcup !== null && novaOcup !== (l.sist?.status_apto || null)) ||
            limpSA !== limpAtual;
   }).length;

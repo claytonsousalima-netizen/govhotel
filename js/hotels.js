@@ -75,7 +75,7 @@ function _renderGrid(lista) {
           <div class="hotel-card-nome">${h.nome}</div>
           <div class="hotel-card-local">📍 ${localizacao}</div>
         </div>
-        <span class="badge ${h.ativo ? 'badge-livre' : 'badge-bloqueado'}">${h.ativo ? 'Ativo' : 'Inativo'}</span>
+        <span class="badge ${h.ativo ? 'badge-vago' : 'badge-bloqueado'}">${h.ativo ? 'Ativo' : 'Inativo'}</span>
       </div>
 
       <div class="hotel-card-dados">

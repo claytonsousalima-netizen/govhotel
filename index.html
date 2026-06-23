@@ -226,7 +226,7 @@ a { text-decoration: none; }
   display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px;
   border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;
 }
-.badge-livre { background: #d5f5e3; color: #1e8449; }
+.badge-vago { background: #d5f5e3; color: #1e8449; }
 .badge-sujo { background: #fdebd0; color: #b9770e; }
 .badge-limpando { background: #d6eaf8; color: #1a5276; }
 .badge-pausado { background: #fef3cd; color: #9a6700; }
@@ -295,7 +295,7 @@ tr:last-child td { border-bottom: none; }
 #lote-bar { background: linear-gradient(135deg,#1d4ed8,#1e3a8a); color:#fff; padding:10px 14px;
             border-radius: var(--radius); margin-bottom:12px; display:flex; align-items:center;
             gap:8px; flex-wrap:wrap; font-size:13px; }
-.apto-card.livre { border-color: #27ae60; background: #f0fdf4; }
+.apto-card.vago { border-color: #27ae60; background: #f0fdf4; }
 .apto-card.sujo { border-color: #e67e22; background: #fffbf5; }
 .apto-card.limpando { border-color: #2e86c1; background: #f0f8ff; }
 .apto-card.conferencia { border-color: #8e44ad; background: #fdf4ff; }
@@ -493,7 +493,7 @@ tr:last-child td { border-bottom: none; }
   padding: 14px 16px; margin-bottom: 10px; box-shadow: var(--shadow);
   display: flex; align-items: center; justify-content: space-between; cursor: pointer;
 }
-.apto-card-app.livre { border-left-color: #27ae60; }
+.apto-card-app.vago { border-left-color: #27ae60; }
 .apto-card-app.sujo { border-left-color: #e67e22; }
 .apto-card-app.limpando { border-left-color: #2e86c1; }
 .apto-card-app.conferencia { border-left-color: #8e44ad; }
@@ -739,7 +739,7 @@ tr:last-child td { border-bottom: none; }
           <button class="filter-btn" onclick="filterMapa('limpo',this)">🟢 Limpo</button>
           <button class="filter-btn" onclick="filterMapa('reprovado',this)">🔴 Reprovado</button>
           <button class="filter-btn" onclick="filterMapa('bloqueado',this)">⛔ Bloqueado</button>
-          <button class="filter-btn" onclick="filterMapa('livre',this)">✅ Vago</button>
+          <button class="filter-btn" onclick="filterMapa('vago',this)">✅ Vago</button>
           <button class="filter-btn" onclick="filterMapa('ocupado',this)">🏠 Ocupado</button>
           <button class="filter-btn" onclick="filterMapa('manutencao',this)">🔧 Manutenção</button>
           <button class="filter-btn" onclick="filterMapa('inspecao',this)">🔎 Inspeção</button>
@@ -1464,7 +1464,7 @@ tr:last-child td { border-bottom: none; }
             <option value="">— Não alterar —</option>
             <option value="sujo">🟠 Sujo</option>
             <option value="bloqueado">⛔ Bloqueado</option>
-            <option value="livre">✅ Vago</option>
+            <option value="vago">✅ Vago</option>
             <option value="ocupado">🏠 Ocupado</option>
             <option value="manutencao">🔧 Manutenção</option>
           </select>
@@ -1872,7 +1872,7 @@ tr:last-child td { border-bottom: none; }
           <div class="field">
             <label>Status inicial</label>
             <select id="gl-status">
-              <option value="livre" selected>Vago</option>
+              <option value="vago" selected>Vago</option>
               <option value="sujo">Sujo</option>
               <option value="limpando">Em Limpeza</option>
               <option value="pausado">Pausado</option>
@@ -2480,12 +2480,12 @@ function refreshDash() { renderDashboard(); toast('Dashboard atualizado'); }
 
 // ============ MAPA ============
 const _STATUS_ICONS = {
-  livre:'✅', sujo:'🧺', limpando:'🧹', pausado:'⏸',
+  vago:'✅', sujo:'🧺', limpando:'🧹', pausado:'⏸',
   conferencia:'🔍', limpo:'✨', reprovado:'❌',
   bloqueado:'🔒', ocupado:'🏠', manutencao:'🔧', inspecao:'🔎'
 };
 const _STATUS_LABELS = {
-  livre:'Vago', sujo:'Sujo', limpando:'Em Limpeza', pausado:'Pausado',
+  vago:'Vago', sujo:'Sujo', limpando:'Em Limpeza', pausado:'Pausado',
   conferencia:'Arrumação', limpo:'Limpo', reprovado:'Reprovado',
   bloqueado:'Bloqueado', ocupado:'Ocupado', manutencao:'Manutenção', inspecao:'Inspeção'
 };
@@ -2684,13 +2684,13 @@ async function openAptoDetail(id) {
     limpo:       apto.status_apto === 'Ocupado'
       ? `<button class="btn btn-xs btn-primary" onclick="mudarStatusApto('${id}','ocupado')">🏠 Confirmar ocupado</button>
          <button class="btn btn-xs btn-ghost"   onclick="mudarStatusApto('${id}','sujo')">↩ Marcar sujo</button>`
-      : `<button class="btn btn-xs btn-primary" onclick="mudarStatusApto('${id}','livre')">✅ Disponível (Vago)</button>
+      : `<button class="btn btn-xs btn-primary" onclick="mudarStatusApto('${id}','vago')">✅ Disponível (Vago)</button>
          <button class="btn btn-xs btn-ghost"   onclick="mudarStatusApto('${id}','ocupado')">🏠 Marcar ocupado</button>
          <button class="btn btn-xs btn-ghost"   onclick="mudarStatusApto('${id}','sujo')">↩ Marcar sujo</button>`,
     bloqueado:   (!isCamareira && !isManutencao)
       ? `<button class="btn btn-xs btn-primary" onclick="mudarStatusApto('${id}','sujo')">🔓 Desbloquear</button>`
       : `<span style="font-size:12px;color:var(--text3);">Apartamento bloqueado — sem ação disponível.</span>`,
-    livre:       `<button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','sujo')">↩ Marcar sujo</button>
+    vago:       `<button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','sujo')">↩ Marcar sujo</button>
                   <button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','ocupado')">🏠 Ocupar</button>`,
     ocupado:     `<button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','sujo')">⬇ Checkout/Sujo</button>`,
     manutencao:  `<button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','sujo')">↩ Liberar limpeza</button>`,
@@ -2699,8 +2699,8 @@ async function openAptoDetail(id) {
   const flowBtns = isManutencao ? '' : (_flowMap[apto.status] || '');
 
   // Botões de força — somente status de alteração manual permitida (fluxo controla os demais)
-  const allStatuses = ['sujo','bloqueado','livre','ocupado','manutencao','inspecao'];
-  const manStatuses = ['manutencao','sujo','livre','ocupado'];
+  const allStatuses = ['sujo','bloqueado','vago','ocupado','manutencao','inspecao'];
+  const manStatuses = ['manutencao','sujo','vago','ocupado'];
   const forceBtns = !isCamareira ? `
     <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);">
       <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.3px;">Alterar status</div>
@@ -2925,7 +2925,7 @@ async function renderAppManutencao() {
           ${c.descricao ? `<div style="font-size:12px;color:var(--text3);margin-top:4px;">${c.descricao}</div>` : ''}
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">
-          <span class="badge badge-${c.prioridade==='urgente'?'ocupado':c.prioridade==='baixa'?'livre':'limpando'}">${c.prioridade}</span>
+          <span class="badge badge-${c.prioridade==='urgente'?'ocupado':c.prioridade==='baixa'?'vago':'limpando'}">${c.prioridade}</span>
           <span class="badge" style="background:var(--surface2);">${statusLabel[c.status] || c.status}</span>
           ${c.status !== 'concluido' && c.status !== 'cancelado'
             ? `<button class="btn btn-ghost btn-xs" onclick="_avancarStatusManutencao('${c.id}','${c.status}')">✏️ Avançar</button>`
@@ -3149,15 +3149,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <script src="js/hotels.js?v=20260619g"></script>
-<script src="js/apartments.js?v=20260623h"></script>
+<script src="js/apartments.js?v=20260623i"></script>
 <script src="js/maids.js?v=20260619g"></script>
 <script src="js/users.js?v=20260619g"></script>
 <script src="js/permissions.js?v=20260619g"></script>
 <script src="js/chamados.js?v=20260621g"></script>
 <script src="js/config.js?v=20260621m"></script>
 <script src="js/dashboard.js?v=20260623c"></script>
-<script src="js/relatorios.js?v=20260623d"></script>
+<script src="js/relatorios.js?v=20260623e"></script>
 <script src="js/minha-fila.js?v=20260623a"></script>
-<script src="js/integracao-xls.js?v=20260623l"></script>
+<script src="js/integracao-xls.js?v=20260623m"></script>
 </body>
 </html>

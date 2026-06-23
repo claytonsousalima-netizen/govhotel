@@ -129,7 +129,7 @@ async function renderConfigTurnos() {
               style="width:110px;padding:5px 8px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;"
               onchange="_salvarTurno(${t.id},'hora_fim',this.value)"
               title="Hora fim">
-            <span class="badge ${t.ativo ? 'badge-livre' : 'badge-bloqueado'}" style="font-size:10px;cursor:pointer;"
+            <span class="badge ${t.ativo ? 'badge-vago' : 'badge-bloqueado'}" style="font-size:10px;cursor:pointer;"
               onclick="_toggleTurno(${t.id},${t.ativo})"
               title="Clique para ${t.ativo ? 'inativar' : 'ativar'}">${t.ativo ? 'Ativo' : 'Inativo'}</span>
             ${t.hotel_id ? `<span style="font-size:10px;color:var(--text3);">🏨</span>` : `<span style="font-size:10px;color:var(--text3);">🌐</span>`}

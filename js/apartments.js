@@ -279,7 +279,7 @@ function renderCadastroTableDb(filter = '') {
     do_andar.forEach(a => {
       const cam = equipe.find(e => e.id === a.camareira_id);
       const _stColors = {
-        livre:'#27ae60', sujo:'#e67e22', limpando:'#2e86c1', pausado:'#f39c12',
+        vago:'#27ae60', sujo:'#e67e22', limpando:'#2e86c1', pausado:'#f39c12',
         conferencia:'#8e44ad', limpo:'#1abc9c', reprovado:'#e74c3c',
         bloqueado:'#c0392b', ocupado:'#7f8c8d', manutencao:'#f1c40f', inspecao:'#0891b2',
       };
@@ -587,7 +587,7 @@ async function openGerarLoteModal() {
   await _populateGlTipoSelect();
   await _populateGlCatSelect();
   await _populateGlAndarMax(_loteHotelId || currentUser.hotelId);
-  document.getElementById('gl-status').value = 'livre';
+  document.getElementById('gl-status').value = 'vago';
 
   // Camareira
   const hotelIdParaCam = currentUser.perfil === 'admin_global'
@@ -828,7 +828,7 @@ async function confirmarGerarLote() {
   const tipo      = document.getElementById('gl-tipo')?.value      || 'Standard';
   const categoria = document.getElementById('gl-categoria')?.value || 'Regular';
   const leitos    = parseInt(document.getElementById('gl-leitos')?.value)   || 2;
-  const status    = document.getElementById('gl-status')?.value    || 'livre';
+  const status    = document.getElementById('gl-status')?.value    || 'vago';
   const maid_id   = document.getElementById('gl-camareira')?.value || null;
   const obs       = document.getElementById('gl-obs')?.value?.trim()        || null;
 
@@ -875,7 +875,7 @@ function _govSyncParaStatus(status) {
     reprovado:   'Sujo',
     conferencia: 'Sujo',
     limpo:       'Limpo',
-    livre:       'Limpo',
+    vago:       'Limpo',
     manutencao:  'Manutenção',
     inspecao:    'Inspeção',
     // ocupado e bloqueado não sincronizam Gov automaticamente
@@ -887,7 +887,7 @@ function _aptoSyncParaStatus(status) {
   // Apenas status de ocupação alteram status_apto.
   // Status de limpeza/governança (sujo, limpando, conferencia, etc.) preservam o status_apto atual.
   const mapa = {
-    livre:      'Vago',
+    vago:      'Vago',
     ocupado:    'Ocupado',
     bloqueado:  'Bloqueado',
     manutencao: 'Bloqueado',
@@ -1343,7 +1343,7 @@ async function renderAppCamareira() {
   const todos = aptos;
   const aLimpar    = todos.filter(a => a.status === 'sujo').length;
   const limpando   = todos.filter(a => a.status === 'limpando').length;
-  const concluidos = todos.filter(a => ['limpo','livre','conferencia'].includes(a.status)).length;
+  const concluidos = todos.filter(a => ['limpo','vago','conferencia'].includes(a.status)).length;
 
   document.getElementById('app-a-limpar').textContent    = aLimpar;
   document.getElementById('app-limpando').textContent    = limpando;
@@ -1351,14 +1351,14 @@ async function renderAppCamareira() {
   document.getElementById('app-aptos-count').textContent = `${todos.length} aptos no hotel`;
 
   const LABEL = {
-    livre:'Vago', sujo:'Sujo', limpando:'Em Limpeza', pausado:'Pausado',
+    vago:'Vago', sujo:'Sujo', limpando:'Em Limpeza', pausado:'Pausado',
     conferencia:'Arrumação', limpo:'Limpo', reprovado:'Reprovado',
     bloqueado:'Bloqueado', ocupado:'Ocupado', manutencao:'Manutenção', inspecao:'Inspeção'
   };
 
   const totalMeusAtrib = todos.filter(a => a.camareira_id === currentUser.id).length;
   const statusPresentes = [...new Set(todos.map(a => a.status))];
-  const ordemStatus = ['reprovado','pausado','limpando','sujo','conferencia','limpo','livre','ocupado','bloqueado','manutencao'];
+  const ordemStatus = ['reprovado','pausado','limpando','sujo','conferencia','limpo','vago','ocupado','bloqueado','manutencao'];
   statusPresentes.sort((a,b) => ordemStatus.indexOf(a) - ordemStatus.indexOf(b));
 
   const filtroEl = document.getElementById('app-filtro-status');
@@ -1386,7 +1386,7 @@ async function renderAppCamareira() {
     { key:'sujo',       label:'Para limpar',             icon:'🟠', color:'#e67e22', badge:'badge-sujo'      },
     { key:'conferencia',label:'Arrumação',                icon:'🔍', color:'#8e44ad', badge:'badge-conferencia'},
     { key:'limpo',      label:'Limpos',                  icon:'✨', color:'#27ae60', badge:'badge-limpo'     },
-    { key:'livre',      label:'Vagos',                   icon:'✅', color:'#27ae60', badge:'badge-livre'     },
+    { key:'vago',      label:'Vagos',                   icon:'✅', color:'#27ae60', badge:'badge-vago'     },
     { key:'ocupado',    label:'Ocupados',                icon:'🏠', color:'#7f8c8d', badge:'badge-ocupado'   },
     { key:'bloqueado',  label:'Bloqueados',              icon:'🔒', color:'#c0392b', badge:'badge-bloqueado' },
     { key:'manutencao', label:'Manutenção',              icon:'🔧', color:'#95a5a6', badge:'badge-manutencao'},
@@ -1408,7 +1408,7 @@ async function renderAppCamareira() {
         <span style="background:${g.color};color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:auto;">${lista.length}</span>
       </div>`;
 
-    if (g.key === 'livre') {
+    if (g.key === 'vago') {
       html += `<div class="card" style="padding:14px 16px;color:var(--text2);font-size:13px;">
         ✅ ${lista.length} apartamento${lista.length !== 1 ? 's' : ''} vago${lista.length !== 1 ? 's' : ''} — sem ação necessária.
       </div>`;
@@ -2284,7 +2284,7 @@ function renderAptoKanban() {
   ];
   const colsTodos = [
     ...colsLimpeza,
-    { key:'livre',      label:'Vago',       color:'#27ae60' },
+    { key:'vago',      label:'Vago',       color:'#27ae60' },
     { key:'ocupado',    label:'Ocupado',    color:'#7f8c8d' },
     { key:'bloqueado',  label:'Bloqueado',  color:'#c0392b' },
     { key:'inspecao',   label:'Inspeção',   color:'#0891b2' },

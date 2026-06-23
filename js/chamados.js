@@ -25,7 +25,7 @@ const _GOV_STATUS = {
 };
 
 const _GOV_PRIO = {
-  baixa:   { label:'Baixa',   badge:'badge-livre'     },
+  baixa:   { label:'Baixa',   badge:'badge-vago'     },
   normal:  { label:'Normal',  badge:'badge-limpando'  },
   alta:    { label:'Alta',    badge:'badge-sujo'      },
   urgente: { label:'Urgente', badge:'badge-bloqueado' },

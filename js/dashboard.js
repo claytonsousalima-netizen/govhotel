@@ -107,7 +107,7 @@ async function _carregarDashboard(hotelId) {
   const equipeArr  = equipeRes.data   || [];
 
   const total      = aptosArr.length;
-  const livre      = aptosArr.filter(a => a.status === 'livre').length;
+  const vagos      = aptosArr.filter(a => a.status === 'vago').length;
   const sujo       = aptosArr.filter(a => a.status === 'sujo').length;
   const sujoSemCam = aptosArr.filter(a => a.status === 'sujo' && !a.maid_id).length;
   const limpando   = aptosArr.filter(a => a.status === 'limpando').length;
@@ -143,7 +143,7 @@ async function _carregarDashboard(hotelId) {
         </div>
         <div class="stat-card s-green">
           <div class="stat-label">Vagos</div>
-          <div class="stat-value">${livre}</div>
+          <div class="stat-value">${vagos}</div>
           <div class="stat-sub">disponíveis agora</div>
         </div>
         <div class="stat-card s-orange">
@@ -266,9 +266,9 @@ async function _carregarDashboard(hotelId) {
   }
 
   // Gráfico status
-  const statuses = ['livre','sujo','limpando','conferencia','bloqueado','ocupado','manutencao'];
-  const labels   = {livre:'Vago',sujo:'Sujo',limpando:'Em Limpeza',conferencia:'Arrumação',bloqueado:'Bloqueado',ocupado:'Ocupado',manutencao:'Manutenção'};
-  const colors   = {livre:'#27ae60',sujo:'#e67e22',limpando:'#2e86c1',conferencia:'#8e44ad',bloqueado:'#c0392b',ocupado:'#7f8c8d',manutencao:'#f1c40f'};
+  const statuses = ['vago','sujo','limpando','conferencia','bloqueado','ocupado','manutencao'];
+  const labels   = {vago:'Vago',sujo:'Sujo',limpando:'Em Limpeza',conferencia:'Arrumação',bloqueado:'Bloqueado',ocupado:'Ocupado',manutencao:'Manutenção'};
+  const colors   = {vago:'#27ae60',sujo:'#e67e22',limpando:'#2e86c1',conferencia:'#8e44ad',bloqueado:'#c0392b',ocupado:'#7f8c8d',manutencao:'#f1c40f'};
   let chartHtml  = '';
   statuses.forEach(s => {
     const count = aptosArr.filter(a => a.status === s).length;
@@ -291,7 +291,7 @@ async function _carregarDashboard(hotelId) {
   document.getElementById('dash-chamados-list').innerHTML = chamAbertos.length
     ? chamAbertos.map(c => `
         <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f5f5f5;">
-          <span class="badge badge-${c.prioridade==='urgente'?'ocupado':c.prioridade==='baixa'?'livre':'limpando'}">${c.prioridade}</span>
+          <span class="badge badge-${c.prioridade==='urgente'?'ocupado':c.prioridade==='baixa'?'vago':'limpando'}">${c.prioridade}</span>
           <div style="flex:1;">
             <div style="font-size:13px;font-weight:600;">Apto ${c.apartments?.numero || '—'}</div>
             <div style="font-size:11px;color:var(--text2);">${c.tipo}${c.departamento==='manutencao'?' 🔧':' 🧹'}</div>

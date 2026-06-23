@@ -125,7 +125,7 @@ function _renderUsuariosTabela(filter = '') {
         ? `<span style="background:var(--surface2);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">${u.turnos.label}<br><span style="font-weight:400;color:var(--text3);">${(u.turnos.hora_inicio||'').slice(0,5)}–${(u.turnos.hora_fim||'').slice(0,5)}</span></span>`
         : u.perfil === 'camareira' ? '<span style="color:var(--text3);font-size:11px;">Sem turno</span>' : '—'
       }</td>
-      <td><span class="badge ${u.ativo ? 'badge-livre' : 'badge-bloqueado'}">${u.ativo ? 'Ativo' : 'Inativo'}</span></td>
+      <td><span class="badge ${u.ativo ? 'badge-vago' : 'badge-bloqueado'}">${u.ativo ? 'Ativo' : 'Inativo'}</span></td>
       <td>
         ${_podeEditarUser(u)
           ? `<button class="btn btn-ghost btn-xs" onclick="openUserForm('${u.id}')" title="Editar">✏️</button>`

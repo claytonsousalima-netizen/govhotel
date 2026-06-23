@@ -105,7 +105,7 @@ async function selecionarHotelEquipe(hotelId) {
 
 function _renderEquipeTabela(filter = '') {
   const statusLabel = { ativo:'Ativo', ferias:'Férias', afastado:'Afastado', inativo:'Inativo' };
-  const statusBadge = { ativo:'badge-livre', ferias:'badge-conferencia', afastado:'badge-sujo', inativo:'badge-bloqueado' };
+  const statusBadge = { ativo:'badge-vago', ferias:'badge-conferencia', afastado:'badge-sujo', inativo:'badge-bloqueado' };
 
   let lista = equipe;
   if (filter) {

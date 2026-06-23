@@ -276,7 +276,7 @@ function _mfRenderGestor(el) {
   const pausadoApts  = aptos.filter(a => a.status === 'pausado');
   const sujos        = aptos.filter(a => a.status === 'sujo');
   const limpos       = aptos.filter(a => a.status === 'limpo');
-  const livres       = aptos.filter(a => a.status === 'livre');
+  const livres       = aptos.filter(a => a.status === 'vago');
   const ocupados     = aptos.filter(a => a.status === 'ocupado');
   const bloqueados   = aptos.filter(a => a.status === 'bloqueado');
   const manutencao   = aptos.filter(a => a.status === 'manutencao');
@@ -593,7 +593,7 @@ function _mfRenderGestor(el) {
       <div class="card" style="margin-bottom:10px;border-left:4px solid var(--success);padding:14px 16px;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
           ${_aptoInfo(a)}
-          <span class="badge badge-livre" style="flex-shrink:0;">Vago</span>
+          <span class="badge badge-vago" style="flex-shrink:0;">Vago</span>
         </div>
       </div>`;
     });

@@ -292,7 +292,7 @@ function _relRenderShell() {
   const { aptos, equipe, chamados, avisos } = _relData;
   const andares    = [...new Set(aptos.map(a=>a.andar).filter(v=>v!=null))].sort((a,b)=>a-b);
   const camareiras = equipe.filter(u=>u.perfil==='camareira');
-  const statusList = ['sujo','limpando','pausado','conferencia','limpo','reprovado','livre','ocupado','bloqueado','manutencao'];
+  const statusList = ['sujo','limpando','pausado','conferencia','limpo','reprovado','vago','ocupado','bloqueado','manutencao'];
   const tipoList   = [...new Set(chamados.map(c=>c.tipo).filter(Boolean))].sort();
   const prioList   = [...new Set(chamados.map(c=>c.prioridade).filter(Boolean))].sort();
 
@@ -512,7 +512,7 @@ function _relAbaExecutivo(el) {
   const chamAtras   = chamados.filter(c=>_isAtrasado(c)).length;
   const retAbertos  = retrabalhos.filter(r=>!r.status||r.status==='aberto'||r.status==='aberta').length;
 
-  const sessConcluidas = sessoes.filter(s=>['conferencia','limpo','livre'].includes(s.statusFinal));
+  const sessConcluidas = sessoes.filter(s=>['conferencia','limpo','vago'].includes(s.statusFinal));
   let tmBruto = '—';
   if (sessConcluidas.length) {
     const avg = sessConcluidas.reduce((s,x)=>s+(x.durBruta||0),0) / sessConcluidas.length;
@@ -653,7 +653,7 @@ function _relAbaResumo(el) {
 
   const statusInfo = [
     {key:'sujo',s:'s-orange'},{key:'limpando',s:'s-blue'},{key:'conferencia',s:'s-purple'},
-    {key:'limpo',s:'s-green'},{key:'livre',s:'s-green'},{key:'ocupado',s:'s-gray'},
+    {key:'limpo',s:'s-green'},{key:'vago',s:'s-green'},{key:'ocupado',s:'s-gray'},
     {key:'bloqueado',s:'s-red'},{key:'manutencao',s:'s-gray'},{key:'pausado',s:'s-orange'},{key:'reprovado',s:'s-red'},
   ];
   const cards = statusInfo.map(s=>_relCard(s.key, aptos.filter(a=>a.status===s.key).length,'',s.s)).join('');
@@ -683,7 +683,7 @@ function _relAbaStatus(el) {
   const total   = aptos.length;
 
   const statusInfo = [
-    {key:'livre',label:'Vago',color:'#27ae60'},{key:'sujo',label:'Sujo',color:'#e67e22'},
+    {key:'vago',label:'Vago',color:'#27ae60'},{key:'sujo',label:'Sujo',color:'#e67e22'},
     {key:'limpando',label:'Em Limpeza',color:'#2e86c1'},{key:'conferencia',label:'Arrumação',color:'#8e44ad'},
     {key:'limpo',label:'Limpo',color:'#1abc9c'},{key:'ocupado',label:'Ocupado',color:'#7f8c8d'},
     {key:'bloqueado',label:'Bloqueado',color:'#c0392b'},{key:'manutencao',label:'Manutenção',color:'#f1c40f'},
@@ -941,8 +941,8 @@ function _relAbaProdutividade(el) {
 
   const rows = camareiras.map(cam=>{
     const sSes  = sessoes.filter(s=>s.camareira_id===cam.user_id);
-    const sConc = sSes.filter(s=>['conferencia','limpo','livre'].includes(s.statusFinal));
-    const sCan  = sSes.filter(s=>s.statusFinal==='sujo'||s.statusFinal==='livre'&&s.pausas.length>0);
+    const sConc = sSes.filter(s=>['conferencia','limpo','vago'].includes(s.statusFinal));
+    const sCan  = sSes.filter(s=>s.statusFinal==='sujo'||s.statusFinal==='vago'&&s.pausas.length>0);
     const sPaus = sSes.filter(s=>s.pausas.length>0);
 
     // confChecks tem uma linha por item — conta sessões únicas por _sessionId
@@ -1285,7 +1285,7 @@ function _relAbaTimeline(el) {
       : h.status_novo==='conferencia'?'Arrumação'
       : h.status_novo==='limpo'?'Concluído (limpo)'
       : h.status_novo==='reprovado'?'Reprovado'
-      : h.status_novo==='livre'?'Vago'
+      : h.status_novo==='vago'?'Vago'
       : 'Mudança status';
     eventos.push({ dt: h.created_at, apto: a.numero||h.apartment_id, evento: ev,
       anterior: h.status_anterior||'—', novo: h.status_novo||'—',
