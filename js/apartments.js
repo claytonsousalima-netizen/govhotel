@@ -124,7 +124,7 @@ async function _limparLimpandoOrfaos() {
       `Limpeza encerrada automaticamente — processo não concluído (inativo há mais de 2h)`
     );
   }
-  toast(`${orfaos.length} apto(s) em arrumação sem processo ativo foram revertidos para Sujo`, 'warning');
+  toast(`${orfaos.length} apto(s) em limpeza sem processo ativo foram revertidos para Sujo`, 'warning');
 }
 
 // ── POPULAR SELECT DE CAMAREIRA (de user_profiles) ───────────
@@ -1086,7 +1086,7 @@ async function concluirLimpeza() {
   const apto = aptos.find(a => a.id === selectedAptoId);
   if (!apto) return;
   if (apto.status !== 'limpando') {
-    toast('Conclusão só é permitida com apartamento Em arrumação. Retome antes de concluir.', 'error'); return;
+    toast('Conclusão só é permitida com apartamento Em Limpeza. Retome antes de concluir.', 'error'); return;
   }
   const _PERFIS_CHECKLIST_LIMPEZA = ['camareira','admin_global','admin_hotel','gestor','supervisora','governanta'];
   if (_PERFIS_CHECKLIST_LIMPEZA.includes(currentUser?.perfil)) {
@@ -1094,7 +1094,7 @@ async function concluirLimpeza() {
     _checklistOrigemStatus = 'limpando';
     await abrirChecklistApp(selectedAptoId);
   } else {
-    const obs = `Limpeza concluída por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')} — aguardando inspeção`;
+    const obs = `Limpeza concluída por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')} — aguardando arrumação`;
     await mudarStatusApto(selectedAptoId, 'conferencia', obs);
   }
 }
@@ -1118,10 +1118,10 @@ async function abrirChecklistSupervisora() {
   }
   const apto = aptos.find(a => a.id === selectedAptoId);
   if (!apto || apto.status !== 'conferencia') {
-    toast('Inspeção só é permitida em apartamento Aguardando inspeção', 'error'); return;
+    toast('Inspeção só é permitida em apartamento em Arrumação', 'error'); return;
   }
   const titulo = document.getElementById('sup-cl-titulo');
-  if (titulo && apto) titulo.textContent = `🔍 Inspeção — Apto ${apto.numero}`;
+  if (titulo && apto) titulo.textContent = `🔍 Arrumação — Apto ${apto.numero}`;
 
   const obsEl = document.getElementById('sup-cl-obs');
   if (obsEl) obsEl.value = '';
@@ -1233,7 +1233,7 @@ async function abrirModalReprovacao() {
   }
   const apto = aptos.find(a => a.id === selectedAptoId);
   if (!apto || apto.status !== 'conferencia') {
-    toast('Reprovação só é permitida em apartamento Aguardando inspeção', 'error'); return;
+    toast('Reprovação só é permitida em apartamento em Arrumação', 'error'); return;
   }
   const sel = document.getElementById('rep-motivo');
   const obs = document.getElementById('rep-obs');
@@ -1339,8 +1339,8 @@ async function renderAppCamareira() {
   document.getElementById('app-aptos-count').textContent = `${todos.length} aptos no hotel`;
 
   const LABEL = {
-    livre:'Vago', sujo:'Sujo', limpando:'Arrumando', pausado:'Pausado',
-    conferencia:'Ag. Inspeção', limpo:'Limpo', reprovado:'Reprovado',
+    livre:'Vago', sujo:'Sujo', limpando:'Em Limpeza', pausado:'Pausado',
+    conferencia:'Arrumação', limpo:'Limpo', reprovado:'Reprovado',
     bloqueado:'Bloqueado', ocupado:'Ocupado', manutencao:'Manutenção'
   };
 
@@ -1370,9 +1370,9 @@ async function renderAppCamareira() {
   const grupos = [
     { key:'reprovado',  label:'Re-limpeza necessária', icon:'❌', color:'#e74c3c', badge:'badge-reprovado' },
     { key:'pausado',    label:'Pausados — retomar',     icon:'⏸', color:'#f39c12', badge:'badge-pausado'   },
-    { key:'limpando',   label:'Arrumando',                icon:'🧹', color:'#2e86c1', badge:'badge-limpando'  },
+    { key:'limpando',   label:'Em Limpeza',               icon:'🧹', color:'#2e86c1', badge:'badge-limpando'  },
     { key:'sujo',       label:'Para limpar',             icon:'🟠', color:'#e67e22', badge:'badge-sujo'      },
-    { key:'conferencia',label:'Aguardando inspeção',      icon:'🔍', color:'#8e44ad', badge:'badge-conferencia'},
+    { key:'conferencia',label:'Arrumação',                icon:'🔍', color:'#8e44ad', badge:'badge-conferencia'},
     { key:'limpo',      label:'Limpos',                  icon:'✨', color:'#27ae60', badge:'badge-limpo'     },
     { key:'livre',      label:'Vagos',                   icon:'✅', color:'#27ae60', badge:'badge-livre'     },
     { key:'ocupado',    label:'Ocupados',                icon:'🏠', color:'#7f8c8d', badge:'badge-ocupado'   },
@@ -1532,10 +1532,10 @@ async function abrirChecklistApp(id) {
   const apto = aptos.find(a => a.id === id);
   if (!apto) return;
   const titulo = apto.status === 'limpando'
-    ? `Concluir arrumação — Apto ${apto.numero}`
+    ? `Concluir limpeza — Apto ${apto.numero}`
     : apto.status === 'reprovado'
-    ? `Re-arrumação — Apto ${apto.numero}`
-    : `Arrumação — Apto ${apto.numero}`;
+    ? `Re-limpeza — Apto ${apto.numero}`
+    : `Limpeza — Apto ${apto.numero}`;
   document.getElementById('checklist-title').textContent = titulo;
   const hotelId = currentUser?.hotelId;
   let q = supabaseClient.from('checklist_templates').select('nome').eq('ativo', true).order('ordem');
@@ -1596,7 +1596,7 @@ async function concluirChecklist() {
   _checklistOrigemStatus = null;
   closeModal('modal-checklist');
 
-  const obs = `Checklist de limpeza concluído por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')} — aguardando inspeção`;
+  const obs = `Checklist de limpeza concluído por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')} — aguardando arrumação`;
   await mudarStatusApto(selectedAptoId, 'conferencia', obs);
 }
 
@@ -1629,7 +1629,7 @@ function _badgeStatusApto(apto) {
 }
 
 function _badgeStatusGov(apto) {
-  const _OP = { limpando:'🧹 Arrumando', pausado:'⏸ Pausado', conferencia:'🔍 Ag. Inspeção', reprovado:'❌ Reprovado' };
+  const _OP = { limpando:'🧹 Em Limpeza', pausado:'⏸ Pausado', conferencia:'🔍 Arrumação', reprovado:'❌ Reprovado' };
   if (_OP[apto.status]) return `<span style="display:inline-block;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;background:#dbeafe;color:#1d4ed8;border:1px solid #93c5fd;white-space:nowrap;">${_OP[apto.status]}</span>`;
   if (!apto.status_gov) return '';
   const op  = _statusGovOpcoes.find(o => o.nome === apto.status_gov);
@@ -2051,8 +2051,8 @@ function _renderFiltrosBar(containerId) {
       📋 Com chamados
     </button>
     <button class="filter-btn${_aptoFiltros.status === 'conferencia' ? ' active' : ''}"
-            onclick="_setFiltroStatusRapido('conferencia')" title="Aguardando inspeção">
-      🟣 Ag. Inspeção
+            onclick="_setFiltroStatusRapido('conferencia')" title="Arrumação">
+      🟣 Arrumação
     </button>
     <button class="filter-btn${_aptoFiltros.status === 'reprovado' ? ' active' : ''}"
             onclick="_setFiltroStatusRapido('reprovado')" title="Reprovados">
@@ -2142,7 +2142,7 @@ function renderMapa() {
 
       // Status Gov — bloco destacado (full-width) no card
       const _bGovCard = (() => {
-        const _OP = { limpando:'🧹 Arrumando', pausado:'⏸ Pausado', conferencia:'🔍 Ag. Inspeção', reprovado:'❌ Reprovado' };
+        const _OP = { limpando:'🧹 Em Limpeza', pausado:'⏸ Pausado', conferencia:'🔍 Arrumação', reprovado:'❌ Reprovado' };
         if (_OP[a.status]) return `<div style="font-size:10px;font-weight:700;padding:3px 6px;border-radius:6px;background:#dbeafe;color:#1d4ed8;text-align:center;margin-top:5px;">${_OP[a.status]}</div>`;
         if (!a.status_gov) return '';
         const op = _statusGovOpcoes.find(o => o.nome === a.status_gov);
@@ -2246,9 +2246,9 @@ function renderAptoKanban() {
   // (chamados abertos existem em aptos ocupados, livres, bloqueados, etc.)
   const colsLimpeza = [
     { key:'sujo',        label:'Sujo',          color:'#e67e22' },
-    { key:'limpando',    label:'Arrumando',       color:'#2e86c1' },
+    { key:'limpando',    label:'Em Limpeza',      color:'#2e86c1' },
     { key:'pausado',     label:'Pausado',        color:'#f39c12' },
-    { key:'conferencia', label:'Ag. Inspeção',   color:'#8e44ad' },
+    { key:'conferencia', label:'Arrumação',       color:'#8e44ad' },
     { key:'limpo',       label:'Limpo',          color:'#1abc9c' },
     { key:'reprovado',   label:'Reprovado',      color:'#e74c3c' },
     { key:'manutencao',  label:'Manutenção',     color:'#f1c40f' },

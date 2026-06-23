@@ -536,7 +536,7 @@ function _relAbaExecutivo(el) {
     ${_relCard('Total de apartamentos', total, 'unidades ativas','s-blue')}
     ${_relCard('Limpos', limpos, `de ${total}`,'s-green')}
     ${_relCard('Sujos', sujos, 'aguardando limpeza','s-orange')}
-    ${_relCard('Aguardando inspeção', conferencia, '','s-purple')}
+    ${_relCard('Arrumação', conferencia, '','s-purple')}
     ${_relCard('Sem camareira', semCam, '','s-gray')}
     ${_relCard('Arrumações concluídas', sessConcluidas.length, 'no período','s-green')}
     ${tmBruto!=='—'?_relCard('Tempo médio de arrumação', tmBruto, 'bruto','s-blue'):''}
@@ -614,7 +614,7 @@ function _relAbaGargalos(el) {
     ...limpandoRows,
     ...buildRows(sujosSemCam,'Sujo sem camareira'),
     ...buildRows(pausados,'Pausado'),
-    ...buildRows(emConf,'Aguardando inspeção'),
+    ...buildRows(emConf,'Arrumação'),
     ...buildRows(reprovados,'Reprovado'),
     ...chamRows, ...retRows,
   ];
@@ -622,9 +622,9 @@ function _relAbaGargalos(el) {
   el.innerHTML = `
     <div class="stats-grid" style="margin-bottom:16px;">
       ${_relCard('Sujos sem camareira', sujosSemCam.length, '','s-red')}
-      ${_relCard('Arrumando', emLimpando.length, '','s-blue')}
+      ${_relCard('Em Limpeza', emLimpando.length, '','s-blue')}
       ${_relCard('Pausados', pausados.length, '','s-orange')}
-      ${_relCard('Aguardando inspeção', emConf.length, '','s-purple')}
+      ${_relCard('Arrumação', emConf.length, '','s-purple')}
       ${_relCard('Reprovados', reprovados.length, '','s-red')}
       ${_relCard('Retrabalhos abertos', retAbertos.length, '','s-orange')}
       ${_relCard('Chamados atrasados', chamAtras.length, '','s-red')}
@@ -678,7 +678,7 @@ function _relAbaStatus(el) {
 
   const statusInfo = [
     {key:'livre',label:'Vago',color:'#27ae60'},{key:'sujo',label:'Sujo',color:'#e67e22'},
-    {key:'limpando',label:'Arrumando',color:'#2e86c1'},{key:'conferencia',label:'Inspeção',color:'#8e44ad'},
+    {key:'limpando',label:'Em Limpeza',color:'#2e86c1'},{key:'conferencia',label:'Arrumação',color:'#8e44ad'},
     {key:'limpo',label:'Limpo',color:'#1abc9c'},{key:'ocupado',label:'Ocupado',color:'#7f8c8d'},
     {key:'bloqueado',label:'Bloqueado',color:'#c0392b'},{key:'manutencao',label:'Manutenção',color:'#f1c40f'},
     {key:'pausado',label:'Pausado',color:'#f39c12'},{key:'reprovado',label:'Reprovado',color:'#e74c3c'},
@@ -1182,9 +1182,9 @@ function _relAbaTimeline(el) {
     if (f.camareira && h.alterado_por!==f.camareira) return;
     if (f.dtIni && h.created_at.slice(0,10)<f.dtIni) return;
     if (f.dtFim && h.created_at.slice(0,10)>f.dtFim) return;
-    const ev = h.status_novo==='limpando'?'Início arrumação'
+    const ev = h.status_novo==='limpando'?'Início limpeza'
       : h.status_novo==='pausado'?'Pausa'
-      : h.status_novo==='conferencia'?'Aguardando inspeção'
+      : h.status_novo==='conferencia'?'Arrumação'
       : h.status_novo==='limpo'?'Concluído (limpo)'
       : h.status_novo==='reprovado'?'Reprovado'
       : h.status_novo==='livre'?'Liberado (vago)'
@@ -1583,7 +1583,7 @@ let _discFiltros = { data: new Date().toISOString().slice(0,10), apenasDisc: fal
 const _DISC_LABEL = {
   vago:'Vago', ocupado:'Ocupado', bloqueado:'Bloqueado',
   nao_perturbe:'Não Perturbe', nao_quis_arrumacao:'Não quis arrumação',
-  limpo:'Limpo', sujo:'Sujo', limpando:'Arrumando',
+  limpo:'Limpo', sujo:'Sujo', limpando:'Em Limpeza',
   inspecao:'Inspeção', manutencao:'Manutenção',
 };
 
@@ -1719,7 +1719,7 @@ async function _relAbaDiscrepancia(el) {
             <option value="">Todos</option>
             <option value="limpo"     ${_discFiltros.statusGov==='limpo'?'selected':''}>Limpo</option>
             <option value="sujo"      ${_discFiltros.statusGov==='sujo'?'selected':''}>Sujo</option>
-            <option value="limpando"  ${_discFiltros.statusGov==='limpando'?'selected':''}>Arrumando</option>
+            <option value="limpando"  ${_discFiltros.statusGov==='limpando'?'selected':''}>Em Limpeza</option>
             <option value="inspecao"  ${_discFiltros.statusGov==='inspecao'?'selected':''}>Inspeção</option>
             <option value="manutencao"${_discFiltros.statusGov==='manutencao'?'selected':''}>Manutenção</option>
           </select>
