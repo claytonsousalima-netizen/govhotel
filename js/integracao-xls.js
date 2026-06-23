@@ -5,32 +5,44 @@
 // Valor interno mantido (limpando, sujo, etc.) — apenas label exibida muda
 // ══════════════════════════════════════════════════════════════════════════════
 
-// STATUS APTO do XLS → { interno, label }
-const _MAP_STATUS_APTO = {
-  'LIMPO':         { interno: 'limpo',      label: 'Limpo'              },
-  'SUJO':          { interno: 'sujo',       label: 'Sujo'               },
-  'Inspecao':      { interno: 'inspecao',   label: 'Inspeção'           },
-  'Inspeção':      { interno: 'inspecao',   label: 'Inspeção'           },
-  'Arrumacao':     { interno: 'conferencia',  label: 'Arrumação'          },
-  'Arrumação':     { interno: 'conferencia',  label: 'Arrumação'          },
-  'Manutencao':    { interno: 'manutencao', label: 'Manutenção'         },
-  'Manutenção':    { interno: 'manutencao', label: 'Manutenção'         },
-  'Reservado':     { interno: 'reservado',   label: 'Reservado'          },
-  'Site PPT':      { interno: 'site',       label: 'Site'               },
+// Col D = STATUS GOV (limpeza/governança): Limpo, Sujo, Arrumação, Inspeção, Manutenção, etc.
+const _MAP_COL_D_GOV = {
+  'LIMPO':         { interno: 'limpo',              label: 'Limpo'              },
+  'SUJO':          { interno: 'sujo',               label: 'Sujo'               },
+  'Inspecao':      { interno: 'inspecao',           label: 'Inspeção'           },
+  'Inspeção':      { interno: 'inspecao',           label: 'Inspeção'           },
+  'Arrumacao':     { interno: 'conferencia',        label: 'Arrumação'          },
+  'Arrumação':     { interno: 'conferencia',        label: 'Arrumação'          },
+  'Manutencao':    { interno: 'manutencao',         label: 'Manutenção'         },
+  'Manutenção':    { interno: 'manutencao',         label: 'Manutenção'         },
+  'Reservado':     { interno: 'reservado',          label: 'Reservado'          },
+  'Site PPT':      { interno: 'site',               label: 'Site'               },
+  'SITE PPT':      { interno: 'site',               label: 'Site'               },
   'Nao Perturbe':  { interno: 'nao_perturbe',       label: 'Não Perturbe'       },
   'Não Perturbe':  { interno: 'nao_perturbe',       label: 'Não Perturbe'       },
+  'NAO PERTURBE':  { interno: 'nao_perturbe',       label: 'Não Perturbe'       },
   'N.Q.A.':        { interno: 'nao_quis_arrumacao', label: 'Não quis arrumação' },
+  'NQA':           { interno: 'nao_quis_arrumacao', label: 'Não quis arrumação' },
+  'Dormiu Fora':   { interno: 'nao_quis_arrumacao', label: 'Dormiu Fora'        },
+  'DORMIU FORA':   { interno: 'nao_quis_arrumacao', label: 'Dormiu Fora'        },
+  'Teste TI':      { interno: 'bloqueado',          label: 'Teste TI'           },
+  'TESTE TI':      { interno: 'bloqueado',          label: 'Teste TI'           },
 };
 
-// STATUS GOV do XLS → { interno, label }
-const _MAP_STATUS_GOV = {
-  'VAGO':          { interno: 'vago',              label: 'Vago'                },
-  'OCUPADO':       { interno: 'ocupado',            label: 'Ocupado'             },
-  'BLOQUEADO':     { interno: 'bloqueado',          label: 'Bloqueado'           },
-  'Nao Perturbe':  { interno: 'nao_perturbe',       label: 'Não Perturbe'        },
-  'Não Perturbe':  { interno: 'nao_perturbe',       label: 'Não Perturbe'        },
-  'N.Q.A.':        { interno: 'nao_quis_arrumacao', label: 'Não quis arrumação'  },
+// Col G = STATUS APTO (ocupação): Vago, Ocupado, Bloqueado
+const _MAP_COL_G_APTO = {
+  'VAGO':          { interno: 'vago',              label: 'Vago'               },
+  'OCUPADO':       { interno: 'ocupado',           label: 'Ocupado'            },
+  'BLOQUEADO':     { interno: 'bloqueado',         label: 'Bloqueado'          },
+  'Nao Perturbe':  { interno: 'nao_perturbe',      label: 'Não Perturbe'       },
+  'Não Perturbe':  { interno: 'nao_perturbe',      label: 'Não Perturbe'       },
+  'NAO PERTURBE':  { interno: 'nao_perturbe',      label: 'Não Perturbe'       },
+  'N.Q.A.':        { interno: 'nao_quis_arrumacao',label: 'Não quis arrumação' },
 };
+
+// Aliases para compatibilidade com código legado que usa _MAP_STATUS_APTO/_MAP_STATUS_GOV
+const _MAP_STATUS_APTO = _MAP_COL_D_GOV;
+const _MAP_STATUS_GOV  = _MAP_COL_G_APTO;
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ESTADO DO MÓDULO
@@ -650,25 +662,47 @@ function _xlsSetModo(modo) {
   }
 }
 
-// Deriva a nova ocupação (status_apto) a partir do XLS col G
+// Deriva a nova ocupação (status_apto) a partir do XLS Col G
 function _xlsNovaOcupacao(xlsApto) {
   if (xlsApto === 'ocupado' || xlsApto === 'nao_perturbe') return 'Ocupado';
   if (xlsApto === 'vago')      return 'Vago';
   if (xlsApto === 'bloqueado') return 'Bloqueado';
-  return null; // XLS não especifica → sem alteração
+  return null;
+}
+
+// Novo status de limpeza (status) resultante APENAS da Col D, ignorando ocupação
+// Usado para mostrar na coluna Limpeza sem misturar com ocupação
+function _xlsNovaLimpeza(xlsGov) {
+  // xlsGov = valor interno da Col D (limpo, sujo, conferencia, inspecao, manutencao, nao_perturbe, nao_quis_arrumacao, reservado, site, bloqueado)
+  const mapLimp = {
+    limpo:              'limpo',
+    sujo:               'sujo',
+    conferencia:        'conferencia',
+    inspecao:           'inspecao',
+    manutencao:         'manutencao',
+    nao_perturbe:       'nao_perturbe',
+    nao_quis_arrumacao: 'nao_quis_arrumacao',
+    reservado:          'ocupado',   // reservado → sistema trata como ocupado
+    site:               'ocupado',   // site → sistema trata como ocupado
+    bloqueado:          'bloqueado',
+  };
+  return mapLimp[xlsGov] || null;
 }
 
 function _xlsRenderTabelaConfronto(el, linhas, total) {
-  const modo = _xlsModoSelecionado;
-  const _SL  = (typeof _STATUS_LABELS !== 'undefined') ? _STATUS_LABELS : {};
-  const _SI  = (typeof _STATUS_ICONS  !== 'undefined') ? _STATUS_ICONS  : {};
+  const modo    = _xlsModoSelecionado;
+  const _SL     = (typeof _STATUS_LABELS !== 'undefined') ? _STATUS_LABELS : {};
+  const _SI     = (typeof _STATUS_ICONS  !== 'undefined') ? _STATUS_ICONS  : {};
+
   const _COR_LIMP = {
-    livre:'#27ae60', sujo:'#e67e22', limpando:'#2e86c1', pausado:'#f39c12',
+    sujo:'#e67e22', limpando:'#2e86c1', pausado:'#f39c12',
     conferencia:'#8e44ad', limpo:'#1abc9c', reprovado:'#e74c3c',
-    bloqueado:'#c0392b', ocupado:'#7f8c8d', manutencao:'#f1c40f', inspecao:'#0891b2',
+    bloqueado:'#c0392b', ocupado:'#7f8c8d', manutencao:'#f1c40f',
+    inspecao:'#0891b2', nao_perturbe:'#6366f1', nao_quis_arrumacao:'#94a3b8',
   };
   const _COR_OCUP = { Vago:'#27ae60', Ocupado:'#7f8c8d', Bloqueado:'#c0392b' };
 
+  // Badge para status de limpeza (nunca mostra 'livre'/'vago' — esses são ocupação)
   const _badgeL = (interno, destaque) => {
     if (!interno) return '<span style="color:#9ca3af;font-size:11px;">—</span>';
     const cor   = _COR_LIMP[interno] || '#6b7280';
@@ -677,32 +711,44 @@ function _xlsRenderTabelaConfronto(el, linhas, total) {
     const borda = destaque ? `border:2px solid ${cor};` : `border:1px solid ${cor}44;`;
     return `<span style="display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;background:${cor}22;color:${cor};${borda}">${ico} ${lbl}</span>`;
   };
+
+  // Badge para ocupação (Vago/Ocupado/Bloqueado)
   const _badgeO = (val, destaque) => {
     if (!val) return '<span style="color:#9ca3af;font-size:11px;">—</span>';
     const cor   = _COR_OCUP[val] || '#6b7280';
     const borda = destaque ? `border:2px solid ${cor};` : `border:1px solid ${cor}44;`;
     return `<span style="display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;background:${cor}22;color:${cor};${borda}">🏠 ${val}</span>`;
   };
+
   const _seta = `<span style="color:#9ca3af;font-size:13px;padding:0 4px;">→</span>`;
   const _ok   = `<span style="color:#16a34a;font-size:11px;font-weight:600;">✔ sem alteração</span>`;
 
-  // Enriquece cada linha com os valores calculados
+  // Enriquece cada linha
   const linhasCalc = linhas.map(l => {
-    const novaLimpezaGeral = l.geralResultado;              // novo status (limpeza) no modo geral
-    const novaLimpezaSA    = l.statusAptoResultado;         // novo status (limpeza) no modo status_apto
-    const novaOcupacao     = _xlsNovaOcupacao(l.xlsApto);  // novo status_apto (ocupação) — igual nos dois modos
-    const ocupAtual        = l.sist?.status_apto || null;
+    // xlsGov = Col D (limpeza), xlsApto = Col G (ocupação)
+    const novaLimpeza  = _xlsNovaLimpeza(l.xlsGov);        // novo status de limpeza baseado só na Col D
+    const novaOcupacao = _xlsNovaOcupacao(l.xlsApto);      // novo status_apto baseado na Col G
+    const ocupAtual    = l.sist?.status_apto || null;
 
-    const mudaLimpezaG  = novaLimpezaGeral !== l.sistStatus;
-    const mudaLimpezaSA = novaLimpezaSA    !== l.sistStatus;
-    const mudaOcupacao  = novaOcupacao !== null && novaOcupacao !== ocupAtual;
+    // Status de limpeza atual: extrai da combinação do status atual, excluindo 'livre' e 'ocupado'
+    // 'livre' no sistema = vago+limpo → para exibição de limpeza, é 'limpo'
+    // 'ocupado' no sistema = ocupado+limpo → para exibição de limpeza, é 'limpo'
+    const limpAtualDisplay = (l.sistStatus === 'livre' || l.sistStatus === 'ocupado') ? 'limpo' : l.sistStatus;
+
+    const mudaLimpeza  = novaLimpeza  !== null && novaLimpeza  !== limpAtualDisplay;
+    const mudaOcupacao = novaOcupacao !== null && novaOcupacao !== ocupAtual;
+
+    // Para modo status_apto: também verifica efeito colateral no status de limpeza
+    const novaLimpezaSA   = l.statusAptoResultado;
+    const limpSADisplay   = (novaLimpezaSA === 'livre' || novaLimpezaSA === 'ocupado') ? 'limpo' : novaLimpezaSA;
+    const mudaLimpezaSA   = limpSADisplay !== limpAtualDisplay;
 
     const mudaNoModo = modo === 'geral'
-      ? (mudaLimpezaG || mudaOcupacao)
+      ? (mudaLimpeza || mudaOcupacao)
       : (mudaOcupacao || mudaLimpezaSA);
 
-    return { ...l, novaLimpezaGeral, novaLimpezaSA, novaOcupacao, ocupAtual,
-             mudaLimpezaG, mudaLimpezaSA, mudaOcupacao, mudaNoModo };
+    return { ...l, novaLimpeza, novaOcupacao, ocupAtual, limpAtualDisplay,
+             mudaLimpeza, mudaOcupacao, novaLimpezaSA: limpSADisplay, mudaLimpezaSA, mudaNoModo };
   });
 
   const comMudanca = linhasCalc.filter(l => l.mudaNoModo);
@@ -719,89 +765,74 @@ function _xlsRenderTabelaConfronto(el, linhas, total) {
   }
 
   if (modo === 'status_apto') {
-    // ── Integrar Status Apto: foco em Ocupação (status_apto) ────────────────
-    // Mostra somente linhas onde a ocupação muda; limpeza exibida como efeito colateral pequeno
+    // ── Integrar Status Apto: foco em Ocupação ───────────────────────────────
     tabelaEl.innerHTML = `
       <div style="font-size:11px;color:#6b7280;margin-bottom:8px;padding:6px 10px;background:#f9fafb;border-radius:6px;border:1px solid #e5e7eb;">
-        Atualiza apenas a <strong>Ocupação</strong> (Vago / Ocupado / Bloqueado). O status de limpeza só muda como efeito colateral da mudança de ocupação.
+        Atualiza apenas a <strong>Ocupação</strong> (Vago / Ocupado / Bloqueado) conforme Col G do XLS.
+        O status de limpeza só muda como efeito colateral de mudança de ocupação.
       </div>
       <table style="width:100%;border-collapse:collapse;font-size:12px;">
         <thead>
           <tr style="background:#f3f4f6;text-align:left;">
             <th style="padding:8px 10px;border-bottom:2px solid #e5e7eb;width:60px;">Apto</th>
-            <th style="padding:8px 10px;border-bottom:2px solid #e5e7eb;" colspan="3">Ocupação (status_apto)</th>
-            <th style="padding:8px 10px;border-bottom:2px solid #e5e7eb;">Limpeza (efeito)</th>
+            <th style="padding:8px 10px;border-bottom:2px solid #e5e7eb;border-right:2px solid #e5e7eb;" colspan="3">🏠 Ocupação (Col G do XLS)</th>
+            <th style="padding:8px 10px;border-bottom:2px solid #e5e7eb;" colspan="3">🧹 Limpeza (efeito colateral)</th>
           </tr>
         </thead>
         <tbody>
           ${comMudanca.map(l => {
+            const ocupCell  = l.mudaOcupacao
+              ? `${_badgeO(l.ocupAtual,false)} ${_seta} ${_badgeO(l.novaOcupacao,true)}`
+              : _ok;
             const limpEfeito = l.mudaLimpezaSA
-              ? `${_badgeL(l.sistStatus,false)} ${_seta} ${_badgeL(l.novaLimpezaSA,true)}`
+              ? `${_badgeL(l.limpAtualDisplay,false)} ${_seta} ${_badgeL(l.novaLimpezaSA,true)}`
+              : _ok;
+            return `<tr style="border-bottom:1px solid #f3f4f6;">
+              <td style="padding:8px 10px;font-weight:700;font-size:13px;">${l.r.numero}</td>
+              <td style="padding:8px 10px;border-right:1px solid #f3f4f6;" colspan="3">${ocupCell}</td>
+              <td style="padding:8px 10px;" colspan="3">${limpEfeito}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+      ${_xlsSemMudancaHtml(semMudanca, _badgeO, _badgeL, _ok)}`;
+
+  } else {
+    // ── Integrar Geral: Limpeza (Col D) e Ocupação (Col G) separadas ─────────
+    tabelaEl.innerHTML = `
+      <div style="font-size:11px;color:#6b7280;margin-bottom:8px;padding:6px 10px;background:#f9fafb;border-radius:6px;border:1px solid #e5e7eb;">
+        Atualiza o <strong>Status de Limpeza</strong> conforme Col D do XLS (Sujo, Limpo, Arrumação, etc.)
+        <em>e</em> a <strong>Ocupação</strong> conforme Col G (Vago / Ocupado / Bloqueado).
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead>
+          <tr style="background:#f3f4f6;text-align:left;">
+            <th style="padding:8px 10px;border-bottom:2px solid #e5e7eb;width:60px;">Apto</th>
+            <th style="padding:8px 10px;border-bottom:2px solid #e5e7eb;border-right:2px solid #e5e7eb;" colspan="3">🧹 Limpeza — Col D (Status Gov)</th>
+            <th style="padding:8px 10px;border-bottom:2px solid #e5e7eb;" colspan="3">🏠 Ocupação — Col G (Status Apto)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${comMudanca.map(l => {
+            const limpCell = l.mudaLimpeza
+              ? `${_badgeL(l.limpAtualDisplay,false)} ${_seta} ${_badgeL(l.novaLimpeza,true)}`
               : _ok;
             const ocupCell = l.mudaOcupacao
               ? `${_badgeO(l.ocupAtual,false)} ${_seta} ${_badgeO(l.novaOcupacao,true)}`
               : _ok;
             return `<tr style="border-bottom:1px solid #f3f4f6;">
               <td style="padding:8px 10px;font-weight:700;font-size:13px;">${l.r.numero}</td>
+              <td style="padding:8px 10px;border-right:1px solid #f3f4f6;" colspan="3">${limpCell}</td>
               <td style="padding:8px 10px;" colspan="3">${ocupCell}</td>
-              <td style="padding:8px 10px;">${limpEfeito}</td>
             </tr>`;
           }).join('')}
         </tbody>
       </table>
-      ${_xlsSemMudancaHtml(semMudanca, _badgeO, _badgeL, _ok, modo)}`;
-
-  } else {
-    // ── Integrar Geral: mostra Limpeza E Ocupação separadas ─────────────────
-    tabelaEl.innerHTML = `
-      <div style="font-size:11px;color:#6b7280;margin-bottom:8px;padding:6px 10px;background:#f9fafb;border-radius:6px;border:1px solid #e5e7eb;">
-        Atualiza o <strong>Status de Limpeza</strong> (Sujo, Limpo, Arrumação, etc.) <em>e</em> a <strong>Ocupação</strong> (Vago / Ocupado / Bloqueado) conforme o XLS.
-      </div>
-      <table style="width:100%;border-collapse:collapse;font-size:12px;">
-        <thead>
-          <tr style="background:#f3f4f6;text-align:left;">
-            <th style="padding:8px 10px;border-bottom:2px solid #e5e7eb;width:60px;" rowspan="2">Apto</th>
-            <th style="padding:8px 10px;border-bottom:1px solid #e5e7eb;border-right:2px solid #e5e7eb;" colspan="3">
-              🧹 Limpeza (status)
-            </th>
-            <th style="padding:8px 10px;border-bottom:1px solid #e5e7eb;" colspan="3">
-              🏠 Ocupação (status_apto)
-            </th>
-          </tr>
-          <tr style="background:#f3f4f6;text-align:left;font-size:10px;color:#9ca3af;font-weight:500;">
-            <th style="padding:4px 10px;border-bottom:2px solid #e5e7eb;">Atual</th>
-            <th style="padding:4px 4px;border-bottom:2px solid #e5e7eb;"></th>
-            <th style="padding:4px 10px;border-bottom:2px solid #e5e7eb;border-right:2px solid #e5e7eb;">Ficará</th>
-            <th style="padding:4px 10px;border-bottom:2px solid #e5e7eb;">Atual</th>
-            <th style="padding:4px 4px;border-bottom:2px solid #e5e7eb;"></th>
-            <th style="padding:4px 10px;border-bottom:2px solid #e5e7eb;">Ficará</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${comMudanca.map(l => {
-            const limpAtual = _badgeL(l.sistStatus, false);
-            const limpNova  = l.mudaLimpezaG ? _badgeL(l.novaLimpezaGeral, true) : _ok;
-            const limpSeta  = l.mudaLimpezaG ? _seta : '';
-            const ocupAtualB = _badgeO(l.ocupAtual, false);
-            const ocupNova  = l.mudaOcupacao ? _badgeO(l.novaOcupacao, true) : _ok;
-            const ocupSeta  = l.mudaOcupacao ? _seta : '';
-            return `<tr style="border-bottom:1px solid #f3f4f6;">
-              <td style="padding:8px 10px;font-weight:700;font-size:13px;">${l.r.numero}</td>
-              <td style="padding:8px 10px;">${limpAtual}</td>
-              <td style="padding:8px 2px;">${limpSeta}</td>
-              <td style="padding:8px 10px;border-right:2px solid #f3f4f6;">${limpNova}</td>
-              <td style="padding:8px 10px;">${ocupAtualB}</td>
-              <td style="padding:8px 2px;">${ocupSeta}</td>
-              <td style="padding:8px 10px;">${ocupNova}</td>
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table>
-      ${_xlsSemMudancaHtml(semMudanca, _badgeO, _badgeL, _ok, modo)}`;
+      ${_xlsSemMudancaHtml(semMudanca, _badgeO, _badgeL, _ok)}`;
   }
 }
 
-function _xlsSemMudancaHtml(semMudanca, _badgeO, _badgeL, _ok, modo) {
+function _xlsSemMudancaHtml(semMudanca, _badgeO, _badgeL, _ok) {
   if (!semMudanca.length) return '';
   return `
     <div style="margin-top:12px;">
@@ -891,16 +922,20 @@ function _xlsRenderDivergencias(registros, sistemaMap) {
   }).filter(Boolean);
 
   const total = linhas.length;
-  // Contagem real de alterações por modo (usando mesma lógica do _xlsRenderTabelaConfronto)
+  // Contagem real usando mesma lógica do _xlsRenderTabelaConfronto
   const comMudancaG = linhas.filter(l => {
+    const novaLimp = _xlsNovaLimpeza(l.xlsGov);
     const novaOcup = _xlsNovaOcupacao(l.xlsApto);
-    return l.geralResultado !== l.sistStatus ||
+    const limpAtual = (l.sistStatus === 'livre' || l.sistStatus === 'ocupado') ? 'limpo' : l.sistStatus;
+    return (novaLimp !== null && novaLimp !== limpAtual) ||
            (novaOcup !== null && novaOcup !== (l.sist?.status_apto || null));
   }).length;
   const comMudancaSA = linhas.filter(l => {
     const novaOcup = _xlsNovaOcupacao(l.xlsApto);
+    const limpAtual = (l.sistStatus === 'livre' || l.sistStatus === 'ocupado') ? 'limpo' : l.sistStatus;
+    const limpSA    = (l.statusAptoResultado === 'livre' || l.statusAptoResultado === 'ocupado') ? 'limpo' : l.statusAptoResultado;
     return (novaOcup !== null && novaOcup !== (l.sist?.status_apto || null)) ||
-           l.statusAptoResultado !== l.sistStatus;
+           limpSA !== limpAtual;
   }).length;
 
   // Guarda dados para re-render ao trocar modo
