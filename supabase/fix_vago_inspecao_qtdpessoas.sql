@@ -115,18 +115,16 @@ CREATE POLICY "xls_delete_hotel"
 -- 5. Meta-tabela de importações (cabeçalho de cada importação)
 -- ================================================================
 CREATE TABLE IF NOT EXISTS integracao_xls_importacoes (
-  id                   UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  hotel_id             UUID NOT NULL REFERENCES hotels(id) ON DELETE CASCADE,
-  data_integracao      DATE NOT NULL,
-  arquivo_nome         TEXT,
-  modo                 TEXT DEFAULT 'geral',
-  total_linhas         INTEGER DEFAULT 0,
-  total_importadas     INTEGER DEFAULT 0,
-  total_ignoradas      INTEGER DEFAULT 0,
+  id                    UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  hotel_id              UUID NOT NULL REFERENCES hotels(id) ON DELETE CASCADE,
+  data_integracao       DATE NOT NULL,
+  arquivo_nome          TEXT,
+  total_linhas          INTEGER DEFAULT 0,
+  total_importadas      INTEGER DEFAULT 0,
+  total_ignoradas       INTEGER DEFAULT 0,
   total_inconsistencias INTEGER DEFAULT 0,
-  importado_por        UUID REFERENCES auth.users(id),
-  created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE (hotel_id, data_integracao, modo)
+  created_by            UUID REFERENCES auth.users(id),
+  created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 ALTER TABLE integracao_xls_importacoes ENABLE ROW LEVEL SECURITY;
@@ -150,14 +148,17 @@ CREATE POLICY "xlsimp_insert_hotel"
 
 -- ================================================================
 -- 6. RPC: importar_integracao_xls_status_diario
---    Recebe o payload do frontend, salva linha a linha e atualiza
---    o status dos apartamentos conforme o modo selecionado.
+--    Recebe o payload do frontend (bulk jsonb), salva na tabela
+--    de integração e atualiza o status dos apartamentos conforme
+--    o modo selecionado ('geral' ou 'status_apto').
+--
+--    NOTA: assinatura corrigida — p_payload vem ANTES de p_arquivo_nome.
 -- ================================================================
 CREATE OR REPLACE FUNCTION importar_integracao_xls_status_diario(
   p_hotel_id              UUID,
   p_data                  DATE,
-  p_arquivo_nome          TEXT,
   p_payload               JSONB,
+  p_arquivo_nome          TEXT,
   p_total_linhas          INTEGER DEFAULT 0,
   p_total_importadas      INTEGER DEFAULT 0,
   p_total_ignoradas       INTEGER DEFAULT 0,
@@ -170,188 +171,209 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 DECLARE
-  _rec            JSONB;
-  _apto_numero    TEXT;
-  _apto_id        UUID;
-  _apto_status    TEXT;
-  _novo_status    TEXT;
-  _novo_status_apto TEXT;
-  _aptos_pausados TEXT[] := '{}';
-  _total_atualizados INTEGER := 0;
-  _ja_existe      BOOLEAN;
+  v_caller_hotel_id uuid;
+  v_caller_perfil   text;
+  v_existente       integer;
+  v_importacao_id   uuid;
+  v_total_aptos     integer := 0;
+  v_aptos_pausados  text[]  := '{}';
 BEGIN
-  -- Verifica permissão mínima
-  IF my_perfil() NOT IN ('admin_global','admin_hotel','gestor') THEN
-    RETURN jsonb_build_object('ok', false, 'erro', 'sem_permissao', 'mensagem', 'Sem permissão para integrar XLS.');
+  SELECT hotel_id, perfil INTO v_caller_hotel_id, v_caller_perfil
+  FROM user_profiles WHERE user_id = auth.uid();
+
+  IF v_caller_perfil <> 'admin_global' AND v_caller_hotel_id IS DISTINCT FROM p_hotel_id THEN
+    RETURN jsonb_build_object('ok', false, 'erro', 'acesso_negado',
+      'mensagem', 'Hotel nao corresponde ao usuario autenticado.');
   END IF;
 
-  -- Verifica se já existe importação para este hotel/data/modo
-  SELECT EXISTS(
-    SELECT 1 FROM integracao_xls_importacoes
-    WHERE hotel_id = p_hotel_id
-      AND data_integracao = p_data
-      AND modo = p_modo
-  ) INTO _ja_existe;
+  SELECT COUNT(*) INTO v_existente
+  FROM integracao_xls_status_diario
+  WHERE hotel_id = p_hotel_id AND data_integracao = p_data;
 
-  IF _ja_existe AND NOT p_substituir THEN
-    RETURN jsonb_build_object(
-      'ok', false,
-      'erro', 'ja_existe',
-      'mensagem', 'Já existe uma integração (' || p_modo || ') para este hotel em ' || p_data::TEXT || '. Deseja substituir?'
-    );
+  IF v_existente > 0 AND NOT p_substituir THEN
+    RETURN jsonb_build_object('ok', false, 'erro', 'ja_existe',
+      'mensagem', format('Ja existe uma integracao para %s com %s registros. Deseja substituir?', p_data, v_existente),
+      'total_existente', v_existente);
   END IF;
 
-  -- Remove registros anteriores desta data/hotel se substituindo
-  IF p_substituir THEN
+  IF v_existente > 0 AND p_substituir THEN
     DELETE FROM integracao_xls_status_diario
-    WHERE hotel_id = p_hotel_id AND data_integracao = p_data AND modo = p_modo;
-    DELETE FROM integracao_xls_importacoes
-    WHERE hotel_id = p_hotel_id AND data_integracao = p_data AND modo = p_modo;
+    WHERE hotel_id = p_hotel_id AND data_integracao = p_data;
   END IF;
 
-  -- Grava cabeçalho da importação
+  INSERT INTO integracao_xls_status_diario
+    (hotel_id, data_integracao, apto,
+     status_apto, status_apto_original,
+     status_governanca, status_governanca_original,
+     adultos, criancas, data_partida, arquivo_nome, created_by, modo)
+  SELECT
+    p_hotel_id, p_data, (r->>'apto')::text,
+    (r->>'status_apto')::text,       (r->>'status_apto_original')::text,
+    (r->>'status_governanca')::text, (r->>'status_governanca_original')::text,
+    COALESCE((r->>'adultos')::integer, 0),
+    COALESCE((r->>'criancas')::integer, 0),
+    NULLIF(r->>'data_partida', '')::date,
+    p_arquivo_nome, auth.uid(), p_modo
+  FROM jsonb_array_elements(p_payload) AS r
+  ON CONFLICT ON CONSTRAINT uq_integracao_xls_hotel_data_apto DO UPDATE SET
+    status_apto                = EXCLUDED.status_apto,
+    status_apto_original       = EXCLUDED.status_apto_original,
+    status_governanca          = EXCLUDED.status_governanca,
+    status_governanca_original = EXCLUDED.status_governanca_original,
+    adultos                    = EXCLUDED.adultos,
+    criancas                   = EXCLUDED.criancas,
+    data_partida               = EXCLUDED.data_partida,
+    arquivo_nome               = EXCLUDED.arquivo_nome,
+    created_by                 = EXCLUDED.created_by,
+    modo                       = EXCLUDED.modo;
+
+  SELECT array_agg(a.numero ORDER BY a.numero) INTO v_aptos_pausados
+  FROM integracao_xls_status_diario ix
+  JOIN apartments a ON a.hotel_id = p_hotel_id AND a.numero = ix.apto
+  WHERE ix.hotel_id = p_hotel_id AND ix.data_integracao = p_data
+    AND a.ativo = true AND a.status = 'pausado';
+
+  IF p_modo = 'status_apto' THEN
+    INSERT INTO apartment_status_history
+      (apartment_id, status_anterior, status_novo, alterado_por, obs)
+    SELECT a.id, a.status,
+      CASE
+        WHEN a.status = 'pausado'                                                                  THEN 'pausado'
+        WHEN ix.status_apto = 'bloqueado'                                                          THEN 'bloqueado'
+        WHEN ix.status_apto IN ('ocupado','nao_perturbe') AND a.status IN ('vago','sujo','limpo')  THEN 'ocupado'
+        WHEN ix.status_apto = 'vago' AND a.status = 'ocupado'                                     THEN 'sujo'
+        ELSE a.status
+      END,
+      auth.uid(), 'Integracao XLS (Status Apto) - ' || p_arquivo_nome
+    FROM integracao_xls_status_diario ix
+    JOIN apartments a ON a.hotel_id = p_hotel_id AND a.numero = ix.apto
+    WHERE ix.hotel_id = p_hotel_id AND ix.data_integracao = p_data
+      AND a.ativo = true AND a.status <> 'pausado'
+      AND (
+        (ix.status_apto = 'bloqueado')
+        OR (ix.status_apto IN ('ocupado','nao_perturbe') AND a.status IN ('vago','sujo','limpo'))
+        OR (ix.status_apto = 'vago' AND a.status = 'ocupado')
+      );
+
+    UPDATE apartments a SET
+      status = CASE
+        WHEN a.status = 'pausado'                                                                  THEN 'pausado'
+        WHEN ix.status_apto = 'bloqueado'                                                          THEN 'bloqueado'
+        WHEN ix.status_apto IN ('ocupado','nao_perturbe') AND a.status IN ('vago','sujo','limpo')  THEN 'ocupado'
+        WHEN ix.status_apto = 'vago' AND a.status = 'ocupado'                                     THEN 'sujo'
+        ELSE a.status
+      END,
+      status_apto = CASE ix.status_apto
+        WHEN 'vago'               THEN 'Vago'
+        WHEN 'ocupado'            THEN 'Ocupado'
+        WHEN 'bloqueado'          THEN 'Bloqueado'
+        WHEN 'nao_perturbe'       THEN 'Ocupado'
+        WHEN 'nao_quis_arrumacao' THEN 'Ocupado'
+        ELSE a.status_apto
+      END,
+      updated_at = now()
+    FROM integracao_xls_status_diario ix
+    WHERE ix.hotel_id = p_hotel_id AND ix.data_integracao = p_data
+      AND a.hotel_id = p_hotel_id AND a.numero = ix.apto AND a.ativo = true;
+
+  ELSE
+    INSERT INTO apartment_status_history
+      (apartment_id, status_anterior, status_novo, alterado_por, obs)
+    SELECT a.id, a.status,
+      CASE
+        WHEN ix.status_apto = 'bloqueado'                                                     THEN 'bloqueado'
+        WHEN ix.status_apto = 'nao_perturbe'                                                  THEN 'ocupado'
+        WHEN ix.status_apto = 'ocupado' AND ix.status_governanca = 'limpo'                    THEN 'ocupado'
+        WHEN ix.status_apto = 'ocupado' AND ix.status_governanca = 'sujo'                     THEN 'sujo'
+        WHEN ix.status_apto = 'ocupado' AND ix.status_governanca = 'conferencia'              THEN 'conferencia'
+        WHEN ix.status_apto = 'ocupado' AND ix.status_governanca = 'inspecao'                 THEN 'inspecao'
+        WHEN ix.status_apto = 'ocupado' AND ix.status_governanca = 'manutencao'               THEN 'manutencao'
+        WHEN ix.status_apto = 'ocupado' AND ix.status_governanca IN ('nao_perturbe','nao_quis_arrumacao') THEN 'ocupado'
+        WHEN ix.status_apto = 'vago'    AND ix.status_governanca = 'limpo'                    THEN 'vago'
+        WHEN ix.status_apto = 'vago'    AND ix.status_governanca = 'sujo'                     THEN 'sujo'
+        WHEN ix.status_apto = 'vago'    AND ix.status_governanca = 'conferencia'              THEN 'conferencia'
+        WHEN ix.status_apto = 'vago'    AND ix.status_governanca = 'inspecao'                 THEN 'inspecao'
+        WHEN ix.status_apto = 'vago'    AND ix.status_governanca = 'manutencao'               THEN 'manutencao'
+        WHEN ix.status_governanca = 'reservado'                                                THEN 'ocupado'
+        WHEN ix.status_governanca = 'site'                                                     THEN 'ocupado'
+        WHEN ix.status_governanca = 'manutencao'                                               THEN 'manutencao'
+        ELSE a.status
+      END,
+      auth.uid(), 'Integracao XLS - ' || p_arquivo_nome
+    FROM integracao_xls_status_diario ix
+    JOIN apartments a ON a.hotel_id = p_hotel_id AND a.numero = ix.apto
+    WHERE ix.hotel_id = p_hotel_id AND ix.data_integracao = p_data
+      AND a.ativo = true AND a.status <> 'pausado';
+
+    UPDATE apartments a SET
+      status = CASE
+        WHEN a.status = 'pausado'                                                             THEN 'pausado'
+        WHEN ix.status_apto = 'bloqueado'                                                     THEN 'bloqueado'
+        WHEN ix.status_apto = 'nao_perturbe'                                                  THEN 'ocupado'
+        WHEN ix.status_apto = 'ocupado' AND ix.status_governanca = 'limpo'                    THEN 'ocupado'
+        WHEN ix.status_apto = 'ocupado' AND ix.status_governanca = 'sujo'                     THEN 'sujo'
+        WHEN ix.status_apto = 'ocupado' AND ix.status_governanca = 'conferencia'              THEN 'conferencia'
+        WHEN ix.status_apto = 'ocupado' AND ix.status_governanca = 'inspecao'                 THEN 'inspecao'
+        WHEN ix.status_apto = 'ocupado' AND ix.status_governanca = 'manutencao'               THEN 'manutencao'
+        WHEN ix.status_apto = 'ocupado' AND ix.status_governanca IN ('nao_perturbe','nao_quis_arrumacao') THEN 'ocupado'
+        WHEN ix.status_apto = 'vago'    AND ix.status_governanca = 'limpo'                    THEN 'vago'
+        WHEN ix.status_apto = 'vago'    AND ix.status_governanca = 'sujo'                     THEN 'sujo'
+        WHEN ix.status_apto = 'vago'    AND ix.status_governanca = 'conferencia'              THEN 'conferencia'
+        WHEN ix.status_apto = 'vago'    AND ix.status_governanca = 'inspecao'                 THEN 'inspecao'
+        WHEN ix.status_apto = 'vago'    AND ix.status_governanca = 'manutencao'               THEN 'manutencao'
+        WHEN ix.status_governanca = 'reservado'                                                THEN 'ocupado'
+        WHEN ix.status_governanca = 'site'                                                     THEN 'ocupado'
+        WHEN ix.status_governanca = 'manutencao'                                               THEN 'manutencao'
+        ELSE a.status
+      END,
+      status_apto = CASE ix.status_apto
+        WHEN 'vago'               THEN 'Vago'
+        WHEN 'ocupado'            THEN 'Ocupado'
+        WHEN 'bloqueado'          THEN 'Bloqueado'
+        WHEN 'nao_perturbe'       THEN 'Ocupado'
+        WHEN 'nao_quis_arrumacao' THEN 'Ocupado'
+        ELSE a.status_apto
+      END,
+      status_governanca_manual = CASE
+        WHEN a.status = 'pausado'                        THEN a.status_governanca_manual
+        WHEN ix.status_governanca = 'limpo'              THEN 'Limpo'
+        WHEN ix.status_governanca = 'sujo'               THEN 'Sujo'
+        WHEN ix.status_governanca = 'conferencia'        THEN 'Arrumacao'
+        WHEN ix.status_governanca = 'inspecao'           THEN 'Inspecao'
+        WHEN ix.status_governanca = 'manutencao'         THEN 'Manutencao'
+        WHEN ix.status_governanca = 'nao_perturbe'       THEN 'Nao Perturbe'
+        WHEN ix.status_governanca = 'nao_quis_arrumacao' THEN 'Nao Quis Arrumacao'
+        WHEN ix.status_governanca = 'reservado'          THEN 'Reservado'
+        WHEN ix.status_governanca = 'site'               THEN 'Site'
+        ELSE a.status_governanca_manual
+      END,
+      updated_at = now()
+    FROM integracao_xls_status_diario ix
+    WHERE ix.hotel_id = p_hotel_id AND ix.data_integracao = p_data
+      AND a.hotel_id = p_hotel_id AND a.numero = ix.apto AND a.ativo = true;
+
+  END IF;
+
+  GET DIAGNOSTICS v_total_aptos = ROW_COUNT;
+
   INSERT INTO integracao_xls_importacoes
-    (hotel_id, data_integracao, arquivo_nome, modo,
+    (hotel_id, data_integracao, arquivo_nome,
      total_linhas, total_importadas, total_ignoradas, total_inconsistencias,
-     importado_por)
+     created_by)
   VALUES
-    (p_hotel_id, p_data, p_arquivo_nome, p_modo,
+    (p_hotel_id, p_data, p_arquivo_nome,
      p_total_linhas, p_total_importadas, p_total_ignoradas, p_total_inconsistencias,
-     auth.uid());
-
-  -- Processa cada linha do payload
-  FOR _rec IN SELECT * FROM jsonb_array_elements(p_payload)
-  LOOP
-    _apto_numero := _rec->>'apto';
-    IF _apto_numero IS NULL OR _apto_numero = '' THEN CONTINUE; END IF;
-
-    -- Busca o apto no sistema
-    SELECT id, status INTO _apto_id, _apto_status
-    FROM apartments
-    WHERE hotel_id = p_hotel_id AND numero = _apto_numero AND ativo = TRUE
-    LIMIT 1;
-
-    IF _apto_id IS NULL THEN CONTINUE; END IF;
-
-    -- Salva linha na tabela de integração
-    INSERT INTO integracao_xls_status_diario
-      (hotel_id, data_integracao, arquivo_nome, apto,
-       status_apto, status_apto_original,
-       status_governanca, status_governanca_original,
-       adultos, criancas, data_partida, modo)
-    VALUES
-      (p_hotel_id, p_data, p_arquivo_nome, _apto_numero,
-       _rec->>'status_apto',          _rec->>'status_apto_original',
-       _rec->>'status_governanca',    _rec->>'status_governanca_original',
-       COALESCE((_rec->>'adultos')::INTEGER, 0),
-       COALESCE((_rec->>'criancas')::INTEGER, 0),
-       NULLIF(_rec->>'data_partida','')::DATE,
-       p_modo)
-    ON CONFLICT (hotel_id, data_integracao, apto) DO UPDATE
-      SET status_apto                = EXCLUDED.status_apto,
-          status_apto_original       = EXCLUDED.status_apto_original,
-          status_governanca          = EXCLUDED.status_governanca,
-          status_governanca_original = EXCLUDED.status_governanca_original,
-          adultos                    = EXCLUDED.adultos,
-          criancas                   = EXCLUDED.criancas,
-          data_partida               = EXCLUDED.data_partida,
-          modo                       = EXCLUDED.modo;
-
-    -- Preserva aptos em pausa
-    IF _apto_status = 'pausado' THEN
-      _aptos_pausados := array_append(_aptos_pausados, _apto_numero);
-      -- Para pausado em modo status_apto: ainda atualiza ocupação
-      IF p_modo = 'status_apto' THEN
-        _novo_status_apto := CASE (_rec->>'status_apto')
-          WHEN 'ocupado'    THEN 'Ocupado'
-          WHEN 'nao_perturbe' THEN 'Ocupado'
-          WHEN 'vago'       THEN 'Vago'
-          WHEN 'bloqueado'  THEN 'Bloqueado'
-          ELSE NULL
-        END;
-        IF _novo_status_apto IS NOT NULL THEN
-          UPDATE apartments SET status_apto = _novo_status_apto, updated_at = NOW()
-          WHERE id = _apto_id;
-        END IF;
-      END IF;
-      CONTINUE;
-    END IF;
-
-    IF p_modo = 'geral' THEN
-      -- ── Modo Geral: atualiza status (limpeza) + status_apto (ocupação) ──
-      _novo_status := CASE
-        WHEN (_rec->>'status_apto') = 'bloqueado' THEN 'bloqueado'
-        WHEN (_rec->>'status_apto') = 'nao_perturbe' THEN 'ocupado'
-        WHEN (_rec->>'status_apto') = 'ocupado' THEN
-          CASE (_rec->>'status_governanca')
-            WHEN 'limpo'       THEN 'ocupado'
-            WHEN 'sujo'        THEN 'sujo'
-            WHEN 'conferencia' THEN 'conferencia'
-            WHEN 'inspecao'    THEN 'inspecao'
-            WHEN 'manutencao'  THEN 'manutencao'
-            WHEN 'nao_perturbe','nao_quis_arrumacao' THEN 'ocupado'
-            ELSE 'ocupado'
-          END
-        WHEN (_rec->>'status_apto') = 'vago' THEN
-          CASE (_rec->>'status_governanca')
-            WHEN 'limpo'       THEN 'vago'
-            WHEN 'sujo'        THEN 'sujo'
-            WHEN 'conferencia' THEN 'conferencia'
-            WHEN 'inspecao'    THEN 'inspecao'
-            WHEN 'manutencao'  THEN 'manutencao'
-            ELSE 'vago'
-          END
-        WHEN (_rec->>'status_governanca') IN ('reservado','site') THEN 'ocupado'
-        WHEN (_rec->>'status_governanca') = 'manutencao' THEN 'manutencao'
-        ELSE _apto_status
-      END;
-
-      _novo_status_apto := CASE (_rec->>'status_apto')
-        WHEN 'ocupado'      THEN 'Ocupado'
-        WHEN 'nao_perturbe' THEN 'Ocupado'
-        WHEN 'vago'         THEN 'Vago'
-        WHEN 'bloqueado'    THEN 'Bloqueado'
-        ELSE NULL
-      END;
-
-      UPDATE apartments
-        SET status     = _novo_status,
-            status_apto = COALESCE(_novo_status_apto, status_apto),
-            updated_at  = NOW()
-      WHERE id = _apto_id;
-
-      -- Grava histórico
-      INSERT INTO apartment_status_history
-        (apartment_id, status_anterior, status_novo, alterado_por, obs)
-      VALUES
-        (_apto_id, _apto_status, _novo_status, auth.uid(),
-         'Integração XLS Geral — ' || p_arquivo_nome);
-
-    ELSIF p_modo = 'status_apto' THEN
-      -- ── Modo Status Apto: atualiza APENAS status_apto (ocupação) ──
-      _novo_status_apto := CASE (_rec->>'status_apto')
-        WHEN 'ocupado'      THEN 'Ocupado'
-        WHEN 'nao_perturbe' THEN 'Ocupado'
-        WHEN 'vago'         THEN 'Vago'
-        WHEN 'bloqueado'    THEN 'Bloqueado'
-        ELSE NULL
-      END;
-
-      IF _novo_status_apto IS NOT NULL THEN
-        UPDATE apartments
-          SET status_apto = _novo_status_apto,
-              updated_at  = NOW()
-        WHERE id = _apto_id;
-      END IF;
-    END IF;
-
-    _total_atualizados := _total_atualizados + 1;
-  END LOOP;
+     auth.uid())
+  RETURNING id INTO v_importacao_id;
 
   RETURN jsonb_build_object(
-    'ok',                    true,
-    'total_aptos_atualizados', _total_atualizados,
-    'aptos_pausados',        _aptos_pausados
+    'ok',                      true,
+    'importacao_id',           v_importacao_id,
+    'total_inseridos',         p_total_importadas,
+    'total_aptos_atualizados', v_total_aptos,
+    'substituiu',              (v_existente > 0 AND p_substituir),
+    'modo',                    p_modo,
+    'aptos_pausados',          COALESCE(to_jsonb(v_aptos_pausados), '[]'::jsonb)
   );
 END;
 $$;
