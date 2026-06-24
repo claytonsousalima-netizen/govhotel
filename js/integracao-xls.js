@@ -752,19 +752,20 @@ function _xlsRenderTabelaConfronto(el, linhas, total) {
   // Enriquece cada linha
   const linhasCalc = linhas.map(l => {
     // xlsGov = Col D (limpeza), xlsApto = Col G (ocupação)
-    const novaLimpeza  = _xlsNovaLimpeza(l.xlsGov);        // novo status de limpeza baseado só na Col D
     const novaOcupacao = _xlsNovaOcupacao(l.xlsApto);      // novo status_apto baseado na Col G
     const ocupAtual    = l.sist?.status_apto || null;
 
-    // Status de limpeza atual: extrai da combinação do status atual, excluindo 'vago' e 'ocupado'
-    // 'vago' no sistema = vago+limpo → para exibição de limpeza, é 'limpo'
-    // 'ocupado' no sistema = ocupado+limpo → para exibição de limpeza, é 'limpo'
+    // Status de limpeza atual para exibição:
+    // 'vago' e 'ocupado' = apartamento limpo no fluxo de governança → exibe 'limpo'
     const limpAtualDisplay = (l.sistStatus === 'vago' || l.sistStatus === 'ocupado') ? 'limpo' : l.sistStatus;
 
-    const mudaLimpeza  = novaLimpeza  !== null && novaLimpeza  !== limpAtualDisplay;
+    // geralResultado é o status real que a RPC gravaria — usa isso para decidir mudança,
+    // não o valor bruto do Col D (_xlsNovaLimpeza), que não reflete a lógica de combinação
+    const geralResultadoDisplay = (l.geralResultado === 'vago' || l.geralResultado === 'ocupado') ? 'limpo' : l.geralResultado;
+    const mudaLimpeza  = l.geralResultado !== l.sistStatus;
     const mudaOcupacao = novaOcupacao !== null && novaOcupacao !== ocupAtual;
 
-    // Para modo status_apto: também verifica efeito colateral no status de limpeza
+    // Para modo status_apto: efeito colateral no status de limpeza
     const novaLimpezaSA   = l.statusAptoResultado;
     const limpSADisplay   = (novaLimpezaSA === 'vago' || novaLimpezaSA === 'ocupado') ? 'limpo' : novaLimpezaSA;
     const mudaLimpezaSA   = limpSADisplay !== limpAtualDisplay;
@@ -773,7 +774,8 @@ function _xlsRenderTabelaConfronto(el, linhas, total) {
       ? (mudaLimpeza || mudaOcupacao)
       : mudaOcupacao;
 
-    return { ...l, novaLimpeza, novaOcupacao, ocupAtual, limpAtualDisplay,
+    return { ...l, novaLimpeza: l.geralResultado, novaLimpezaDisplay: geralResultadoDisplay,
+             novaOcupacao, ocupAtual, limpAtualDisplay,
              mudaLimpeza, mudaOcupacao, novaLimpezaSA: limpSADisplay, mudaLimpezaSA, mudaNoModo };
   });
 
@@ -835,7 +837,7 @@ function _xlsRenderTabelaConfronto(el, linhas, total) {
         <tbody>
           ${comMudanca.map(l => {
             const limpCell = l.mudaLimpeza
-              ? `${_badgeL(l.limpAtualDisplay,false)} ${_seta} ${_badgeL(l.novaLimpeza,true)}`
+              ? `${_badgeL(l.limpAtualDisplay,false)} ${_seta} ${_badgeL(l.novaLimpezaDisplay,true)}`
               : _ok;
             const ocupCell = l.mudaOcupacao
               ? `${_badgeO(l.ocupAtual,false)} ${_seta} ${_badgeO(l.novaOcupacao,true)}`
@@ -942,13 +944,12 @@ function _xlsRenderDivergencias(registros, sistemaMap) {
   }).filter(Boolean);
 
   const total = linhas.length;
-  // Contagem real usando mesma lógica do _xlsRenderTabelaConfronto
+  // Contagem baseada no geralResultado (espelho fiel da RPC), não no valor bruto do Col D
   const comMudancaG = linhas.filter(l => {
-    const novaLimp = _xlsNovaLimpeza(l.xlsGov);
     const novaOcup = _xlsNovaOcupacao(l.xlsApto);
-    const limpAtual = (l.sistStatus === 'vago' || l.sistStatus === 'ocupado') ? 'limpo' : l.sistStatus;
-    return (novaLimp !== null && novaLimp !== limpAtual) ||
-           (novaOcup !== null && novaOcup !== (l.sist?.status_apto || null));
+    const mudaStatus = l.geralResultado !== l.sistStatus;
+    const mudaOcup   = novaOcup !== null && novaOcup !== (l.sist?.status_apto || null);
+    return mudaStatus || mudaOcup;
   }).length;
   const comMudancaSA = linhas.filter(l => {
     const novaOcup = _xlsNovaOcupacao(l.xlsApto);
