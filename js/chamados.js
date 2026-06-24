@@ -8,10 +8,12 @@ let _chamadoHotelId   = null;
 let _chamadoDept      = null;   // null=todos | 'governanca' | 'manutencao'
 let _tiposChamado     = [];
 let _chamadoDetalheId = null;
-let _chamadosKnownIds      = new Set(); // IDs já vistos — evita notificar chamados antigos
-let _chamadosIniciado      = false;     // false até a primeira _fetchChamados() concluir
-let _chamadosResponsavelMap = new Map(); // chamadoId → responsavel_user_id anterior
-let _chamadosAutoAssumidos  = new Set(); // IDs assumidos pelo próprio usuário — sem notificar
+let _chamadosKnownIds        = new Set(); // IDs já vistos — evita notificar chamados antigos
+let _chamadosIniciado        = false;     // false até a primeira _fetchChamados() concluir
+let _chamadosResponsavelMap  = new Map(); // chamadoId → responsavel_user_id anterior
+let _chamadosAutoAssumidos   = new Set(); // IDs assumidos pelo próprio usuário — sem notificar
+let _chamadosAckIds          = new Set(); // IDs reconhecidos pela camareira (fechou o modal)
+let _chamadosLembreteInterval = null;     // intervalo de renotificação periódica
 
 const _GOV_STATUS = {
   aberto:     { label:'Aberto',       badge:'badge-sujo'        },
@@ -979,22 +981,107 @@ function stopRealtimeChamados() {
     clearInterval(_pollingInterval);
     _pollingInterval = null;
   }
+  if (_chamadosLembreteInterval) {
+    clearInterval(_chamadosLembreteInterval);
+    _chamadosLembreteInterval = null;
+  }
   _chamadosIniciado = false;
   _chamadosKnownIds.clear();
   _chamadosResponsavelMap.clear();
+  _chamadosAckIds.clear();
 }
 
 // Notificação bloqueante de novo chamado ou atribuição
 function _showNovoChamadoNotif(c, tipo) {
   const aptoLabel = c.apto ? `Apto ${c.apto}` : '';
-  const titulo    = tipo === 'atribuido' ? 'Chamado atribuído a você' : 'Novo chamado';
+  const titulo    = tipo === 'atribuido'  ? 'Chamado atribuído a você'
+                  : tipo === 'lembrete'   ? '⏰ Lembrete — chamado pendente'
+                  : 'Novo chamado';
   const partes    = [aptoLabel, c.categoria, c.descricao].filter(Boolean);
   const corpo     = partes.join('\n');
   const urgente   = tipo === 'atribuido';
-  const icon      = tipo === 'atribuido' ? '🔧' : '🔔';
+  const icon      = tipo === 'atribuido'  ? '🔧'
+                  : tipo === 'lembrete'   ? '⏰'
+                  : '🔔';
+  _chamadosAckIds.add(c.id);
   if (typeof _enfileirarAlerta === 'function') {
     _enfileirarAlerta(icon, titulo, corpo, urgente);
   }
+}
+
+// ── NOTIFICAR PENDENTES AO FAZER LOGIN ───────────────────────
+// Chamada uma única vez após o primeiro _fetchChamados().
+// Busca chamados ativos atribuídos ao usuário que ele ainda não viu.
+function _notificarChamadosPendentesLogin() {
+  const perfil = currentUser?.perfil;
+  if (perfil !== 'camareira' && perfil !== 'manutencao') return;
+
+  const pendentes = _chamadosPendentesDoUsuario();
+  if (!pendentes.length) return;
+
+  // Agrupa em uma única notificação para não abrir N modais de vez
+  const linhas = pendentes.map(c => {
+    const partes = [`Apto ${c.apto}`, c.categoria].filter(Boolean);
+    return partes.join(' — ');
+  });
+  const titulo = `📋 Você tem ${pendentes.length} chamado(s) pendente(s)`;
+  const corpo  = linhas.join('\n');
+
+  pendentes.forEach(c => _chamadosAckIds.add(c.id));
+  if (typeof _enfileirarAlerta === 'function') {
+    _enfileirarAlerta('📋', titulo, corpo, false);
+  }
+}
+
+// ── LEMBRETE PERIÓDICO DE CHAMADOS NÃO RESOLVIDOS ────────────
+// Retorna chamados abertos/pausados/reabertos atribuídos ao usuário atual.
+function _chamadosPendentesDoUsuario() {
+  const perfil = currentUser?.perfil;
+  const STATUS_PENDENTE = new Set(['aberto', 'pausado', 'reaberto', 'em_analise']);
+
+  return _chamadosCache.filter(c => {
+    if (!STATUS_PENDENTE.has(c.status)) return false;
+
+    if (perfil === 'camareira' && c.departamento === 'governanca') {
+      const aptoDoC = Array.isArray(aptos) ? aptos.find(a => a.id === c.apartment_id) : null;
+      if (!aptoDoC?.camareira_id) return true;           // sem atribuição → avisa todas
+      return aptoDoC.camareira_id === currentUser.id;
+    }
+    if (perfil === 'manutencao' && c.departamento === 'manutencao') {
+      if (!c.responsavel_user_id) return true;           // sem responsável → avisa todos
+      return c.responsavel_user_id === currentUser.id;
+    }
+    return false;
+  });
+}
+
+function _iniciarLembreteChamados() {
+  if (_chamadosLembreteInterval) return;
+  const perfil = currentUser?.perfil;
+  if (perfil !== 'camareira' && perfil !== 'manutencao') return;
+
+  // Lembrete a cada 5 minutos para chamados ainda pendentes
+  _chamadosLembreteInterval = setInterval(() => {
+    if (!currentUser) {
+      clearInterval(_chamadosLembreteInterval);
+      _chamadosLembreteInterval = null;
+      return;
+    }
+    const pendentes = _chamadosPendentesDoUsuario();
+    if (!pendentes.length) return;
+
+    const linhas = pendentes.map(c => {
+      const partes = [`Apto ${c.apto}`, c.categoria].filter(Boolean);
+      return partes.join(' — ');
+    });
+    const titulo = `⏰ Lembrete — ${pendentes.length} chamado(s) aguardando`;
+    const corpo  = linhas.join('\n');
+
+    pendentes.forEach(c => _chamadosAckIds.add(c.id));
+    if (typeof _enfileirarAlerta === 'function') {
+      _enfileirarAlerta('⏰', titulo, corpo, false);
+    }
+  }, 5 * 60 * 1000);
 }
 
 // ── INICIALIZAR CHAMADOS ─────────────────────────────────────
@@ -1002,6 +1089,8 @@ async function _initChamados() {
   await _loadTiposChamado();
   await _popularFiltroHotelChamados();
   await _fetchChamados();
+  _notificarChamadosPendentesLogin();
+  _iniciarLembreteChamados();
   _initRealtimeChamados();
 }
 
