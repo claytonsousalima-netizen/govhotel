@@ -204,13 +204,20 @@ async function parseIntegracaoXlsFile(file) {
         }
 
         const sh = wb.Sheets[sheetName];
-        // range:4 = começa na linha 5 (índice 4, 0-based), que é a linha de cabeçalhos
-        const rows = XLSX.utils.sheet_to_json(sh, { header: 1, range: 4, defval: '' });
 
-        // Valida cabeçalhos (rows[0] = linha 5 da planilha)
+        // Lê toda a planilha e detecta automaticamente a linha de cabeçalho
+        // (a linha que tem "CODUH" na coluna A, independente do número da linha)
+        const allRows = XLSX.utils.sheet_to_json(sh, { header: 1, range: 0, defval: '' });
+        const headerRowIdx = allRows.findIndex(r =>
+          String(r[0] ?? '').trim().toUpperCase() === 'CODUH'
+        );
+        // Se não encontrar CODUH, assume linha 5 por retrocompatibilidade
+        const rows = headerRowIdx >= 0 ? allRows.slice(headerRowIdx) : allRows.slice(4);
+
+        // Valida cabeçalhos (rows[0] = linha de cabeçalho encontrada)
         const cabValido = validarCabecalhosIntegracaoXls(rows);
 
-        // Dados começam a partir de rows[1] (linha 6 da planilha)
+        // Dados começam a partir de rows[1]
         const linhasDados = rows.slice(1);
 
         let ignoradas  = 0;
@@ -368,7 +375,7 @@ function renderIntegracaoXls() {
         <div style="font-size:12px;color:#9ca3af;margin-bottom:16px;">
           Formatos aceitos: <strong>.xls</strong> e <strong>.xlsx</strong> &nbsp;·&nbsp;
           Aba: <code>Report</code> &nbsp;·&nbsp;
-          Cabeçalhos na linha 5 &nbsp;·&nbsp; Dados a partir da linha 6
+          Cabeçalhos detectados automaticamente &nbsp;·&nbsp; Col A: CODUH obrigatório
         </div>
 
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
