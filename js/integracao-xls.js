@@ -27,6 +27,12 @@ const _MAP_COL_D_GOV = {
   'DORMIU FORA':   { interno: 'nao_quis_arrumacao', label: 'Dormiu Fora'        },
   'Teste TI':      { interno: 'bloqueado',          label: 'Teste TI'           },
   'TESTE TI':      { interno: 'bloqueado',          label: 'Teste TI'           },
+  'BLOQUEADO':     { interno: 'bloqueado',          label: 'Bloqueado'          },
+  'Bloqueado':     { interno: 'bloqueado',          label: 'Bloqueado'          },
+  'INSPECAO':      { interno: 'inspecao',           label: 'Inspeção'           },
+  'ARRUMACAO':     { interno: 'conferencia',        label: 'Arrumação'          },
+  'MANUTENCAO':    { interno: 'manutencao',         label: 'Manutenção'         },
+  'RESERVADO':     { interno: 'reservado',          label: 'Reservado'          },
 };
 
 // Col G = STATUS APTO (ocupação): Vago, Ocupado, Bloqueado
@@ -43,6 +49,19 @@ const _MAP_COL_G_APTO = {
 // Aliases para compatibilidade com código legado que usa _MAP_STATUS_APTO/_MAP_STATUS_GOV
 const _MAP_STATUS_APTO = _MAP_COL_D_GOV;
 const _MAP_STATUS_GOV  = _MAP_COL_G_APTO;
+
+// Lookup normalizado: remove acentos e converte para maiúsculas
+// Garante que "ARRUMACAO", "Arrumação" e "arrumacao" resolvam para o mesmo valor
+function _xlsNormKey(s) {
+  return String(s).toUpperCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+const _MAP_D_NORM = Object.fromEntries(
+  Object.entries(_MAP_COL_D_GOV).map(([k, v]) => [_xlsNormKey(k), v])
+);
+const _MAP_G_NORM = Object.fromEntries(
+  Object.entries(_MAP_COL_G_APTO).map(([k, v]) => [_xlsNormKey(k), v])
+);
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ESTADO DO MÓDULO
@@ -70,12 +89,12 @@ function normalizarNumeroApto(valor) {
 
 function normalizarStatusApto(valor) {
   const s = String(valor ?? '').trim();
-  return _MAP_STATUS_APTO[s] || null;
+  return _MAP_STATUS_APTO[s] || _MAP_D_NORM[_xlsNormKey(s)] || null;
 }
 
 function normalizarStatusGovernanca(valor) {
   const s = String(valor ?? '').trim();
-  return _MAP_STATUS_GOV[s] || null;
+  return _MAP_STATUS_GOV[s] || _MAP_G_NORM[_xlsNormKey(s)] || null;
 }
 
 function normalizarAdultos(valor) {
