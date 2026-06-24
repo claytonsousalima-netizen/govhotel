@@ -194,8 +194,8 @@ CREATE TABLE IF NOT EXISTS apartments (
   leitos      INTEGER NOT NULL DEFAULT 2 CHECK (leitos >= 1 AND leitos <= 10),
 
   -- Status operacional atual do apartamento
-  status      TEXT NOT NULL DEFAULT 'livre'
-              CHECK (status IN ('livre','ocupado','sujo','limpando','conferencia','bloqueado','manutencao')),
+  status      TEXT NOT NULL DEFAULT 'vago'
+              CHECK (status IN ('vago','ocupado','sujo','limpando','pausado','conferencia','limpo','reprovado','bloqueado','manutencao','inspecao')),
 
   -- Indica se este apartamento deve ser priorizado na fila de limpeza
   prioridade  BOOLEAN NOT NULL DEFAULT FALSE,
@@ -381,7 +381,7 @@ CREATE TABLE IF NOT EXISTS apartment_status_history (
 
   -- Novo status aplicado
   status_novo     TEXT NOT NULL
-                  CHECK (status_novo IN ('livre','ocupado','sujo','limpando','conferencia','bloqueado','manutencao')),
+                  CHECK (status_novo IN ('vago','ocupado','sujo','limpando','pausado','conferencia','limpo','reprovado','bloqueado','manutencao','inspecao')),
 
   -- Usuário que realizou a mudança
   alterado_por    UUID

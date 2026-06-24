@@ -16,6 +16,7 @@ const WRITE_PERMISSIONS = {
   admin_global: ['hotels','apartments','apartment_status','equipe','users','work_orders'],
   admin_hotel:  ['apartments','apartment_status','equipe','users','work_orders'],
   gestor:       ['apartments','apartment_status','equipe','work_orders'],
+  supervisora:  ['apartment_status','work_orders'],
   camareira:    ['apartment_status', 'work_orders'],
 };
 
