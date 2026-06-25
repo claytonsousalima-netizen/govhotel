@@ -260,6 +260,15 @@ async function _fetchChamados() {
     _chamadosKnownIds.add(c.id);
     _chamadosResponsavelMap.set(c.id, c.responsavel_user_id || null);
   });
+
+  // Primeira carga bem-sucedida — notifica chamados pendentes ao login e inicia lembrete
+  // Feito aqui (e não em _initChamados) para garantir que dispara independente de
+  // quem chamou _fetchChamados primeiro (openPage patch vs _initChamados).
+  if (!_chamadosIniciado) {
+    _notificarChamadosPendentesLogin();
+    _iniciarLembreteChamados();
+  }
+
   _chamadosIniciado = true;
 
   // Atualiza badge do menu lateral com a contagem real já filtrada por perfil
@@ -1093,8 +1102,6 @@ async function _initChamados() {
   await _loadTiposChamado();
   await _popularFiltroHotelChamados();
   await _fetchChamados();
-  _notificarChamadosPendentesLogin();
-  _iniciarLembreteChamados();
   _initRealtimeChamados();
 }
 
