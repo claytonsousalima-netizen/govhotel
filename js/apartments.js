@@ -1189,6 +1189,10 @@ async function abrirChecklistSupervisora() {
     }
   }
 
+  _supOrigStatusApto = apto.status_apto || null;
+  _supNovoStatusApto = apto.status_apto || null;
+  _renderSupStatusAptoBtns();
+
   closeModal('modal-apto-detail');
   openModal('modal-conferencia-supervisora');
 }
@@ -1214,12 +1218,30 @@ async function confirmarChecklistSupervisora(decisao) {
   });
   if (incompleto) { toast('Avalie todos os itens obrigatórios antes de continuar', 'error'); return; }
 
-  const obs = (document.getElementById('sup-cl-obs')?.value || '').trim();
+  let obs = (document.getElementById('sup-cl-obs')?.value || '').trim();
+  if (_supNovoStatusApto && _supNovoStatusApto !== _supOrigStatusApto) {
+    const notaDiv = `[Divergência] Status Apto alterado de "${_supOrigStatusApto || 'não definido'}" para "${_supNovoStatusApto}" durante conferência por ${currentUser.nome}`;
+    obs = obs ? `${notaDiv}\n${obs}` : notaDiv;
+  }
 
   closeModal('modal-conferencia-supervisora');
 
   const apto = aptos.find(a => a.id === selectedAptoId);
   if (!apto) return;
+
+  // Atualizar status_apto no banco se houve divergência
+  if (_supNovoStatusApto && _supNovoStatusApto !== _supOrigStatusApto) {
+    const { error: saErr } = await supabaseClient.from('apartments')
+      .update({ status_apto: _supNovoStatusApto })
+      .eq('id', selectedAptoId);
+    if (!saErr) {
+      apto.status_apto = _supNovoStatusApto;
+    } else {
+      console.warn('Erro ao salvar divergência status_apto (conferência):', saErr.message);
+    }
+  }
+  _supOrigStatusApto = null;
+  _supNovoStatusApto = null;
 
   // Salvar no banco
   try {
@@ -1579,6 +1601,36 @@ function _renderChecklistStatusAptoBtns() {
 function _selecionarStatusAptoChecklist(val) {
   _checklistNovoStatusApto = val;
   _renderChecklistStatusAptoBtns();
+}
+
+// ── STATUS APTO NO CHECKLIST DE CONFERÊNCIA (supervisora) ─────
+let _supOrigStatusApto  = null;
+let _supNovoStatusApto  = null;
+
+function _renderSupStatusAptoBtns() {
+  const opcoes = ['Vago', 'Ocupado', 'Bloqueado'];
+  const sel = _supNovoStatusApto || '';
+  opcoes.forEach(op => {
+    const btn = document.getElementById(`sup-sa-${op}`);
+    if (!btn) return;
+    const ativo = op === sel;
+    btn.style.border     = `2px solid ${ativo ? 'var(--primary)' : 'var(--border)'}`;
+    btn.style.background = ativo ? 'var(--primary)' : 'transparent';
+    btn.style.color      = ativo ? '#fff' : 'var(--text2)';
+  });
+  const div = document.getElementById('sup-sa-div');
+  if (!div) return;
+  if (_supNovoStatusApto && _supNovoStatusApto !== _supOrigStatusApto) {
+    div.textContent = `⚠️ Divergência: Status Apto alterado de "${_supOrigStatusApto || 'não definido'}" para "${_supNovoStatusApto}".`;
+    div.style.display = '';
+  } else {
+    div.style.display = 'none';
+  }
+}
+
+function _selecionarSupStatusApto(val) {
+  _supNovoStatusApto = val;
+  _renderSupStatusAptoBtns();
 }
 
 async function abrirChecklistApp(id) {
