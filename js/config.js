@@ -431,6 +431,9 @@ async function abrirChecklistApp(id) {
   checklistState = itens.map(label => ({ label, done: false }));
 
   renderChecklist();
+  _checklistOrigStatusApto = apto.status_apto || null;
+  _checklistNovoStatusApto = apto.status_apto || null;
+  if (typeof _renderChecklistStatusAptoBtns === 'function') _renderChecklistStatusAptoBtns();
   openModal('modal-checklist');
 }
 
