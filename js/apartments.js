@@ -7,6 +7,7 @@
 let _editingAptoId  = null;
 let _aptoViewHotelId = null;
 let _checklistOrigemStatus = null;
+let _checklistOrigCamId    = null;   // camareira_id original antes de iniciar limpeza
 let _sessaoLimpezaId       = null;
 let _limpandoOrfaosVerificado = false;
 let _aptosCarregados    = false;          // true após primeira carga de aptos
@@ -1014,7 +1015,14 @@ async function iniciarLimpeza() {
   if (!['sujo','pausado','reprovado'].includes(apto.status)) {
     toast('Limpeza só pode ser iniciada em apartamento Sujo, Pausado ou Reprovado', 'error'); return;
   }
-  _checklistOrigemStatus = apto.status; // guarda para cancelar poder reverter
+  _checklistOrigemStatus = apto.status;
+  _checklistOrigCamId    = apto.camareira_id;
+
+  // Atribui temporariamente a camareira no estado local ANTES do re-render.
+  // Garante que o apto apareça em "Minha atribuição" durante a limpeza,
+  // mesmo que não tenha responsável permanente (maid_id null no banco).
+  apto.camareira_id = currentUser.id;
+
   const acao = apto.status === 'pausado' ? 'retomada' : 'iniciada';
   const obs  = `Limpeza ${acao} por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
   await mudarStatusApto(selectedAptoId, 'limpando', obs);
@@ -1047,6 +1055,10 @@ async function abrirModalCancelarLimpeza(id) {
 
 async function cancelarLimpeza() {
   closeModal('modal-cancelar-limpeza');
+  // Restaura camareira_id original antes do re-render que ocorre dentro de mudarStatusApto
+  const apto = aptos.find(a => a.id === selectedAptoId);
+  if (apto) apto.camareira_id = _checklistOrigCamId;
+  _checklistOrigCamId = null;
   const texto = `Limpeza cancelada por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
   await mudarStatusApto(selectedAptoId, 'sujo', texto);
 }
