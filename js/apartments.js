@@ -6,8 +6,10 @@
 
 let _editingAptoId  = null;
 let _aptoViewHotelId = null;
-let _checklistOrigemStatus = null;
-let _checklistOrigCamId    = null;   // camareira_id original antes de iniciar limpeza
+let _checklistOrigemStatus   = null;
+let _checklistOrigCamId      = null;   // camareira_id original antes de iniciar limpeza
+let _checklistOrigStatusApto = null;   // status_apto original antes de iniciar limpeza
+let _checklistNovoStatusApto = null;   // status_apto selecionado no checklist
 let _sessaoLimpezaId       = null;
 let _limpandoOrfaosVerificado = false;
 let _aptosCarregados    = false;          // true após primeira carga de aptos
@@ -1553,6 +1555,33 @@ function _selecionarTipoLimpeza(nome, idx, total) {
 
 // ── ADAPTAR abrirChecklistApp para UUIDs ─────────────────────
 
+function _renderChecklistStatusAptoBtns() {
+  const wrap = document.getElementById('checklist-status-apto-btns');
+  if (!wrap) return;
+  const opcoes = ['Vago', 'Ocupado', 'Bloqueado'];
+  const sel = _checklistNovoStatusApto || '';
+  wrap.innerHTML = opcoes.map(op => {
+    const ativo = op === sel;
+    return `<button type="button" onclick="_selecionarStatusAptoChecklist('${op}')"
+      style="padding:5px 14px;border-radius:20px;border:2px solid ${ativo ? 'var(--primary)' : 'var(--border)'};
+      background:${ativo ? 'var(--primary)' : 'transparent'};color:${ativo ? '#fff' : 'var(--text2)'};
+      font-size:12px;font-weight:600;cursor:pointer;">${op}</button>`;
+  }).join('');
+  const div = document.getElementById('checklist-status-apto-div');
+  if (!div) return;
+  if (_checklistNovoStatusApto && _checklistNovoStatusApto !== _checklistOrigStatusApto) {
+    div.textContent = `⚠️ Divergência: Status Apto alterado de "${_checklistOrigStatusApto || 'não definido'}" para "${_checklistNovoStatusApto}".`;
+    div.style.display = '';
+  } else {
+    div.style.display = 'none';
+  }
+}
+
+function _selecionarStatusAptoChecklist(val) {
+  _checklistNovoStatusApto = val;
+  _renderChecklistStatusAptoBtns();
+}
+
 async function abrirChecklistApp(id) {
   selectedAptoId = id;
   const apto = aptos.find(a => a.id === id);
@@ -1571,6 +1600,9 @@ async function abrirChecklistApp(id) {
   const itens = data?.length ? data : (typeof CHECKLIST_PADRAO !== 'undefined' ? CHECKLIST_PADRAO.map(n => ({ nome: n })) : []);
   checklistState = itens.map(item => ({ label: item.nome, done: false }));
   renderChecklist();
+  _checklistOrigStatusApto = apto.status_apto || null;
+  _checklistNovoStatusApto = apto.status_apto || null;
+  _renderChecklistStatusAptoBtns();
   openModal('modal-checklist');
 }
 
@@ -1582,7 +1614,11 @@ async function concluirChecklist() {
     return;
   }
 
-  const obsGeral  = (document.getElementById('checklist-obs')?.value || '').trim();
+  let obsGeral  = (document.getElementById('checklist-obs')?.value || '').trim();
+  if (_checklistNovoStatusApto && _checklistNovoStatusApto !== _checklistOrigStatusApto) {
+    const notaDiv = `[Divergência] Status Apto alterado de "${_checklistOrigStatusApto || 'não definido'}" para "${_checklistNovoStatusApto}" durante limpeza por ${currentUser.nome}`;
+    obsGeral = obsGeral ? `${notaDiv}\n${obsGeral}` : notaDiv;
+  }
   const respostas = checklistState.map(i => ({ item: i.label, resposta: 'conforme' }));
 
   const isPerm = (typeof _checklistTipoSelecionado !== 'undefined') &&
@@ -1630,6 +1666,20 @@ async function concluirChecklist() {
     _sessaoLimpezaId = null;
   }
 
+  // Aplica divergência de status_apto se alterado durante a limpeza
+  if (_checklistNovoStatusApto && _checklistNovoStatusApto !== _checklistOrigStatusApto) {
+    const { error: saErr } = await supabaseClient.from('apartments')
+      .update({ status_apto: _checklistNovoStatusApto })
+      .eq('id', selectedAptoId);
+    if (!saErr) {
+      const aptoDiv = aptos.find(a => a.id === selectedAptoId);
+      if (aptoDiv) aptoDiv.status_apto = _checklistNovoStatusApto;
+    } else {
+      console.warn('Erro ao salvar divergência status_apto:', saErr.message);
+    }
+  }
+  _checklistOrigStatusApto = null;
+  _checklistNovoStatusApto = null;
   _checklistOrigemStatus = null;
   closeModal('modal-checklist');
 
@@ -1640,6 +1690,8 @@ async function concluirChecklist() {
 async function cancelarChecklistLimpeza() {
   const status = _checklistOrigemStatus || 'sujo';
   _checklistOrigemStatus = null;
+  _checklistOrigStatusApto = null;
+  _checklistNovoStatusApto = null;
   closeModal('modal-checklist');
   const obs = `Limpeza cancelada por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
   await mudarStatusApto(selectedAptoId, status, obs);
