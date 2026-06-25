@@ -909,6 +909,19 @@ tr:last-child td { border-bottom: none; }
       <!-- ====== INTEGRAÇÃO XLS ====== -->
       <div class="page" id="page-integracao-xls"></div>
 
+      <!-- ====== HISTÓRICO XLS ====== -->
+      <div class="page" id="page-historico-xls">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Histórico de Integrações XLS</div>
+            <div class="page-subtitle">Consulte status de governança e apto por data de integração</div>
+          </div>
+        </div>
+        <div id="hist-hotel-selector" style="display:none;"></div>
+        <div id="hist-hotel-chip"     style="display:none;"></div>
+        <div id="hist-conteudo"></div>
+      </div>
+
       <!-- ====== RELATÓRIOS ====== -->
       <div class="page" id="page-relatorios">
         <div class="page-header">
@@ -2198,7 +2211,7 @@ tr:last-child td { border-bottom: none; }
 <div class="toast" id="toast-msg"></div>
 
 <script src="js/supabase-client.js?v=20260613p"></script>
-<script src="js/auth.js?v=20260621e"></script>
+<script src="js/auth.js?v=20260625a"></script>
 <script>
 // ============ STATE ============
 let currentPage = 'dashboard';
@@ -2308,6 +2321,7 @@ const NAV_ITEMS = {
     { section:'Análise' },
     { id:'relatorios',     icon:'📈', label:'Relatórios' },
     { id:'integracao-xls', icon:'📥', label:'Integração XLS' },
+    { id:'historico-xls',  icon:'📅', label:'Histórico XLS' },
     { section:'Sistema' },
     { id:'config', icon:'⚙️', label:'Configurações' },
   ],
@@ -2328,6 +2342,7 @@ const NAV_ITEMS = {
     { section:'Análise' },
     { id:'relatorios',      icon:'📈', label:'Relatórios' },
     { id:'integracao-xls',  icon:'📥', label:'Integração XLS' },
+    { id:'historico-xls',   icon:'📅', label:'Histórico XLS' },
     { section:'Sistema' },
     { id:'config', icon:'⚙️', label:'Configurações' },
   ],
@@ -2344,6 +2359,7 @@ const NAV_ITEMS = {
     { section:'Análise' },
     { id:'relatorios',     icon:'📈', label:'Relatórios' },
     { id:'integracao-xls', icon:'📥', label:'Integração XLS' },
+    { id:'historico-xls',  icon:'📅', label:'Histórico XLS' },
   ],
   supervisora: [
     { section:'Minha Operação' },
@@ -2428,6 +2444,7 @@ const PAGE_TITLES = {
   'app-manutencao':'Meus Chamados — Manutenção',
   'minha-fila':'Minha Fila',
   'integracao-xls':'Integração XLS — Sistema GOV',
+  'historico-xls': 'Histórico de Integrações XLS',
 };
 
 function openPage(id) {
@@ -2460,6 +2477,7 @@ function openPage(id) {
   if (id === 'app-camareira') renderAppCamareira();
   if (id === 'app-manutencao')   renderAppManutencao();
   if (id === 'integracao-xls')  renderIntegracaoXls();
+  if (id === 'historico-xls')   renderHistoricoXls();
 }
 
 // ── HELPER: chip de hotel para perfis sem seletor ────────────
@@ -3159,5 +3177,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 <script src="js/relatorios.js?v=20260623e"></script>
 <script src="js/minha-fila.js?v=20260623a"></script>
 <script src="js/integracao-xls.js?v=20260624d"></script>
+<script src="js/historico-xls.js?v=20260625a"></script>
 </body>
 </html>
