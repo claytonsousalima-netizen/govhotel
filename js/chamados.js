@@ -1067,6 +1067,10 @@ function _iniciarLembreteChamados() {
       _chamadosLembreteInterval = null;
       return;
     }
+    // Se o modal de alerta já está aberto (usuário não deu OK), não acumula novo lembrete
+    const modalAberto = document.getElementById('modal-alerta-notif')?.classList.contains('open');
+    if (modalAberto) return;
+
     const pendentes = _chamadosPendentesDoUsuario();
     if (!pendentes.length) return;
 
