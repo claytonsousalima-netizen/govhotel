@@ -1035,7 +1035,7 @@ function _notificarChamadosPendentesLogin() {
 // Retorna chamados abertos/pausados/reabertos atribuídos ao usuário atual.
 function _chamadosPendentesDoUsuario() {
   const perfil = currentUser?.perfil;
-  const STATUS_PENDENTE = new Set(['aberto', 'pausado', 'reaberto', 'em_analise']);
+  const STATUS_PENDENTE = new Set(['aberto', 'pausado', 'reaberto', 'em_analise', 'andamento']);
 
   return _chamadosCache.filter(c => {
     if (!STATUS_PENDENTE.has(c.status)) return false;
