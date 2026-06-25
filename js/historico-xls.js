@@ -369,9 +369,9 @@ function _histRenderTabela() {
             <tr>
               ${th('apto',               'Apto')}
               ${th('status_apto',        'Status Apto')}
-              <th style="${thStyle};cursor:default;">Original GOV</th>
+              <th style="${thStyle};cursor:default;">Original Apto</th>
               ${th('status_governanca',  'Status Gov')}
-              <th style="${thStyle};cursor:default;">Original GOV</th>
+              <th style="${thStyle};cursor:default;">Original Gov</th>
               ${th('adultos',            'Pax')}
               ${th('data_partida',       'Partida')}
             </tr>
@@ -383,6 +383,99 @@ function _histRenderTabela() {
       </div>
       <div style="padding:10px 14px;font-size:12px;color:var(--text3);border-top:1px solid var(--border);">
         ${dados.length} de ${_histDados.length} apartamentos · data: ${_histFmtData(_histDataSel)}
+      </div>
+    </div>
+    <div id="hist-inconsistencias"></div>
+  `;
+
+  _histRenderInconsistencias();
+}
+
+// ── INCONSISTÊNCIAS ───────────────────────────────────────────
+
+function _histRenderInconsistencias() {
+  const wrap = document.getElementById('hist-inconsistencias');
+  if (!wrap) return;
+
+  // Aptos com status_apto OU status_governanca não reconhecido (null/vazio)
+  const incons = _histDados.filter(r =>
+    !r.status_apto || !r.status_governanca
+  ).sort((a, b) => _histCmpApto(a.apto, b.apto));
+
+  if (!incons.length) {
+    wrap.innerHTML = '';
+    return;
+  }
+
+  const linhas = incons.map(r => {
+    const aptoCell   = `<td style="padding:9px 12px;font-weight:700;font-size:13px;">${r.apto}</td>`;
+
+    const saCell = r.status_apto
+      ? `<td style="padding:9px 12px;">${_histBadgeApto(r.status_apto)}</td>`
+      : `<td style="padding:9px 12px;">
+           <span style="color:#b45309;font-weight:600;font-size:12px;">⚠️ não reconhecido</span>
+         </td>`;
+
+    const saOrigCell = `<td style="padding:9px 12px;font-size:11px;color:var(--text3);">${r.status_apto_original || '—'}</td>`;
+
+    const sgCell = r.status_governanca
+      ? `<td style="padding:9px 12px;">${_histBadgeGov(r.status_governanca)}</td>`
+      : `<td style="padding:9px 12px;">
+           <span style="color:#b45309;font-weight:600;font-size:12px;">⚠️ não reconhecido</span>
+         </td>`;
+
+    const sgOrigCell = `<td style="padding:9px 12px;font-size:11px;color:var(--text3);">${r.status_governanca_original || '—'}</td>`;
+
+    const problema = [];
+    if (!r.status_apto)        problema.push('Status Apto');
+    if (!r.status_governanca)  problema.push('Status Gov');
+
+    const flagCell = `<td style="padding:9px 12px;">
+      <span style="font-size:11px;font-weight:700;color:#b45309;background:#fff7ed;
+        padding:3px 8px;border-radius:4px;border:1px solid #fde68a;">
+        ${problema.join(' + ')}
+      </span>
+    </td>`;
+
+    return `<tr style="background:#fffbeb;">${aptoCell}${saCell}${saOrigCell}${sgCell}${sgOrigCell}${flagCell}</tr>`;
+  }).join('');
+
+  const thS = `padding:9px 12px;text-align:left;font-size:11px;font-weight:800;
+    color:var(--text2);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;`;
+
+  wrap.innerHTML = `
+    <div class="card" style="padding:0;overflow:hidden;margin-top:14px;border-top:3px solid #f59e0b;">
+      <div style="padding:12px 16px;background:#fffbeb;border-bottom:1px solid #fde68a;
+                  display:flex;align-items:center;gap:10px;">
+        <span style="font-size:16px;">⚠️</span>
+        <div>
+          <div style="font-size:13px;font-weight:800;color:#92400e;">
+            ${incons.length} apartamento${incons.length > 1 ? 's' : ''} com status não reconhecido
+          </div>
+          <div style="font-size:12px;color:#b45309;margin-top:2px;">
+            Estes aptos foram importados com campo parcial ou nulo. Verifique os valores originais
+            do GOV e adicione o mapeamento correto se necessário.
+          </div>
+        </div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead style="background:#fef9c3;border-bottom:2px solid #fde68a;">
+            <tr>
+              <th style="${thS}">Apto</th>
+              <th style="${thS}">Status Apto</th>
+              <th style="${thS}">Original Apto</th>
+              <th style="${thS}">Status Gov</th>
+              <th style="${thS}">Original Gov</th>
+              <th style="${thS}">Campo afetado</th>
+            </tr>
+          </thead>
+          <tbody>${linhas}</tbody>
+        </table>
+      </div>
+      <div style="padding:10px 14px;font-size:12px;color:#b45309;border-top:1px solid #fde68a;background:#fffbeb;">
+        Para corrigir: ajuste o arquivo XLS substituindo o valor não reconhecido por um status
+        válido e reimporte com a opção "substituir".
       </div>
     </div>
   `;

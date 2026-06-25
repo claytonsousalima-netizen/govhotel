@@ -163,18 +163,18 @@ function detectarDuplicidadesIntegracao(registros) {
       finais.push(r);
     } else {
       const anterior = mapa[key];
-      const igual = (anterior.saOriginal === r.saOriginal &&
-                     anterior.sgOriginal === r.sgOriginal &&
-                     anterior.adultos    === r.adultos    &&
-                     anterior.dataPartida === r.dataPartida);
-      if (!igual) {
+      // Conflito real = status gov OU status apto diferente entre as linhas.
+      // Se os status forem iguais (mesmo que adultos/partida difiram),
+      // mantém a primeira linha silenciosamente.
+      const statusIgual = (anterior.saOriginal === r.saOriginal &&
+                           anterior.sgOriginal === r.sgOriginal);
+      if (!statusIgual) {
         conflitos.push({ apto: key, linha1: anterior, linha2: r });
-        // Marca o registro já inserido como conflito
         anterior.conflito = true;
         r.conflito = true;
-        finais.push(r);  // inclui ambos para exibição
+        finais.push(r);  // inclui ambos apenas para exibição no preview
       }
-      // Se idênticos, ignora duplicata silenciosa
+      // Status iguais → duplicata silenciosa, mantém a primeira linha
     }
   });
 
