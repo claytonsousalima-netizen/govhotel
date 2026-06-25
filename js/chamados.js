@@ -620,7 +620,7 @@ function _renderDetalheConteudo(c) {
     (!c.responsavel_user_id ? `<span style="font-size:11px;background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:10px;font-weight:600;">📋 Disponível</span>` : '') +
     slBadge;
 
-  // Bloco "Assumir chamado"
+  // Bloco "Assumir / Reatribuir chamado"
   const elAssumirWrap = document.getElementById('cd-assumir-wrap');
   if (elAssumirWrap) {
     if (_podeAssumirChamado(c)) {
@@ -630,6 +630,13 @@ function _renderDetalheConteudo(c) {
           <strong>Chamado sem responsável.</strong> Clique para assumir o atendimento.
         </div>
         <button class="btn btn-primary btn-sm" onclick="assumirChamado('${c.id}')">✋ Assumir chamado</button>`;
+    } else if (_podeReatribuirChamado(c)) {
+      elAssumirWrap.style.display = 'flex';
+      elAssumirWrap.innerHTML = `
+        <div style="flex:1;font-size:13px;color:var(--text2);">
+          Responsável atual: <strong>${c.camareira || 'Sem responsável'}</strong>
+        </div>
+        <button class="btn btn-warning btn-sm" onclick="_abrirReatribuirChamado('${c.id}')">🔄 Reatribuir</button>`;
     } else {
       elAssumirWrap.style.display = 'none';
       elAssumirWrap.innerHTML = '';
@@ -751,6 +758,12 @@ function _podeAssumirChamado(c) {
   return ['gestor','admin_hotel','admin_global'].includes(currentUser.perfil);
 }
 
+// Gestor/admin/supervisora podem reatribuir mesmo quando já há responsável
+function _podeReatribuirChamado(c) {
+  if (!['gestor','admin_hotel','admin_global','supervisora'].includes(currentUser.perfil)) return false;
+  return !['concluido','cancelado'].includes(c.status);
+}
+
 // ── PERMISSÃO DE ATUALIZAR CHAMADO ───────────────────────────
 // Retorna false quando o perfil está visualizando chamado da outra área (somente leitura)
 function _podeAtualizarChamado(c) {
@@ -782,6 +795,67 @@ async function assumirChamado(id) {
   chamados = _chamadosCache;
 
   toast('Chamado assumido com sucesso.', 'success');
+  _renderDetalheConteudo(c);
+  await _carregarHistoricoChamado(id);
+  renderChamados();
+  renderKanban();
+}
+
+// ── REATRIBUIR CHAMADO (gestor / admin / supervisora) ─────────
+async function _abrirReatribuirChamado(id) {
+  const c = _chamadosCache.find(x => x.id === id);
+  if (!c) return;
+  const wrap = document.getElementById('cd-assumir-wrap');
+  if (!wrap) return;
+
+  const perfil  = c.departamento === 'manutencao' ? 'manutencao' : 'camareira';
+  const hotelId = c.hotel_id || currentUser.hotelId;
+  let q = supabaseClient.from('user_profiles')
+    .select('user_id, nome').eq('perfil', perfil).eq('ativo', true).order('nome');
+  if (hotelId) q = q.eq('hotel_id', hotelId);
+  const { data } = await q;
+
+  const opcoes = (data || [])
+    .map(u => `<option value="${u.user_id}"${u.user_id === c.responsavel_user_id ? ' selected' : ''}>${u.nome}</option>`)
+    .join('');
+
+  wrap.innerHTML = `
+    <div style="flex:1;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <select id="reatribuir-sel" style="flex:1;min-width:160px;padding:6px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;">
+        <option value="">— Sem responsável —</option>
+        ${opcoes}
+      </select>
+      <button class="btn btn-primary btn-sm" onclick="reatribuirChamado('${id}')">✓ Confirmar</button>
+      <button class="btn btn-ghost btn-sm" onclick="_renderDetalheConteudo(_chamadosCache.find(x=>x.id==='${id}'))">✕</button>
+    </div>`;
+}
+
+async function reatribuirChamado(id) {
+  const c = _chamadosCache.find(x => x.id === id);
+  if (!c) return;
+
+  const novoUserId   = document.getElementById('reatribuir-sel')?.value || null;
+  const anteriorNome = c.camareira || 'Sem responsável';
+
+  let novoNome = 'Sem responsável';
+  if (novoUserId) {
+    const { data } = await supabaseClient
+      .from('user_profiles').select('nome').eq('user_id', novoUserId).maybeSingle();
+    novoNome = data?.nome || novoUserId;
+  }
+
+  const { error } = await supabaseClient
+    .from('work_orders').update({ responsavel_user_id: novoUserId }).eq('id', id);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+
+  const texto = `Responsável alterado de "${anteriorNome}" para "${novoNome}" por ${currentUser.nome}.`;
+  await _gravarHistorico(id, c.hotel_id, 'responsavel', texto);
+
+  c.responsavel_user_id = novoUserId;
+  c.camareira           = novoUserId ? novoNome : null;
+  chamados = _chamadosCache;
+
+  toast('Chamado reatribuído com sucesso.', 'success');
   _renderDetalheConteudo(c);
   await _carregarHistoricoChamado(id);
   renderChamados();
