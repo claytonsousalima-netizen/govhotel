@@ -1556,17 +1556,16 @@ function _selecionarTipoLimpeza(nome, idx, total) {
 // ── ADAPTAR abrirChecklistApp para UUIDs ─────────────────────
 
 function _renderChecklistStatusAptoBtns() {
-  const wrap = document.getElementById('checklist-status-apto-btns');
-  if (!wrap) return;
   const opcoes = ['Vago', 'Ocupado', 'Bloqueado'];
   const sel = _checklistNovoStatusApto || '';
-  wrap.innerHTML = opcoes.map(op => {
+  opcoes.forEach(op => {
+    const btn = document.getElementById(`cl-sa-${op}`);
+    if (!btn) return;
     const ativo = op === sel;
-    return `<button type="button" onclick="_selecionarStatusAptoChecklist('${op}')"
-      style="padding:5px 14px;border-radius:20px;border:2px solid ${ativo ? 'var(--primary)' : 'var(--border)'};
-      background:${ativo ? 'var(--primary)' : 'transparent'};color:${ativo ? '#fff' : 'var(--text2)'};
-      font-size:12px;font-weight:600;cursor:pointer;">${op}</button>`;
-  }).join('');
+    btn.style.border      = `2px solid ${ativo ? 'var(--primary)' : 'var(--border)'}`;
+    btn.style.background  = ativo ? 'var(--primary)' : 'transparent';
+    btn.style.color       = ativo ? '#fff' : 'var(--text2)';
+  });
   const div = document.getElementById('checklist-status-apto-div');
   if (!div) return;
   if (_checklistNovoStatusApto && _checklistNovoStatusApto !== _checklistOrigStatusApto) {

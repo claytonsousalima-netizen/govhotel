@@ -2062,7 +2062,11 @@ tr:last-child td { border-bottom: none; }
       <!-- Status do Apto durante limpeza -->
       <div id="checklist-status-apto-wrap" style="background:var(--surface2);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;border:1px solid var(--border);">
         <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;">Status do Apartamento</div>
-        <div id="checklist-status-apto-btns" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+        <div id="checklist-status-apto-btns" style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button type="button" id="cl-sa-Vago"     onclick="_selecionarStatusAptoChecklist('Vago')"     style="padding:5px 14px;border-radius:20px;border:2px solid var(--border);background:transparent;color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;">Vago</button>
+          <button type="button" id="cl-sa-Ocupado"  onclick="_selecionarStatusAptoChecklist('Ocupado')"  style="padding:5px 14px;border-radius:20px;border:2px solid var(--border);background:transparent;color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;">Ocupado</button>
+          <button type="button" id="cl-sa-Bloqueado" onclick="_selecionarStatusAptoChecklist('Bloqueado')" style="padding:5px 14px;border-radius:20px;border:2px solid var(--border);background:transparent;color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;">Bloqueado</button>
+        </div>
         <div id="checklist-status-apto-div" style="display:none;margin-top:8px;font-size:11px;color:#92400e;background:#fffbe6;border:1px solid #f59e0b;border-radius:4px;padding:6px 10px;"></div>
       </div>
       <div id="checklist-confirmacao-wrap" style="margin-top:16px;padding:12px 14px;background:var(--surface2);border:2px solid var(--border);border-radius:var(--radius-sm);display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
@@ -3173,7 +3177,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <script src="js/hotels.js?v=20260619g"></script>
-<script src="js/apartments.js?v=20260625d"></script>
+<script src="js/apartments.js?v=20260625e"></script>
 <script src="js/maids.js?v=20260619g"></script>
 <script src="js/users.js?v=20260619g"></script>
 <script src="js/permissions.js?v=20260619g"></script>
