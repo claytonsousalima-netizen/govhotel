@@ -1726,9 +1726,9 @@ function calcularDiscrepanciasIntegracaoXls(r, dataIntegracao, qtdPessoasLimpeza
   if (gov === 'bloqueado' && adultos > 0)
     disc.push('Bloqueado com hóspedes informados');
 
-  // Regra 4: Ocupado com status de arrumação/conferência/inspeção
-  if (gov === 'ocupado' && ['limpando','inspecao','sujo'].includes(limpeza))
-    disc.push('Ocupado com status de arrumação/conferência');
+  // Regra 4: Ocupado com status de limpeza/inspeção/conferência (sujo é normal para ocupado)
+  if (gov === 'ocupado' && ['limpando','inspecao','conferencia'].includes(limpeza))
+    disc.push('Ocupado com status de limpeza/inspeção');
 
   // Regra 5: Possível saída do dia
   if (partida && partida === dataIntegracao && gov === 'ocupado')
