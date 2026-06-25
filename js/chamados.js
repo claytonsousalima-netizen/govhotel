@@ -1013,8 +1013,6 @@ function _showNovoChamadoNotif(c, tipo) {
 // Chamada uma única vez após o primeiro _fetchChamados().
 // Busca chamados ativos atribuídos ao usuário que ele ainda não viu.
 function _notificarChamadosPendentesLogin() {
-  const perfil = currentUser?.perfil;
-  if (perfil !== 'camareira' && perfil !== 'manutencao') return;
 
   const pendentes = _chamadosPendentesDoUsuario();
   if (!pendentes.length) return;
@@ -1042,14 +1040,18 @@ function _chamadosPendentesDoUsuario() {
   return _chamadosCache.filter(c => {
     if (!STATUS_PENDENTE.has(c.status)) return false;
 
+    // Chamado atribuído diretamente ao usuário logado — vale para qualquer perfil
+    if (c.responsavel_user_id === currentUser.id) return true;
+
+    // Camareira: chamados de governança do apto atribuído a ela (ou sem atribuição)
     if (perfil === 'camareira' && c.departamento === 'governanca') {
       const aptoDoC = Array.isArray(aptos) ? aptos.find(a => a.id === c.apartment_id) : null;
       if (!aptoDoC?.camareira_id) return true;           // sem atribuição → avisa todas
       return aptoDoC.camareira_id === currentUser.id;
     }
+    // Manutenção: chamados de manutenção sem responsável definido → avisa todos
     if (perfil === 'manutencao' && c.departamento === 'manutencao') {
-      if (!c.responsavel_user_id) return true;           // sem responsável → avisa todos
-      return c.responsavel_user_id === currentUser.id;
+      if (!c.responsavel_user_id) return true;
     }
     return false;
   });
@@ -1057,8 +1059,6 @@ function _chamadosPendentesDoUsuario() {
 
 function _iniciarLembreteChamados() {
   if (_chamadosLembreteInterval) return;
-  const perfil = currentUser?.perfil;
-  if (perfil !== 'camareira' && perfil !== 'manutencao') return;
 
   // Lembrete a cada 5 minutos para chamados ainda pendentes
   _chamadosLembreteInterval = setInterval(() => {
