@@ -1504,6 +1504,7 @@ async function renderAppCamareira() {
 // ── TIPO DE LIMPEZA — seleção no modal ───────────────────────
 
 let _checklistTipoSelecionado = 'Saída (checkout)';
+let _checklistDataPartida = null; // data_partida do apto atual (YYYY-MM-DD)
 
 function _tipoLimpezaEnum(nome) {
   const n = (nome || '').toLowerCase();
@@ -1527,15 +1528,29 @@ const _TIPOS_LIMPEZA_FALLBACK = [
 ];
 
 function _buildTipoBtns(wrap, tipos) {
-  _checklistTipoSelecionado = tipos[0].nome;
+  // Determina índice pré-selecionado pela data_partida do apto
+  let idxPre = 0;
+  if (_checklistDataPartida) {
+    const hoje = new Date().toLocaleDateString('sv'); // YYYY-MM-DD local
+    const isSaida = _checklistDataPartida <= hoje;
+    // Procura "Saída" ou "Permanência" na lista
+    for (let i = 0; i < tipos.length; i++) {
+      const n = (tipos[i].nome || '').toLowerCase();
+      if (isSaida  && (n.includes('saída') || n.includes('saida') || n.includes('checkout'))) { idxPre = i; break; }
+      if (!isSaida && n.includes('perm')) { idxPre = i; break; }
+    }
+  }
+  _checklistTipoSelecionado = tipos[idxPre].nome;
   wrap.innerHTML = tipos.map((t, i) =>
     `<button type="button" id="cl-tipo-btn-${i}"
-      class="btn btn-sm ${i === 0 ? 'btn-primary' : 'btn-ghost'}"
+      class="btn btn-sm ${i === idxPre ? 'btn-primary' : 'btn-ghost'}"
       style="flex:1;min-width:110px;"
       onclick="_selecionarTipoLimpeza('${(t.nome||'').replace(/'/g,"\\'")}',${i},${tipos.length})">
       ${_emojiTipoLimpeza(t.nome)} ${t.nome || 'Tipo'}
     </button>`
   ).join('');
+  // Dispara efeitos colaterais do tipo selecionado (ex.: mostrar campos Permanência)
+  _selecionarTipoLimpeza(tipos[idxPre].nome, idxPre, tipos.length);
 }
 
 async function _renderTipoLimpezaBtns() {
@@ -1643,6 +1658,22 @@ async function abrirChecklistApp(id) {
     ? `Re-limpeza — Apto ${apto.numero}`
     : `Limpeza — Apto ${apto.numero}`;
   document.getElementById('checklist-title').textContent = titulo;
+
+  // Exibir data de checkout e configurar pré-seleção de tipo
+  _checklistDataPartida = apto.data_partida || null;
+  const infoEl = document.getElementById('checklist-checkout-info');
+  if (infoEl) {
+    if (_checklistDataPartida) {
+      const hoje = new Date().toLocaleDateString('sv');
+      const dtFmt = _checklistDataPartida.split('-').reverse().join('/');
+      const label = _checklistDataPartida <= hoje ? `🚪 Checkout: ${dtFmt}` : `🛏 Saída prevista: ${dtFmt}`;
+      infoEl.textContent = label;
+      infoEl.style.display = '';
+    } else {
+      infoEl.style.display = 'none';
+    }
+  }
+
   const hotelId = currentUser?.hotelId;
   let q = supabaseClient.from('checklist_templates').select('nome').eq('ativo', true).order('ordem');
   if (hotelId) q = q.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
