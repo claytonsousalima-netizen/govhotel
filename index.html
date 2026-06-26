@@ -758,6 +758,8 @@ tr:last-child td { border-bottom: none; }
           <button class="filter-btn" onclick="filterMapa('manutencao',this)">🔧 Manutenção</button>
           <button class="filter-btn" onclick="filterMapa('inspecao',this)">🔎 Inspeção</button>
           <button class="filter-btn" id="filter-sem-camareira" onclick="_filtrarSemCamareira(this)">👤 Sem camareira</button>
+          <button class="filter-btn" id="filter-saida-hoje" onclick="_filtrarSaidaHoje(this)">🚪 Saídas hoje</button>
+          <button class="filter-btn" id="filter-entrada-hoje" onclick="_filtrarEntradaHoje(this)">🛎 Entradas hoje</button>
           <input class="search-input" placeholder="🔍 Buscar apto..." oninput="searchMapa(this.value)">
           <div id="mapa-filtros-avancados"></div>
         </div>
@@ -3205,14 +3207,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <script src="js/hotels.js?v=20260619g"></script>
-<script src="js/apartments.js?v=20260626f"></script>
+<script src="js/apartments.js?v=20260626g"></script>
 <script src="js/maids.js?v=20260619g"></script>
 <script src="js/users.js?v=20260619g"></script>
 <script src="js/permissions.js?v=20260619g"></script>
 <script src="js/chamados.js?v=20260625i"></script>
 <script src="js/config.js?v=20260626b"></script>
 <script src="js/dashboard.js?v=20260623c"></script>
-<script src="js/relatorios.js?v=20260626d"></script>
+<script src="js/relatorios.js?v=20260626e"></script>
 <script src="js/minha-fila.js?v=20260623a"></script>
 <script src="js/integracao-xls.js?v=20260625a"></script>
 <script src="js/historico-xls.js?v=20260625b"></script>

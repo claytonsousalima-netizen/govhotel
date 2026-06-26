@@ -288,6 +288,7 @@ function _relRenderShell() {
     { id:'pausas',          label:'⏸ Pausas' },
     { id:'discrepancia',    label:'🔴 Discrepância' },
     { id:'limpezas-camareira', label:'🧹 Limpezas/Camareira' },
+    { id:'saidas-entradas',   label:'🚪 Saídas/Entradas' },
   ];
 
   const { aptos, equipe, chamados, avisos } = _relData;
@@ -369,6 +370,7 @@ function _relAbrirAba(id) {
     chamados: _relAbaChamados, timeline: _relAbaTimeline, retrabalhos: _relAbaRetrabalhos,
     equipe: _relAbaEquipe, pausas: _relAbaPausas, discrepancia: _relAbaDiscrepancia,
     'limpezas-camareira': _relAbaLimpezasCamareira,
+    'saidas-entradas':    _relAbaSaidasEntradas,
   };
   if (map[id]) map[id](el);
 }
@@ -2287,6 +2289,168 @@ async function _lcBuscar() {
       </div>
     </div>
     <!-- Tabela -->
+    <div class="card" style="padding:0;overflow:hidden;">${tabelaHtml}</div>`;
+}
+
+// ── ABA: SAÍDAS / ENTRADAS ───────────────────────────────────────
+
+let _seF = null; // { data, tipo }
+
+async function _relAbaSaidasEntradas(el) {
+  if (!_seF) {
+    const hoje = new Date().toLocaleDateString('sv');
+    _seF = { data: hoje, tipo: 'todos' };
+  }
+
+  el.innerHTML = `
+    <div class="card" style="padding:14px 16px;margin-bottom:14px;">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <label style="font-size:11px;color:var(--text3);">Data</label>
+          <input type="date" id="se-f-data" value="${_seF.data}"
+            style="padding:5px 8px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;"
+            onchange="_seFiltrar()">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <label style="font-size:11px;color:var(--text3);">Tipo</label>
+          <select id="se-f-tipo" onchange="_seFiltrar()"
+            style="padding:5px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;min-width:160px;">
+            <option value="todos" ${_seF.tipo==='todos'?'selected':''}>— Todos —</option>
+            <option value="saida" ${_seF.tipo==='saida'?'selected':''}>🚪 Saída (checkout)</option>
+            <option value="entrada" ${_seF.tipo==='entrada'?'selected':''}>🛎 Entrada (ocupado sem saída)</option>
+            <option value="permanencia" ${_seF.tipo==='permanencia'?'selected':''}>🛏 Permanência</option>
+          </select>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="_seBuscar()">🔍 Buscar</button>
+        <button class="btn btn-ghost btn-sm" onclick="_seLimpar()">✕ Hoje</button>
+        <button class="btn btn-outline btn-sm" onclick="window.print()" style="margin-left:auto;">🖨 Imprimir</button>
+      </div>
+    </div>
+    <div id="se-resultado">
+      <div style="padding:32px;text-align:center;color:var(--text3);">⏳ Carregando...</div>
+    </div>`;
+
+  await _seBuscar();
+}
+
+function _seFiltrar() {
+  _seF.data = document.getElementById('se-f-data')?.value || new Date().toLocaleDateString('sv');
+  _seF.tipo = document.getElementById('se-f-tipo')?.value || 'todos';
+}
+
+function _seLimpar() {
+  _seF = { data: new Date().toLocaleDateString('sv'), tipo: 'todos' };
+  _relAbaSaidasEntradas(document.getElementById('rel-aba-conteudo'));
+}
+
+async function _seBuscar() {
+  _seFiltrar();
+  const res = document.getElementById('se-resultado');
+  if (res) res.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text3);">⏳ Buscando...</div>';
+
+  const hotelId = _relHotelId || currentUser?.hotelId;
+  const { data, error } = await supabaseClient
+    .from('integracao_xls_status_diario')
+    .select('apto, status_apto, status_governanca, adultos, criancas, data_partida, data_integracao')
+    .eq('hotel_id', hotelId)
+    .eq('data_integracao', _seF.data)
+    .order('apto');
+
+  if (error) {
+    if (res) res.innerHTML = `<div style="padding:24px;text-align:center;color:var(--danger);">Erro: ${error.message}</div>`;
+    return;
+  }
+
+  if (!data?.length) {
+    if (res) res.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px;">
+      Nenhum dado encontrado para ${_seF.data.split('-').reverse().join('/')}.<br>
+      <small style="font-size:11px;">Verifique se a integração XLS foi importada para esta data.</small></div>`;
+    return;
+  }
+
+  const { aptoById } = _relData;
+  // Mapeia numero → apto para cruzar com mapa
+  const aptoByNum = {};
+  Object.values(aptoById).forEach(a => { aptoByNum[String(a.numero)] = a; });
+
+  // Classifica cada linha
+  function _seTipo(row) {
+    const partida = row.data_partida;
+    const gov = (row.status_apto || '').toLowerCase();
+    if (partida === _seF.data) return 'saida';
+    if (partida && partida < _seF.data) return 'saida'; // checkout já passou
+    if (gov === 'ocupado' && (!partida || partida > _seF.data)) {
+      // Se não há data de saída anterior, consideramos entrada/permanência
+      return partida ? 'permanencia' : 'entrada';
+    }
+    return 'outros';
+  }
+
+  function _seTipoLabel(t) {
+    if (t === 'saida')       return `<span style="background:#fee2e2;color:#991b1b;border-radius:10px;padding:2px 9px;font-size:11px;font-weight:600;">🚪 Saída</span>`;
+    if (t === 'entrada')     return `<span style="background:#dcfce7;color:#166534;border-radius:10px;padding:2px 9px;font-size:11px;font-weight:600;">🛎 Entrada</span>`;
+    if (t === 'permanencia') return `<span style="background:#dbeafe;color:#1d4ed8;border-radius:10px;padding:2px 9px;font-size:11px;font-weight:600;">🛏 Permanência</span>`;
+    return `<span style="font-size:11px;color:var(--text3);">${row.status_apto || '—'}</span>`;
+  }
+
+  let linhas = data.map(row => ({ ...row, _tipo: _seTipo(row) }));
+  if (_seF.tipo !== 'todos') linhas = linhas.filter(r => r._tipo === _seF.tipo);
+
+  const totSaida  = linhas.filter(r => r._tipo === 'saida').length;
+  const totEntrada = linhas.filter(r => r._tipo === 'entrada').length;
+  const totPerm   = linhas.filter(r => r._tipo === 'permanencia').length;
+  const totAdultos = linhas.reduce((s, r) => s + (r.adultos || 0), 0);
+
+  const thStyle = 'padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--text3);white-space:nowrap;';
+
+  const tabelaHtml = linhas.length === 0
+    ? `<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px;">Nenhum registro para o filtro selecionado.</div>`
+    : `<div style="overflow:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead><tr style="background:var(--surface2);">
+          <th style="${thStyle}">Apto</th>
+          <th style="${thStyle}">Andar</th>
+          <th style="${thStyle}">Tipo</th>
+          <th style="${thStyle}">Status Apto</th>
+          <th style="${thStyle}">Governança</th>
+          <th style="${thStyle}">Adultos</th>
+          <th style="${thStyle}">Crianças</th>
+          <th style="${thStyle}">Data Saída</th>
+        </tr></thead>
+        <tbody>${linhas.map(r => {
+          const a = aptoByNum[String(r.apto)];
+          const dtSaida = r.data_partida ? r.data_partida.split('-').reverse().join('/') : '—';
+          return `<tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:8px 12px;font-weight:700;">${r.apto}</td>
+            <td style="padding:8px 12px;">${a?.andar != null ? a.andar + 'º' : '—'}</td>
+            <td style="padding:8px 12px;">${_seTipoLabel(r._tipo)}</td>
+            <td style="padding:8px 12px;">${r.status_apto || '—'}</td>
+            <td style="padding:8px 12px;">${r.status_governanca || '—'}</td>
+            <td style="padding:8px 12px;text-align:center;">${r.adultos || 0}</td>
+            <td style="padding:8px 12px;text-align:center;">${r.criancas || 0}</td>
+            <td style="padding:8px 12px;white-space:nowrap;">${dtSaida}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div>`;
+
+  if (res) res.innerHTML = `
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+      <div class="card" style="padding:14px 18px;flex:1;min-width:100px;text-align:center;">
+        <div style="font-size:26px;font-weight:700;color:#991b1b;">${totSaida}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px;">🚪 Saídas</div>
+      </div>
+      <div class="card" style="padding:14px 18px;flex:1;min-width:100px;text-align:center;">
+        <div style="font-size:26px;font-weight:700;color:#166534;">${totEntrada}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px;">🛎 Entradas</div>
+      </div>
+      <div class="card" style="padding:14px 18px;flex:1;min-width:100px;text-align:center;">
+        <div style="font-size:26px;font-weight:700;color:#1d4ed8;">${totPerm}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px;">🛏 Permanências</div>
+      </div>
+      <div class="card" style="padding:14px 18px;flex:1;min-width:100px;text-align:center;">
+        <div style="font-size:26px;font-weight:700;color:var(--primary);">${totAdultos}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px;">👥 Adultos total</div>
+      </div>
+    </div>
     <div class="card" style="padding:0;overflow:hidden;">${tabelaHtml}</div>`;
 }
 
