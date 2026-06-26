@@ -1193,6 +1193,20 @@ async function abrirChecklistSupervisora() {
   _supNovoStatusApto = apto.status_apto || null;
   _renderSupStatusAptoBtns();
 
+  // Badge de data de checkout no modal da supervisora
+  const _supInfoEl = document.getElementById('sup-checkout-info');
+  if (_supInfoEl) {
+    const _dp = apto.data_partida || null;
+    if (_dp) {
+      const _hoje = new Date().toLocaleDateString('sv');
+      const _dtFmt = _dp.split('-').reverse().join('/');
+      _supInfoEl.textContent = _dp <= _hoje ? `🚪 Checkout: ${_dtFmt}` : `🛏 Saída prevista: ${_dtFmt}`;
+      _supInfoEl.style.display = 'inline-block';
+    } else {
+      _supInfoEl.style.display = 'none';
+    }
+  }
+
   closeModal('modal-apto-detail');
   openModal('modal-conferencia-supervisora');
 }

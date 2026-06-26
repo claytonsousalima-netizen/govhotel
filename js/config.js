@@ -394,6 +394,21 @@ async function abrirChecklistApp(id) {
     : `Limpeza — Apto ${apto.numero}`;
   document.getElementById('checklist-title').textContent = titulo;
 
+  // Data de checkout — pré-seleção de tipo e badge informativo
+  if (typeof _checklistDataPartida !== 'undefined') _checklistDataPartida = apto.data_partida || null;
+  const _infoEl = document.getElementById('checklist-checkout-info');
+  if (_infoEl) {
+    const _dp = apto.data_partida || null;
+    if (_dp) {
+      const _hoje = new Date().toLocaleDateString('sv');
+      const _dtFmt = _dp.split('-').reverse().join('/');
+      _infoEl.textContent = _dp <= _hoje ? `🚪 Checkout: ${_dtFmt}` : `🛏 Saída prevista: ${_dtFmt}`;
+      _infoEl.style.display = '';
+    } else {
+      _infoEl.style.display = 'none';
+    }
+  }
+
   // Limpa estado de pausa, observação e campos de Permanência
   const obsEl = document.getElementById('checklist-obs');
   if (obsEl) obsEl.value = '';
