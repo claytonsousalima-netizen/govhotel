@@ -394,21 +394,6 @@ async function abrirChecklistApp(id) {
     : `Limpeza — Apto ${apto.numero}`;
   document.getElementById('checklist-title').textContent = titulo;
 
-  // Data de checkout — pré-seleção de tipo e badge informativo
-  if (typeof _checklistDataPartida !== 'undefined') _checklistDataPartida = apto.data_partida || null;
-  const _infoEl = document.getElementById('checklist-checkout-info');
-  if (_infoEl) {
-    const _dp = apto.data_partida || null;
-    if (_dp) {
-      const _hoje = new Date().toLocaleDateString('sv');
-      const _dtFmt = _dp.split('-').reverse().join('/');
-      _infoEl.textContent = _dp <= _hoje ? `🚪 Checkout: ${_dtFmt}` : `🛏 Saída prevista: ${_dtFmt}`;
-      _infoEl.style.display = '';
-    } else {
-      _infoEl.style.display = 'none';
-    }
-  }
-
   // Limpa estado de pausa, observação e campos de Permanência
   const obsEl = document.getElementById('checklist-obs');
   if (obsEl) obsEl.value = '';
@@ -430,6 +415,32 @@ async function abrirChecklistApp(id) {
   if (confirmLbl) confirmLbl.style.color = 'var(--text2)';
 
   const hotelId = currentUser?.hotelId;
+
+  // Busca data_partida da integração XLS (tabela integracao_xls_status_diario)
+  const { data: xlsRow } = await supabaseClient
+    .from('integracao_xls_status_diario')
+    .select('data_partida')
+    .eq('hotel_id', hotelId)
+    .eq('apto', String(apto.numero))
+    .not('data_partida', 'is', null)
+    .order('data_integracao', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const _dp = xlsRow?.data_partida || null;
+  if (typeof _checklistDataPartida !== 'undefined') _checklistDataPartida = _dp;
+  const _infoEl = document.getElementById('checklist-checkout-info');
+  if (_infoEl) {
+    if (_dp) {
+      const _hoje = new Date().toLocaleDateString('sv');
+      const _dtFmt = _dp.split('-').reverse().join('/');
+      _infoEl.textContent = _dp <= _hoje ? `🚪 Checkout: ${_dtFmt}` : `🛏 Saída prevista: ${_dtFmt}`;
+      _infoEl.style.display = '';
+    } else {
+      _infoEl.style.display = 'none';
+    }
+  }
+
   let query = supabaseClient.from('checklist_templates').select('nome').eq('ativo', true).order('ordem');
   if (hotelId) query = query.or(`hotel_id.eq.${hotelId},hotel_id.is.null`);
 

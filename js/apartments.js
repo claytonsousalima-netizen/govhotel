@@ -1193,10 +1193,19 @@ async function abrirChecklistSupervisora() {
   _supNovoStatusApto = apto.status_apto || null;
   _renderSupStatusAptoBtns();
 
-  // Badge de data de checkout no modal da supervisora
+  // Badge de data de checkout no modal da supervisora — busca de integracao_xls_status_diario
   const _supInfoEl = document.getElementById('sup-checkout-info');
   if (_supInfoEl) {
-    const _dp = apto.data_partida || null;
+    const { data: _xlsSup } = await supabaseClient
+      .from('integracao_xls_status_diario')
+      .select('data_partida')
+      .eq('hotel_id', apto.hotel_id || currentUser.hotelId)
+      .eq('apto', String(apto.numero))
+      .not('data_partida', 'is', null)
+      .order('data_integracao', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const _dp = _xlsSup?.data_partida || null;
     if (_dp) {
       const _hoje = new Date().toLocaleDateString('sv');
       const _dtFmt = _dp.split('-').reverse().join('/');
