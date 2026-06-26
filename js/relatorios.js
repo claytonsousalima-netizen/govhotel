@@ -2129,19 +2129,58 @@ async function _lcBuscar() {
   if (res) res.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text3);">⏳ Buscando...</div>';
 
   const hotelId = _relHotelId || currentUser?.hotelId;
+
+  // Query 1: total sem filtro de data para diagnóstico
+  const { data: totalData, error: totalErr } = await supabaseClient
+    .from('limpeza_sessoes')
+    .select('id, created_at', { count: 'exact' })
+    .eq('hotel_id', hotelId)
+    .limit(1);
+  const totalBanco = totalErr ? null : (totalData?.length >= 0 ? 'ok' : '?');
+
+  // Query 2: sem hotel_id para verificar se há dados sem hotel vinculado
+  const { data: semHotel } = await supabaseClient
+    .from('limpeza_sessoes')
+    .select('id, hotel_id, created_at')
+    .is('hotel_id', null)
+    .limit(5);
+
+  // Query 3: tudo sem filtro de hotel (limitado)
+  const { data: todosSemFiltro } = await supabaseClient
+    .from('limpeza_sessoes')
+    .select('id, hotel_id, created_at, camareira_id')
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  // Query principal com filtros
   let q = supabaseClient.from('limpeza_sessoes')
     .select('id, apartment_id, camareira_id, tipo_limpeza, inicio_at, fim_at, obs, created_at')
-    .eq('hotel_id', hotelId)
     .order('created_at', { ascending: true })
     .limit(2000);
 
+  if (hotelId)        q = q.eq('hotel_id', hotelId);
   if (_lcF.camareira) q = q.eq('camareira_id', _lcF.camareira);
   if (_lcF.dtIni)     q = q.gte('created_at', _lcF.dtIni + 'T00:00:00');
   if (_lcF.dtFim)     q = q.lte('created_at', _lcF.dtFim + 'T23:59:59');
 
   const { data, error } = await q;
   if (error) {
-    if (res) res.innerHTML = `<div style="padding:24px;text-align:center;color:var(--danger);">Erro ao buscar dados: ${error.message}</div>`;
+    if (res) res.innerHTML = `<div style="padding:24px;text-align:center;color:var(--danger);">Erro ao buscar dados: ${error.message}<br><small>hotelId=${hotelId} | totalErr=${totalErr?.message}</small></div>`;
+    return;
+  }
+
+  // Diagnóstico visível se 0 resultados
+  if ((data || []).length === 0 && res) {
+    const diagInfo = [
+      `hotelId usado: ${hotelId || '(nulo)'}`,
+      `Sessões com este hotel_id: ${totalErr ? 'erro: ' + totalErr.message : (totalData?.length + ' visíveis')}`,
+      `Sessões sem hotel_id (null): ${semHotel?.length ?? 'erro'}`,
+      `Últimas 10 sessões (sem filtro): ${(todosSemFiltro || []).map(s => `hotel=${s.hotel_id} data=${s.created_at?.slice(0,10)}`).join(' | ') || 'nenhuma'}`,
+      `Filtro datas: ${_lcF.dtIni} a ${_lcF.dtFim}`,
+    ];
+    res.innerHTML = `<div style="padding:20px;background:#fffbe6;border:1px solid #f59e0b;border-radius:var(--radius-sm);font-size:12px;font-family:monospace;">
+      <strong>⚠️ Nenhum dado encontrado — Diagnóstico:</strong><br>${diagInfo.map(l => '• ' + l).join('<br>')}
+    </div>`;
     return;
   }
 
