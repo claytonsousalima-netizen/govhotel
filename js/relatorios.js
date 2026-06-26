@@ -2338,12 +2338,31 @@ async function _seBuscar() {
   if (res) res.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text3);">⏳ Buscando...</div>';
 
   const hotelId = _relHotelId || currentUser?.hotelId;
+
+  // Passo 1: descobre a data de integração mais recente disponível
+  const { data: dtRow } = await supabaseClient
+    .from('integracao_xls_status_diario')
+    .select('data_integracao')
+    .eq('hotel_id', hotelId)
+    .not('data_partida', 'is', null)
+    .order('data_integracao', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!dtRow) {
+    if (res) res.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px;">
+      Nenhuma integração XLS encontrada para este hotel.<br>
+      <small style="font-size:11px;">Importe o XLS para que os dados de saída apareçam aqui.</small></div>`;
+    return;
+  }
+
+  // Passo 2: busca todos os aptos da importação mais recente e filtra por data_partida client-side
   const { data, error } = await supabaseClient
     .from('integracao_xls_status_diario')
     .select('apto, status_apto, status_governanca, adultos, criancas, data_partida, data_integracao')
     .eq('hotel_id', hotelId)
-    .eq('data_partida', _seF.data)
-    .order('data_integracao', { ascending: false })
+    .eq('data_integracao', dtRow.data_integracao)
+    .not('data_partida', 'is', null)
     .order('apto');
 
   if (error) {
@@ -2351,10 +2370,14 @@ async function _seBuscar() {
     return;
   }
 
-  if (!data?.length) {
+  // Filtra client-side pela data de saída selecionada
+  const filtrados = (data || []).filter(r => r.data_partida === _seF.data);
+
+  if (!filtrados.length) {
+    const dtIntFmt = dtRow.data_integracao.split('-').reverse().join('/');
     if (res) res.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px;">
-      Nenhum dado encontrado para ${_seF.data.split('-').reverse().join('/')}.<br>
-      <small style="font-size:11px;">Verifique se a integração XLS foi importada para esta data.</small></div>`;
+      Nenhuma saída para ${_seF.data.split('-').reverse().join('/')}.<br>
+      <small style="font-size:11px;">Dados da importação de ${dtIntFmt}. Se esperava saídas nesta data, verifique o XLS.</small></div>`;
     return;
   }
 
@@ -2362,9 +2385,9 @@ async function _seBuscar() {
   const aptoByNum = {};
   Object.values(aptoById).forEach(a => { aptoByNum[String(a.numero)] = a; });
 
-  // Deduplica: mantém apenas o registro mais recente por apto (query já ordenada desc)
+  // Deduplica por apto (já filtrado por data_partida)
   const seen = new Set();
-  const linhas = data.filter(r => {
+  const linhas = filtrados.filter(r => {
     if (seen.has(String(r.apto))) return false;
     seen.add(String(r.apto));
     return true;
