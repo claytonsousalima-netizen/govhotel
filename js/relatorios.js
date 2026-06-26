@@ -353,7 +353,7 @@ function _relLimparFiltros() {
 
 const _REL_ABAS = ['executivo','gargalos','resumo','status','sem-resp','tempo-limpeza',
   'produtividade','qualidade','checklists','chamados','timeline','retrabalhos','equipe','pausas','discrepancia',
-  'limpezas-camareira'];
+  'limpezas-camareira','saidas-entradas'];
 
 function _relAbrirAba(id) {
   _relAba = id;
@@ -2342,7 +2342,8 @@ async function _seBuscar() {
     .from('integracao_xls_status_diario')
     .select('apto, status_apto, status_governanca, adultos, criancas, data_partida, data_integracao')
     .eq('hotel_id', hotelId)
-    .eq('data_integracao', _seF.data)
+    .eq('data_partida', _seF.data)
+    .order('data_integracao', { ascending: false })
     .order('apto');
 
   if (error) {
@@ -2358,42 +2359,28 @@ async function _seBuscar() {
   }
 
   const { aptoById } = _relData;
-  // Mapeia numero → apto para cruzar com mapa
   const aptoByNum = {};
   Object.values(aptoById).forEach(a => { aptoByNum[String(a.numero)] = a; });
 
-  // Classifica cada linha
-  function _seTipo(row) {
-    const partida = row.data_partida;
-    const gov = (row.status_apto || '').toLowerCase();
-    if (partida === _seF.data) return 'saida';
-    if (partida && partida < _seF.data) return 'saida'; // checkout já passou
-    if (gov === 'ocupado' && partida && partida > _seF.data) return 'permanencia';
-    return 'outros';
-  }
+  // Deduplica: mantém apenas o registro mais recente por apto (query já ordenada desc)
+  const seen = new Set();
+  const linhas = data.filter(r => {
+    if (seen.has(String(r.apto))) return false;
+    seen.add(String(r.apto));
+    return true;
+  });
 
-  function _seTipoLabel(t) {
-    if (t === 'saida')       return `<span style="background:#fee2e2;color:#991b1b;border-radius:10px;padding:2px 9px;font-size:11px;font-weight:600;">🚪 Saída</span>`;
-    if (t === 'permanencia') return `<span style="background:#dbeafe;color:#1d4ed8;border-radius:10px;padding:2px 9px;font-size:11px;font-weight:600;">🛏 Permanência</span>`;
-    return `<span style="font-size:11px;color:var(--text3);">${row.status_apto || '—'}</span>`;
-  }
-
-  let linhas = data.map(row => ({ ...row, _tipo: _seTipo(row) }));
-  if (_seF.tipo !== 'todos') linhas = linhas.filter(r => r._tipo === _seF.tipo);
-
-  const totSaida  = linhas.filter(r => r._tipo === 'saida').length;
-  const totPerm   = linhas.filter(r => r._tipo === 'permanencia').length;
+  const totSaida   = linhas.length;
   const totAdultos = linhas.reduce((s, r) => s + (r.adultos || 0), 0);
 
   const thStyle = 'padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--text3);white-space:nowrap;';
 
   const tabelaHtml = linhas.length === 0
-    ? `<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px;">Nenhum registro para o filtro selecionado.</div>`
+    ? `<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px;">Nenhum registro encontrado.</div>`
     : `<div style="overflow:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;">
         <thead><tr style="background:var(--surface2);">
           <th style="${thStyle}">Apto</th>
           <th style="${thStyle}">Andar</th>
-          <th style="${thStyle}">Tipo</th>
           <th style="${thStyle}">Status Apto</th>
           <th style="${thStyle}">Governança</th>
           <th style="${thStyle}">Adultos</th>
@@ -2406,7 +2393,6 @@ async function _seBuscar() {
           return `<tr style="border-bottom:1px solid var(--border);">
             <td style="padding:8px 12px;font-weight:700;">${r.apto}</td>
             <td style="padding:8px 12px;">${a?.andar != null ? a.andar + 'º' : '—'}</td>
-            <td style="padding:8px 12px;">${_seTipoLabel(r._tipo)}</td>
             <td style="padding:8px 12px;">${r.status_apto || '—'}</td>
             <td style="padding:8px 12px;">${r.status_governanca || '—'}</td>
             <td style="padding:8px 12px;text-align:center;">${r.adultos || 0}</td>
@@ -2421,10 +2407,6 @@ async function _seBuscar() {
       <div class="card" style="padding:14px 18px;flex:1;min-width:100px;text-align:center;">
         <div style="font-size:26px;font-weight:700;color:#991b1b;">${totSaida}</div>
         <div style="font-size:11px;color:var(--text3);margin-top:2px;">🚪 Saídas</div>
-      </div>
-      <div class="card" style="padding:14px 18px;flex:1;min-width:100px;text-align:center;">
-        <div style="font-size:26px;font-weight:700;color:#1d4ed8;">${totPerm}</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:2px;">🛏 Permanências</div>
       </div>
       <div class="card" style="padding:14px 18px;flex:1;min-width:100px;text-align:center;">
         <div style="font-size:26px;font-weight:700;color:var(--primary);">${totAdultos}</div>
