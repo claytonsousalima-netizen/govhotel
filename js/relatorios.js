@@ -458,7 +458,9 @@ const _hoje = new Date().toISOString().slice(0,10);
 
 function _fmtDt(iso) {
   if (!iso) return '—';
-  return iso.slice(0,10).split('-').reverse().join('/') + (iso.slice(11,16) ? ' ' + iso.slice(11,16) : '');
+  const d = new Date(iso);
+  if (isNaN(d)) return iso.slice(0,10).split('-').reverse().join('/');
+  return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 function _fmtDur(ms) {
   if (ms == null || ms < 0) return '—';
@@ -1347,7 +1349,7 @@ function _relAbaTimeline(el) {
       cam: a.maid_id?_relNome(a.maid_id):'—', obs: (c.numero||'')+(c.prioridade?' ['+c.prioridade+']':'') });
   });
 
-  eventos.sort((a,b)=>a.dt.localeCompare(b.dt));
+  eventos.sort((a,b)=>b.dt.localeCompare(a.dt));
 
   const rows = eventos.slice(0,200).map(e=>[
     _fmtDt(e.dt), e.apto, e.evento, e.anterior, e.novo, e.usuario, e.cam, e.obs,
