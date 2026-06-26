@@ -2159,7 +2159,7 @@ async function _lcBuscar() {
   // Query principal com filtros
   let q = supabaseClient.from('limpeza_sessoes')
     .select('id, apartment_id, camareira_id, tipo_limpeza, inicio_at, fim_at, obs, created_at')
-    .order('created_at', { ascending: true })
+    .order('created_at', { ascending: false })
     .limit(2000);
 
   if (hotelId)        q = q.eq('hotel_id', hotelId);
@@ -2172,7 +2172,7 @@ async function _lcBuscar() {
     .select('id, apartment_id, obs, resultado, usuario_id, created_at')
     .eq('hotel_id', hotelId)
     .in('resultado', ['aprovado', 'aprovar'])
-    .order('created_at', { ascending: true })
+    .order('created_at', { ascending: false })
     .limit(2000);
   if (_lcF.camareira) qConf = qConf.eq('usuario_id', _lcF.camareira);
   if (_lcF.dtIni)     qConf = qConf.gte('created_at', _lcF.dtIni + 'T00:00:00');
@@ -2192,7 +2192,7 @@ async function _lcBuscar() {
   const registros = [
     ...sessoes.map(s => ({ ...s, _tipo: 'limpeza' })),
     ...conferencias.map(c => ({ ...c, _tipo: 'conferencia' })),
-  ].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
   const totalLimpezas    = sessoes.length;
   const totalConferencias = conferencias.length;

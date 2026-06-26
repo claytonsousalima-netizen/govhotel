@@ -6,6 +6,21 @@
 //            abrirModalReprovacao(), openAptoDetail()
 // ================================================================
 
+// Map apto_numero (string) -> data_partida (YYYY-MM-DD) do XLS mais recente
+let _mfXlsPartida = {};
+
+async function _mfCarregarXlsPartida(hotelId) {
+  const hoje = new Date().toLocaleDateString('sv');
+  const { data } = await supabaseClient
+    .from('integracao_xls_status_diario')
+    .select('apto, data_partida')
+    .eq('hotel_id', hotelId)
+    .eq('data_integracao', hoje)
+    .not('data_partida', 'is', null);
+  _mfXlsPartida = {};
+  (data || []).forEach(r => { if (r.data_partida) _mfXlsPartida[String(r.apto)] = r.data_partida; });
+}
+
 async function renderMinhaFila() {
   const el = document.getElementById('mf-content');
   if (!el) return;
@@ -35,6 +50,8 @@ async function renderMinhaFila() {
     if (typeof _aptoViewHotelId !== 'undefined') _aptoViewHotelId = hotelId;
     if (typeof syncApartamentos === 'function') await syncApartamentos();
   }
+
+  if (hotelId) await _mfCarregarXlsPartida(hotelId);
 
   const perfil = currentUser.perfil;
   if (perfil === 'camareira') {
@@ -84,15 +101,35 @@ function _mfBadgeApto(a) {
   return '';
 }
 
-// Bloco destacado de Status Apto para usar nos cards da fila
+// Bloco destacado de Status Apto + data de saída do hóspede
 function _mfAptoBlock(a) {
-  if (!a.status_apto) return '';
-  const op  = (typeof _statusAptoOpcoes !== 'undefined' ? _statusAptoOpcoes : []).find(o => o.nome === a.status_apto);
-  const cor = op?.cor || '#6b7280';
-  return `<div style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;
-    padding:2px 8px;border-radius:6px;background:${cor}22;color:${cor};border:1px solid ${cor}55;margin-top:5px;">
-    🏠 ${a.status_apto}
-  </div>`;
+  let html = '';
+
+  if (a.status_apto) {
+    const op  = (typeof _statusAptoOpcoes !== 'undefined' ? _statusAptoOpcoes : []).find(o => o.nome === a.status_apto);
+    const cor = op?.cor || '#6b7280';
+    html += `<div style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;
+      padding:2px 8px;border-radius:6px;background:${cor}22;color:${cor};border:1px solid ${cor}55;margin-top:5px;">
+      🏠 ${a.status_apto}</div>`;
+  }
+
+  const dp = _mfXlsPartida[String(a.numero)];
+  if (dp) {
+    const hoje = new Date().toLocaleDateString('sv');
+    const dtFmt = dp.split('-').reverse().join('/');
+    const isHoje = dp === hoje;
+    const isFuturo = dp > hoje;
+    const bg    = isHoje  ? '#fee2e2' : isFuturo ? '#dbeafe' : '#f3f4f6';
+    const cor   = isHoje  ? '#991b1b' : isFuturo ? '#1d4ed8' : '#6b7280';
+    const label = isHoje  ? `🚪 Checkout hoje (${dtFmt})`
+                : isFuturo ? `🛏 Saída: ${dtFmt}`
+                : `🚪 Saída: ${dtFmt}`;
+    html += `<div style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;
+      padding:2px 8px;border-radius:6px;background:${bg};color:${cor};border:1px solid ${cor}44;margin-top:5px;margin-left:4px;">
+      ${label}</div>`;
+  }
+
+  return html;
 }
 
 // ── CAMAREIRA: fila de limpeza ────────────────────────────────
