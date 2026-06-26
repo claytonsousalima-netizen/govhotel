@@ -287,6 +287,7 @@ function _relRenderShell() {
     { id:'equipe',          label:'👥 Equipe' },
     { id:'pausas',          label:'⏸ Pausas' },
     { id:'discrepancia',    label:'🔴 Discrepância' },
+    { id:'limpezas-camareira', label:'🧹 Limpezas/Camareira' },
   ];
 
   const { aptos, equipe, chamados, avisos } = _relData;
@@ -350,7 +351,8 @@ function _relLimparFiltros() {
 }
 
 const _REL_ABAS = ['executivo','gargalos','resumo','status','sem-resp','tempo-limpeza',
-  'produtividade','qualidade','checklists','chamados','timeline','retrabalhos','equipe','pausas','discrepancia'];
+  'produtividade','qualidade','checklists','chamados','timeline','retrabalhos','equipe','pausas','discrepancia',
+  'limpezas-camareira'];
 
 function _relAbrirAba(id) {
   _relAba = id;
@@ -366,6 +368,7 @@ function _relAbrirAba(id) {
     produtividade: _relAbaProdutividade, qualidade: _relAbaQualidade, checklists: _relAbaChecklists,
     chamados: _relAbaChamados, timeline: _relAbaTimeline, retrabalhos: _relAbaRetrabalhos,
     equipe: _relAbaEquipe, pausas: _relAbaPausas, discrepancia: _relAbaDiscrepancia,
+    'limpezas-camareira': _relAbaLimpezasCamareira,
   };
   if (map[id]) map[id](el);
 }
@@ -2033,6 +2036,134 @@ function _discFiltro(campo, valor) {
 function _discLimparFiltros() {
   _discFiltros = { data: new Date().toISOString().slice(0,10), apenasDisc: false, statusApto: '', statusGov: '', apto: '' };
   _relAbaDiscrepancia(document.getElementById('rel-aba-conteudo'));
+}
+
+// ── ABA: LIMPEZAS POR CAMAREIRA ──────────────────────────────────
+
+function _relAbaLimpezasCamareira(el) {
+  const f = _relFiltros;
+  const { limpezaSessoes, equipe, aptoById } = _relData;
+
+  const sessoes = (limpezaSessoes || []).filter(s => {
+    const dataRef = (s.inicio_at || s.created_at || '').slice(0, 10);
+    if (f.dtIni     && dataRef < f.dtIni)   return false;
+    if (f.dtFim     && dataRef > f.dtFim)   return false;
+    if (f.camareira && s.camareira_id !== f.camareira) return false;
+    if (f.apto) {
+      const a = aptoById[s.apartment_id];
+      if (!a || !String(a.numero || '').toLowerCase().includes(f.apto.toLowerCase())) return false;
+    }
+    return true;
+  }).sort((a, b) => (a.inicio_at || a.created_at) < (b.inicio_at || b.created_at) ? -1 : 1);
+
+  function _durMin(s) {
+    if (!s.fim_at || !s.inicio_at) return null;
+    return Math.round((new Date(s.fim_at) - new Date(s.inicio_at)) / 60000);
+  }
+  function _fmtMin(min) {
+    if (min == null || min < 0) return '—';
+    if (min < 60) return min + 'min';
+    return Math.floor(min / 60) + 'h ' + (min % 60) + 'min';
+  }
+
+  const comFim    = sessoes.filter(s => s.fim_at).length;
+  const minTotal  = sessoes.reduce((acc, s) => { const d = _durMin(s); return acc + (d ?? 0); }, 0);
+  const mediaMin  = comFim > 0 ? Math.round(minTotal / comFim) : null;
+
+  const nomeCam   = f.camareira
+    ? (equipe.find(u => u.user_id === f.camareira)?.nome || '—')
+    : 'Todas as camareiras';
+  const periodoTx = (f.dtIni || f.dtFim)
+    ? `${f.dtIni ? f.dtIni.split('-').reverse().join('/') : '…'} a ${f.dtFim ? f.dtFim.split('-').reverse().join('/') : '…'}`
+    : 'Todo o período';
+  const emitidoEm = new Date().toLocaleString('pt-BR');
+
+  const linhas = sessoes.map(s => {
+    const apto = aptoById[s.apartment_id];
+    const dur  = _durMin(s);
+    const atrasado = dur != null && s.tipo_limpeza && dur > (_tlMetaMs(s.tipo_limpeza) / 60000 * 1.2);
+    return `<tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:8px 12px;">${(s.inicio_at || s.created_at || '').slice(0,10).split('-').reverse().join('/')}</td>
+      <td style="padding:8px 12px;font-weight:700;">${apto?.numero || '—'}</td>
+      <td style="padding:8px 12px;">${apto?.tipo || '—'}</td>
+      <td style="padding:8px 12px;">${_tlLabelTipo(s.tipo_limpeza)}</td>
+      <td style="padding:8px 12px;">${(s.inicio_at || '').slice(11,16) || '—'}</td>
+      <td style="padding:8px 12px;">${(s.fim_at || '').slice(11,16) || '—'}</td>
+      <td style="padding:8px 12px;${atrasado ? 'color:#dc2626;font-weight:600;' : ''}">${_fmtMin(dur)}</td>
+      <td style="padding:8px 12px;font-size:11px;color:var(--text3);max-width:180px;">${s.obs || '—'}</td>
+    </tr>`;
+  }).join('');
+
+  const tabelaHtml = sessoes.length === 0
+    ? `<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px;">
+        Nenhuma limpeza encontrada. Selecione uma camareira e/ou período nos filtros acima.
+       </div>`
+    : `<div style="overflow:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr style="background:var(--surface2);">
+              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--text3);white-space:nowrap;">Data</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--text3);">Apto</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--text3);">Tipo Apto</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--text3);">Tipo Limpeza</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--text3);">Início</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--text3);">Fim</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--text3);">Duração</th>
+              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--text3);">Observações</th>
+            </tr>
+          </thead>
+          <tbody>${linhas}</tbody>
+        </table>
+       </div>`;
+
+  el.innerHTML = `
+    <div id="lc-print-area">
+      <!-- Cabeçalho visível só na impressão -->
+      <div class="lc-print-header">
+        <div style="font-size:20px;font-weight:700;margin-bottom:6px;">Relatório de Limpezas por Camareira</div>
+        <div style="font-size:13px;">Camareira: <strong>${nomeCam}</strong> &nbsp;|&nbsp; Período: <strong>${periodoTx}</strong></div>
+        <div style="font-size:11px;color:#666;margin-top:3px;">Emitido em ${emitidoEm}</div>
+        <hr style="margin:12px 0 16px;">
+      </div>
+
+      <!-- Cabeçalho visível na tela -->
+      <div class="card lc-screen-only" style="padding:14px 16px;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-size:15px;font-weight:700;">🧹 Limpezas por Camareira</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:3px;">
+              ${nomeCam} &nbsp;·&nbsp; ${periodoTx} &nbsp;·&nbsp; ${sessoes.length} registro(s)
+            </div>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="window.print()">🖨 Imprimir</button>
+        </div>
+      </div>
+
+      <!-- Totalizadores -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+        <div class="card" style="padding:14px 18px;flex:1;min-width:120px;text-align:center;">
+          <div style="font-size:26px;font-weight:700;color:var(--primary);">${sessoes.length}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;">Total de limpezas</div>
+        </div>
+        <div class="card" style="padding:14px 18px;flex:1;min-width:120px;text-align:center;">
+          <div style="font-size:26px;font-weight:700;color:var(--primary);">${_fmtMin(minTotal)}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;">Tempo total</div>
+        </div>
+        <div class="card" style="padding:14px 18px;flex:1;min-width:120px;text-align:center;">
+          <div style="font-size:26px;font-weight:700;color:var(--primary);">${_fmtMin(mediaMin)}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;">Duração média</div>
+        </div>
+        <div class="card" style="padding:14px 18px;flex:1;min-width:120px;text-align:center;">
+          <div style="font-size:26px;font-weight:700;color:var(--primary);">${comFim}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;">Concluídas</div>
+        </div>
+      </div>
+
+      <!-- Tabela -->
+      <div class="card" style="padding:0;overflow:hidden;">
+        ${tabelaHtml}
+      </div>
+    </div>`;
 }
 
 // ── Patch openPage ────────────────────────────────────────────────

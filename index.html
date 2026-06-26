@@ -608,6 +608,20 @@ tr:last-child td { border-bottom: none; }
 .toggle-wrap { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 .toggle-wrap label { font-size: 13px; color: var(--text); cursor: pointer; }
 .toggle-wrap input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent); }
+
+/* ── Impressão: Relatório de Limpezas por Camareira ── */
+.lc-print-header { display: none; }
+@media print {
+  body * { visibility: hidden; }
+  #lc-print-area, #lc-print-area * { visibility: visible; }
+  #lc-print-area { position: absolute; inset: 0; padding: 20px; font-family: Arial, sans-serif; }
+  .lc-print-header { display: block !important; }
+  .lc-screen-only  { display: none !important; }
+  .card { box-shadow: none !important; border: 1px solid #ddd !important; }
+  table { font-size: 11px !important; }
+  th, td { padding: 6px 8px !important; }
+  button { display: none !important; }
+}
 </style>
 </head>
 <body>
@@ -3194,7 +3208,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 <script src="js/chamados.js?v=20260625i"></script>
 <script src="js/config.js?v=20260625a"></script>
 <script src="js/dashboard.js?v=20260623c"></script>
-<script src="js/relatorios.js?v=20260625a"></script>
+<script src="js/relatorios.js?v=20260625b"></script>
 <script src="js/minha-fila.js?v=20260623a"></script>
 <script src="js/integracao-xls.js?v=20260625a"></script>
 <script src="js/historico-xls.js?v=20260625b"></script>
