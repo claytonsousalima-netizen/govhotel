@@ -2038,8 +2038,8 @@ function _discLimparFiltros() {
   _relAbaDiscrepancia(document.getElementById('rel-aba-conteudo'));
 }
 
-// ── ABA: LIMPEZAS POR CAMAREIRA ──────────────────────────────────
-// Filtros próprios, independentes do filtro global. Query própria ao Supabase.
+// ── ABA: LIMPEZAS / CONFERÊNCIAS POR USUÁRIO ─────────────────────
+// Filtros próprios, independentes do filtro global. Queries próprias ao Supabase.
 
 let _lcF = null; // { dtIni, dtFim, camareira }
 
@@ -2051,7 +2051,7 @@ function _lcFmtMin(min) {
 
 async function _relAbaLimpezasCamareira(el) {
   const { equipe } = _relData;
-  const camareiras = equipe.filter(u => u.perfil === 'camareira' && u.ativo);
+  const todosUsuarios = equipe.filter(u => u.ativo).sort((a,b) => (a.nome||'').localeCompare(b.nome||''));
 
   // Inicializar filtros com padrão dos últimos 30 dias
   if (!_lcF) {
@@ -2060,15 +2060,15 @@ async function _relAbaLimpezasCamareira(el) {
     _lcF = { dtIni: ha30, dtFim: hoje, camareira: '' };
   }
 
-  const opsCam = camareiras.map(u =>
-    `<option value="${u.user_id}" ${u.user_id === _lcF.camareira ? 'selected' : ''}>${u.nome}</option>`
+  const opsCam = todosUsuarios.map(u =>
+    `<option value="${u.user_id}" ${u.user_id === _lcF.camareira ? 'selected' : ''}>${u.nome}${u.perfil ? ' (' + u.perfil + ')' : ''}</option>`
   ).join('');
 
   el.innerHTML = `
     <div id="lc-print-area">
       <!-- Cabeçalho impressão -->
       <div class="lc-print-header">
-        <div style="font-size:20px;font-weight:700;margin-bottom:6px;">Relatório de Limpezas por Camareira</div>
+        <div style="font-size:20px;font-weight:700;margin-bottom:6px;">Relatório de Limpezas e Conferências por Usuário</div>
         <div id="lc-print-subtitulo" style="font-size:13px;"></div>
         <div id="lc-print-emitido"  style="font-size:11px;color:#666;margin-top:3px;"></div>
         <hr style="margin:12px 0 16px;">
@@ -2078,10 +2078,10 @@ async function _relAbaLimpezasCamareira(el) {
       <div class="card lc-screen-only" style="padding:14px 16px;margin-bottom:14px;">
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
           <div style="display:flex;flex-direction:column;gap:3px;">
-            <label style="font-size:11px;color:var(--text3);">Camareira</label>
+            <label style="font-size:11px;color:var(--text3);">Usuário</label>
             <select id="lc-f-cam" onchange="_lcFiltrar()"
-              style="padding:5px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;min-width:180px;">
-              <option value="">— Todas —</option>
+              style="padding:5px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;min-width:200px;">
+              <option value="">— Todos —</option>
               ${opsCam}
             </select>
           </div>
@@ -2163,30 +2163,35 @@ async function _lcBuscar() {
   if (_lcF.dtIni)     q = q.gte('created_at', _lcF.dtIni + 'T00:00:00');
   if (_lcF.dtFim)     q = q.lte('created_at', _lcF.dtFim + 'T23:59:59');
 
-  const { data, error } = await q;
+  // Query conferências aprovadas — executa em paralelo com limpeza_sessoes
+  let qConf = supabaseClient.from('conferencia_supervisora_checklists')
+    .select('id, apartment_id, obs, resultado, usuario_id, created_at')
+    .eq('hotel_id', hotelId)
+    .in('resultado', ['aprovado', 'aprovar'])
+    .order('created_at', { ascending: true })
+    .limit(2000);
+  if (_lcF.camareira) qConf = qConf.eq('usuario_id', _lcF.camareira);
+  if (_lcF.dtIni)     qConf = qConf.gte('created_at', _lcF.dtIni + 'T00:00:00');
+  if (_lcF.dtFim)     qConf = qConf.lte('created_at', _lcF.dtFim + 'T23:59:59');
+
+  const [{ data, error }, { data: confData }] = await Promise.all([q, qConf]);
   if (error) {
-    if (res) res.innerHTML = `<div style="padding:24px;text-align:center;color:var(--danger);">Erro ao buscar dados: ${error.message}<br><small>hotelId=${hotelId} | totalErr=${totalErr?.message}</small></div>`;
+    if (res) res.innerHTML = `<div style="padding:24px;text-align:center;color:var(--danger);">Erro ao buscar dados: ${error.message}</div>`;
     return;
   }
 
-  // Diagnóstico visível se 0 resultados
-  if ((data || []).length === 0 && res) {
-    const diagInfo = [
-      `hotelId usado: ${hotelId || '(nulo)'}`,
-      `Sessões com este hotel_id: ${totalErr ? 'erro: ' + totalErr.message : (totalData?.length + ' visíveis')}`,
-      `Sessões sem hotel_id (null): ${semHotel?.length ?? 'erro'}`,
-      `Últimas 10 sessões (sem filtro): ${(todosSemFiltro || []).map(s => `hotel=${s.hotel_id} data=${s.created_at?.slice(0,10)}`).join(' | ') || 'nenhuma'}`,
-      `Filtro datas: ${_lcF.dtIni} a ${_lcF.dtFim}`,
-    ];
-    res.innerHTML = `<div style="padding:20px;background:#fffbe6;border:1px solid #f59e0b;border-radius:var(--radius-sm);font-size:12px;font-family:monospace;">
-      <strong>⚠️ Nenhum dado encontrado — Diagnóstico:</strong><br>${diagInfo.map(l => '• ' + l).join('<br>')}
-    </div>`;
-    return;
-  }
-
-  const sessoes = data || [];
+  const sessoes      = data || [];
+  const conferencias = confData || [];
   const { aptoById, equipe } = _relData;
 
+  // Unificar e ordenar cronologicamente
+  const registros = [
+    ...sessoes.map(s => ({ ...s, _tipo: 'limpeza' })),
+    ...conferencias.map(c => ({ ...c, _tipo: 'conferencia' })),
+  ].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+  const totalLimpezas    = sessoes.length;
+  const totalConferencias = conferencias.length;
   const comFim   = sessoes.filter(s => s.fim_at).length;
   const minTotal = sessoes.reduce((acc, s) => {
     if (!s.fim_at || !s.created_at) return acc;
@@ -2194,16 +2199,16 @@ async function _lcBuscar() {
   }, 0);
   const mediaMin = comFim > 0 ? Math.round(minTotal / comFim) : null;
 
-  const nomeCam  = _lcF.camareira
+  const nomeUsuario = _lcF.camareira
     ? (equipe.find(u => u.user_id === _lcF.camareira)?.nome || '—')
-    : 'Todas as camareiras';
+    : 'Todos os usuários';
   const periodoTx = (_lcF.dtIni || _lcF.dtFim)
     ? `${_lcF.dtIni ? _lcF.dtIni.split('-').reverse().join('/') : '…'} a ${_lcF.dtFim ? _lcF.dtFim.split('-').reverse().join('/') : '…'}`
     : 'Todo o período';
 
   const printSub = document.getElementById('lc-print-subtitulo');
   const printEmt = document.getElementById('lc-print-emitido');
-  if (printSub) printSub.innerHTML = `Camareira: <strong>${nomeCam}</strong> &nbsp;|&nbsp; Período: <strong>${periodoTx}</strong>`;
+  if (printSub) printSub.innerHTML = `Usuário: <strong>${nomeUsuario}</strong> &nbsp;|&nbsp; Período: <strong>${periodoTx}</strong>`;
   if (printEmt) printEmt.textContent = `Emitido em ${new Date().toLocaleString('pt-BR')}`;
 
   function _durMin(s) {
@@ -2213,37 +2218,48 @@ async function _lcBuscar() {
     return Math.round((new Date(s.fim_at) - new Date(ini)) / 60000);
   }
 
-  const linhas = sessoes.map(s => {
-    const apto = aptoById[s.apartment_id];
-    const dur  = _durMin(s);
-    const _dtIni   = new Date(s.inicio_at || s.created_at);
-    const dataExib = isNaN(_dtIni) ? '—' : _dtIni.toLocaleDateString('pt-BR');
-    const hrIni    = isNaN(_dtIni) ? '—' : _dtIni.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    const hrFim    = s.fim_at ? new Date(s.fim_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '—';
-    const atrasado = dur != null && s.tipo_limpeza && dur > (_tlMetaMs(s.tipo_limpeza) / 60000 * 1.2);
+  const thStyle = 'padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--text3);white-space:nowrap;';
+
+  const linhas = registros.map(r => {
+    const apto   = aptoById[r.apartment_id];
+    const isLimp = r._tipo === 'limpeza';
+    const _dtRef  = new Date(isLimp ? (r.inicio_at || r.created_at) : r.created_at);
+    const dataExib = isNaN(_dtRef) ? '—' : _dtRef.toLocaleDateString('pt-BR');
+    const hrIni    = isNaN(_dtRef) ? '—' : _dtRef.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const hrFim    = isLimp && r.fim_at
+      ? new Date(r.fim_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+      : (isLimp ? '—' : hrIni);
+    const dur      = isLimp ? _durMin(r) : null;
+    const atrasado = isLimp && dur != null && r.tipo_limpeza && dur > (_tlMetaMs(r.tipo_limpeza) / 60000 * 1.2);
+    const usuarioId = isLimp ? r.camareira_id : r.usuario_id;
+    const nomeUser  = equipe.find(u => u.user_id === usuarioId)?.nome || '—';
+    const atividadeBadge = isLimp
+      ? `<span style="background:#dbeafe;color:#1d4ed8;border-radius:10px;padding:2px 8px;font-size:11px;font-weight:600;">${_tlLabelTipo(r.tipo_limpeza)}</span>`
+      : `<span style="background:#dcfce7;color:#166534;border-radius:10px;padding:2px 8px;font-size:11px;font-weight:600;">Confer\xEAncia ✓</span>`;
     return `<tr style="border-bottom:1px solid var(--border);">
       <td style="padding:8px 12px;white-space:nowrap;">${dataExib}</td>
       <td style="padding:8px 12px;font-weight:700;">${apto?.numero || '—'}</td>
       <td style="padding:8px 12px;">${apto?.tipo || '—'}</td>
-      <td style="padding:8px 12px;">${_tlLabelTipo(s.tipo_limpeza)}</td>
+      <td style="padding:8px 12px;">${nomeUser}</td>
+      <td style="padding:8px 12px;">${atividadeBadge}</td>
       <td style="padding:8px 12px;">${hrIni}</td>
       <td style="padding:8px 12px;">${hrFim}</td>
-      <td style="padding:8px 12px;${atrasado ? 'color:#dc2626;font-weight:600;' : ''}">${_lcFmtMin(dur)}</td>
-      <td style="padding:8px 12px;">${s.obs || '—'}</td>
+      <td style="padding:8px 12px;${atrasado ? 'color:#dc2626;font-weight:600;' : ''}">${isLimp ? _lcFmtMin(dur) : '—'}</td>
+      <td style="padding:8px 12px;">${r.obs || '—'}</td>
     </tr>`;
   }).join('');
 
-  const thStyle = 'padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--text3);white-space:nowrap;';
-  const tabelaHtml = sessoes.length === 0
+  const tabelaHtml = registros.length === 0
     ? `<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px;">
-        Nenhuma limpeza encontrada para os filtros selecionados.</div>`
+        Nenhum registro encontrado para os filtros selecionados.</div>`
     : `<div style="overflow:auto;">
         <table style="width:100%;border-collapse:collapse;font-size:13px;">
           <thead><tr style="background:var(--surface2);">
             <th style="${thStyle}">Data</th><th style="${thStyle}">Apto</th>
-            <th style="${thStyle}">Tipo Apto</th><th style="${thStyle}">Tipo Limpeza</th>
-            <th style="${thStyle}">Início</th><th style="${thStyle}">Fim</th>
-            <th style="${thStyle}">Duração</th><th style="${thStyle}">Observações</th>
+            <th style="${thStyle}">Tipo Apto</th><th style="${thStyle}">Usu\xE1rio</th>
+            <th style="${thStyle}">Atividade</th>
+            <th style="${thStyle}">In\xEDcio</th><th style="${thStyle}">Fim</th>
+            <th style="${thStyle}">Dura\xE7\xE3o</th><th style="${thStyle}">Observa\xE7\xF5es</th>
           </tr></thead>
           <tbody>${linhas}</tbody>
         </table>
@@ -2253,20 +2269,20 @@ async function _lcBuscar() {
     <!-- Totalizadores -->
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
       <div class="card" style="padding:14px 18px;flex:1;min-width:120px;text-align:center;">
-        <div style="font-size:26px;font-weight:700;color:var(--primary);">${sessoes.length}</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:2px;">Total limpezas</div>
+        <div style="font-size:26px;font-weight:700;color:var(--primary);">${totalLimpezas}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px;">Limpezas</div>
       </div>
       <div class="card" style="padding:14px 18px;flex:1;min-width:120px;text-align:center;">
-        <div style="font-size:26px;font-weight:700;color:var(--primary);">${comFim}</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:2px;">Concluídas</div>
+        <div style="font-size:26px;font-weight:700;color:#166534;">${totalConferencias}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px;">Confer\xEAncias ✓</div>
       </div>
       <div class="card" style="padding:14px 18px;flex:1;min-width:120px;text-align:center;">
         <div style="font-size:26px;font-weight:700;color:var(--primary);">${_lcFmtMin(minTotal)}</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:2px;">Tempo total</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px;">Tempo total limpeza</div>
       </div>
       <div class="card" style="padding:14px 18px;flex:1;min-width:120px;text-align:center;">
         <div style="font-size:26px;font-weight:700;color:var(--primary);">${_lcFmtMin(mediaMin)}</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:2px;">Duração média</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px;">Dura\xE7\xE3o m\xE9dia</div>
       </div>
     </div>
     <!-- Tabela -->
