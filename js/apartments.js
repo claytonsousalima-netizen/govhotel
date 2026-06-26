@@ -2155,12 +2155,10 @@ const _aptoFiltros = {
   comChamado:   false,
   semCamareira: false,
   saidaHoje:    false,
-  entradaHoje:  false,
 };
 
-// Sets de números de apto (string) vindos da integração XLS
+// Set de números de apto (string) vindos da integração XLS
 const _aptosXlsSaida  = new Set();
-const _aptosXlsEntrada = new Set();
 
 // Set de apartment_ids com chamados abertos (carregado sob demanda)
 const _aptosComChamadoAberto = new Set();
@@ -2175,17 +2173,15 @@ function _filtrarAptos(lista) {
     if (_aptoFiltros.comChamado && !_aptosComChamadoAberto.has(a.id))               return false;
     if (_aptoFiltros.semCamareira && a.camareira_id)                                return false;
     if (_aptoFiltros.saidaHoje   && !_aptosXlsSaida.has(String(a.numero)))          return false;
-    if (_aptoFiltros.entradaHoje && !_aptosXlsEntrada.has(String(a.numero)))        return false;
     return true;
   });
 }
 
-// ── FILTROS XLS: SAÍDAS / ENTRADAS HOJE ──────────────────────
+// ── FILTRO XLS: SAÍDAS HOJE ──────────────────────────────────
 async function _filtrarSaidaHoje(btn) {
   const ativo = !_aptoFiltros.saidaHoje;
   // Desativa outros filtros exclusivos
   _aptoFiltros.saidaHoje   = ativo;
-  _aptoFiltros.entradaHoje = false;
   _aptoFiltros.semCamareira = false;
   document.querySelectorAll('#mapa-filters .filter-btn').forEach(b => b.classList.remove('active'));
   if (ativo) {
@@ -2213,38 +2209,6 @@ async function _filtrarSaidaHoje(btn) {
   if (typeof renderKanban === 'function') renderKanban();
 }
 
-async function _filtrarEntradaHoje(btn) {
-  const ativo = !_aptoFiltros.entradaHoje;
-  _aptoFiltros.entradaHoje  = ativo;
-  _aptoFiltros.saidaHoje    = false;
-  _aptoFiltros.semCamareira = false;
-  document.querySelectorAll('#mapa-filters .filter-btn').forEach(b => b.classList.remove('active'));
-  if (ativo) {
-    btn.classList.add('active');
-    btn.textContent = '⏳ Entradas hoje';
-    const hoje = new Date().toLocaleDateString('sv');
-    const hotelId = currentUser?.hotelId;
-    // Entrada = ocupado hoje sem saída hoje (data_partida nula ou futura)
-    const { data } = await supabaseClient
-      .from('integracao_xls_status_diario')
-      .select('apto, status_apto, data_partida')
-      .eq('hotel_id', hotelId)
-      .eq('data_integracao', hoje)
-      .eq('status_apto', 'ocupado');
-    _aptosXlsEntrada.clear();
-    (data || []).forEach(r => {
-      if (!r.data_partida || r.data_partida > hoje) _aptosXlsEntrada.add(String(r.apto));
-    });
-    btn.textContent = `🛎 Entradas hoje (${_aptosXlsEntrada.size})`;
-    btn.classList.add('active');
-  } else {
-    _aptosXlsEntrada.clear();
-    btn.textContent = '🛎 Entradas hoje';
-    document.getElementById('filter-entrada-hoje')?.classList.remove('active');
-  }
-  renderMapa();
-  if (typeof renderKanban === 'function') renderKanban();
-}
 
 function _tempoStatus(dateStr) {
   if (!dateStr) return '';
@@ -2475,11 +2439,8 @@ function renderMapa() {
 function filterMapa(status, btn) {
   _aptoFiltros.status = status;
   _aptoFiltros.saidaHoje   = false; _aptosXlsSaida.clear();
-  _aptoFiltros.entradaHoje = false; _aptosXlsEntrada.clear();
   const btnS = document.getElementById('filter-saida-hoje');
-  const btnE = document.getElementById('filter-entrada-hoje');
   if (btnS) btnS.textContent = '🚪 Saídas hoje';
-  if (btnE) btnE.textContent = '🛎 Entradas hoje';
   document.querySelectorAll('#mapa-filters .filter-btn').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
   // Sincroniza quick-filters no bar avançado

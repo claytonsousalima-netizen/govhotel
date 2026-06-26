@@ -288,7 +288,7 @@ function _relRenderShell() {
     { id:'pausas',          label:'⏸ Pausas' },
     { id:'discrepancia',    label:'🔴 Discrepância' },
     { id:'limpezas-camareira', label:'🧹 Limpezas/Camareira' },
-    { id:'saidas-entradas',   label:'🚪 Saídas/Entradas' },
+    { id:'saidas-entradas',   label:'🚪 Saídas do Dia' },
   ];
 
   const { aptos, equipe, chamados, avisos } = _relData;
@@ -2292,14 +2292,14 @@ async function _lcBuscar() {
     <div class="card" style="padding:0;overflow:hidden;">${tabelaHtml}</div>`;
 }
 
-// ── ABA: SAÍDAS / ENTRADAS ───────────────────────────────────────
+// ── ABA: SAÍDAS DO DIA ───────────────────────────────────────────
 
-let _seF = null; // { data, tipo }
+let _seF = null; // { data }
 
 async function _relAbaSaidasEntradas(el) {
   if (!_seF) {
     const hoje = new Date().toLocaleDateString('sv');
-    _seF = { data: hoje, tipo: 'todos' };
+    _seF = { data: hoje };
   }
 
   el.innerHTML = `
@@ -2310,16 +2310,6 @@ async function _relAbaSaidasEntradas(el) {
           <input type="date" id="se-f-data" value="${_seF.data}"
             style="padding:5px 8px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;"
             onchange="_seFiltrar()">
-        </div>
-        <div style="display:flex;flex-direction:column;gap:3px;">
-          <label style="font-size:11px;color:var(--text3);">Tipo</label>
-          <select id="se-f-tipo" onchange="_seFiltrar()"
-            style="padding:5px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;min-width:160px;">
-            <option value="todos" ${_seF.tipo==='todos'?'selected':''}>— Todos —</option>
-            <option value="saida" ${_seF.tipo==='saida'?'selected':''}>🚪 Saída (checkout)</option>
-            <option value="entrada" ${_seF.tipo==='entrada'?'selected':''}>🛎 Entrada (ocupado sem saída)</option>
-            <option value="permanencia" ${_seF.tipo==='permanencia'?'selected':''}>🛏 Permanência</option>
-          </select>
         </div>
         <button class="btn btn-primary btn-sm" onclick="_seBuscar()">🔍 Buscar</button>
         <button class="btn btn-ghost btn-sm" onclick="_seLimpar()">✕ Hoje</button>
@@ -2335,11 +2325,10 @@ async function _relAbaSaidasEntradas(el) {
 
 function _seFiltrar() {
   _seF.data = document.getElementById('se-f-data')?.value || new Date().toLocaleDateString('sv');
-  _seF.tipo = document.getElementById('se-f-tipo')?.value || 'todos';
 }
 
 function _seLimpar() {
-  _seF = { data: new Date().toLocaleDateString('sv'), tipo: 'todos' };
+  _seF = { data: new Date().toLocaleDateString('sv') };
   _relAbaSaidasEntradas(document.getElementById('rel-aba-conteudo'));
 }
 
@@ -2379,16 +2368,12 @@ async function _seBuscar() {
     const gov = (row.status_apto || '').toLowerCase();
     if (partida === _seF.data) return 'saida';
     if (partida && partida < _seF.data) return 'saida'; // checkout já passou
-    if (gov === 'ocupado' && (!partida || partida > _seF.data)) {
-      // Se não há data de saída anterior, consideramos entrada/permanência
-      return partida ? 'permanencia' : 'entrada';
-    }
+    if (gov === 'ocupado' && partida && partida > _seF.data) return 'permanencia';
     return 'outros';
   }
 
   function _seTipoLabel(t) {
     if (t === 'saida')       return `<span style="background:#fee2e2;color:#991b1b;border-radius:10px;padding:2px 9px;font-size:11px;font-weight:600;">🚪 Saída</span>`;
-    if (t === 'entrada')     return `<span style="background:#dcfce7;color:#166534;border-radius:10px;padding:2px 9px;font-size:11px;font-weight:600;">🛎 Entrada</span>`;
     if (t === 'permanencia') return `<span style="background:#dbeafe;color:#1d4ed8;border-radius:10px;padding:2px 9px;font-size:11px;font-weight:600;">🛏 Permanência</span>`;
     return `<span style="font-size:11px;color:var(--text3);">${row.status_apto || '—'}</span>`;
   }
@@ -2397,7 +2382,6 @@ async function _seBuscar() {
   if (_seF.tipo !== 'todos') linhas = linhas.filter(r => r._tipo === _seF.tipo);
 
   const totSaida  = linhas.filter(r => r._tipo === 'saida').length;
-  const totEntrada = linhas.filter(r => r._tipo === 'entrada').length;
   const totPerm   = linhas.filter(r => r._tipo === 'permanencia').length;
   const totAdultos = linhas.reduce((s, r) => s + (r.adultos || 0), 0);
 
@@ -2437,10 +2421,6 @@ async function _seBuscar() {
       <div class="card" style="padding:14px 18px;flex:1;min-width:100px;text-align:center;">
         <div style="font-size:26px;font-weight:700;color:#991b1b;">${totSaida}</div>
         <div style="font-size:11px;color:var(--text3);margin-top:2px;">🚪 Saídas</div>
-      </div>
-      <div class="card" style="padding:14px 18px;flex:1;min-width:100px;text-align:center;">
-        <div style="font-size:26px;font-weight:700;color:#166534;">${totEntrada}</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:2px;">🛎 Entradas</div>
       </div>
       <div class="card" style="padding:14px 18px;flex:1;min-width:100px;text-align:center;">
         <div style="font-size:26px;font-weight:700;color:#1d4ed8;">${totPerm}</div>
