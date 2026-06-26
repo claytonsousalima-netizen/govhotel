@@ -2039,131 +2039,198 @@ function _discLimparFiltros() {
 }
 
 // ── ABA: LIMPEZAS POR CAMAREIRA ──────────────────────────────────
+// Filtros próprios, independentes do filtro global. Query própria ao Supabase.
 
-function _relAbaLimpezasCamareira(el) {
-  const f = _relFiltros;
-  const { limpezaSessoes, equipe, aptoById } = _relData;
+let _lcF = null; // { dtIni, dtFim, camareira }
 
-  const sessoes = (limpezaSessoes || []).filter(s => {
-    const dataRef = (s.inicio_at || s.created_at || '').slice(0, 10);
-    if (f.dtIni     && dataRef < f.dtIni)   return false;
-    if (f.dtFim     && dataRef > f.dtFim)   return false;
-    if (f.camareira && s.camareira_id !== f.camareira) return false;
-    if (f.apto) {
-      const a = aptoById[s.apartment_id];
-      if (!a || !String(a.numero || '').toLowerCase().includes(f.apto.toLowerCase())) return false;
-    }
-    return true;
-  }).sort((a, b) => (a.inicio_at || a.created_at) < (b.inicio_at || b.created_at) ? -1 : 1);
+function _lcFmtMin(min) {
+  if (min == null || min < 0) return '—';
+  if (min < 60) return min + 'min';
+  return Math.floor(min / 60) + 'h ' + (min % 60) + 'min';
+}
+
+async function _relAbaLimpezasCamareira(el) {
+  const { equipe } = _relData;
+  const camareiras = equipe.filter(u => u.perfil === 'camareira' && u.ativo);
+
+  // Inicializar filtros com padrão dos últimos 30 dias
+  if (!_lcF) {
+    const hoje = new Date().toISOString().slice(0, 10);
+    const ha30 = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+    _lcF = { dtIni: ha30, dtFim: hoje, camareira: '' };
+  }
+
+  const opsCam = camareiras.map(u =>
+    `<option value="${u.user_id}" ${u.user_id === _lcF.camareira ? 'selected' : ''}>${u.nome}</option>`
+  ).join('');
+
+  el.innerHTML = `
+    <div id="lc-print-area">
+      <!-- Cabeçalho impressão -->
+      <div class="lc-print-header">
+        <div style="font-size:20px;font-weight:700;margin-bottom:6px;">Relatório de Limpezas por Camareira</div>
+        <div id="lc-print-subtitulo" style="font-size:13px;"></div>
+        <div id="lc-print-emitido"  style="font-size:11px;color:#666;margin-top:3px;"></div>
+        <hr style="margin:12px 0 16px;">
+      </div>
+
+      <!-- Filtros próprios -->
+      <div class="card lc-screen-only" style="padding:14px 16px;margin-bottom:14px;">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+          <div style="display:flex;flex-direction:column;gap:3px;">
+            <label style="font-size:11px;color:var(--text3);">Camareira</label>
+            <select id="lc-f-cam" onchange="_lcFiltrar()"
+              style="padding:5px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;min-width:180px;">
+              <option value="">— Todas —</option>
+              ${opsCam}
+            </select>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px;">
+            <label style="font-size:11px;color:var(--text3);">De</label>
+            <input type="date" id="lc-f-ini" value="${_lcF.dtIni}" onchange="_lcFiltrar()"
+              style="padding:5px 8px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px;">
+            <label style="font-size:11px;color:var(--text3);">Até</label>
+            <input type="date" id="lc-f-fim" value="${_lcF.dtFim}" onchange="_lcFiltrar()"
+              style="padding:5px 8px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;">
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="_lcBuscar()">🔍 Buscar</button>
+          <button class="btn btn-ghost btn-sm" onclick="_lcLimpar()">✕ Limpar</button>
+          <button class="btn btn-outline btn-sm" onclick="window.print()" style="margin-left:auto;">🖨 Imprimir</button>
+        </div>
+      </div>
+
+      <!-- Resultado -->
+      <div id="lc-resultado">
+        <div style="padding:32px;text-align:center;color:var(--text3);">⏳ Carregando...</div>
+      </div>
+    </div>`;
+
+  await _lcBuscar();
+}
+
+function _lcFiltrar() {
+  _lcF.camareira = document.getElementById('lc-f-cam')?.value  || '';
+  _lcF.dtIni     = document.getElementById('lc-f-ini')?.value  || '';
+  _lcF.dtFim     = document.getElementById('lc-f-fim')?.value  || '';
+}
+
+function _lcLimpar() {
+  const hoje = new Date().toISOString().slice(0, 10);
+  const ha30 = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+  _lcF = { dtIni: ha30, dtFim: hoje, camareira: '' };
+  _relAbaLimpezasCamareira(document.getElementById('rel-aba-conteudo'));
+}
+
+async function _lcBuscar() {
+  _lcFiltrar();
+  const res = document.getElementById('lc-resultado');
+  if (res) res.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text3);">⏳ Buscando...</div>';
+
+  const hotelId = _relHotelId || currentUser?.hotelId;
+  let q = supabaseClient.from('limpeza_sessoes')
+    .select('id, apartment_id, camareira_id, tipo_limpeza, inicio_at, fim_at, obs, created_at')
+    .eq('hotel_id', hotelId)
+    .order('created_at', { ascending: true })
+    .limit(2000);
+
+  if (_lcF.camareira) q = q.eq('camareira_id', _lcF.camareira);
+  if (_lcF.dtIni)     q = q.gte('created_at', _lcF.dtIni + 'T00:00:00');
+  if (_lcF.dtFim)     q = q.lte('created_at', _lcF.dtFim + 'T23:59:59');
+
+  const { data, error } = await q;
+  if (error) {
+    if (res) res.innerHTML = `<div style="padding:24px;text-align:center;color:var(--danger);">Erro ao buscar dados: ${error.message}</div>`;
+    return;
+  }
+
+  const sessoes = data || [];
+  const { aptoById, equipe } = _relData;
+
+  const comFim   = sessoes.filter(s => s.fim_at).length;
+  const minTotal = sessoes.reduce((acc, s) => {
+    if (!s.fim_at || !s.created_at) return acc;
+    return acc + Math.round((new Date(s.fim_at) - new Date(s.created_at)) / 60000);
+  }, 0);
+  const mediaMin = comFim > 0 ? Math.round(minTotal / comFim) : null;
+
+  const nomeCam  = _lcF.camareira
+    ? (equipe.find(u => u.user_id === _lcF.camareira)?.nome || '—')
+    : 'Todas as camareiras';
+  const periodoTx = (_lcF.dtIni || _lcF.dtFim)
+    ? `${_lcF.dtIni ? _lcF.dtIni.split('-').reverse().join('/') : '…'} a ${_lcF.dtFim ? _lcF.dtFim.split('-').reverse().join('/') : '…'}`
+    : 'Todo o período';
+
+  const printSub = document.getElementById('lc-print-subtitulo');
+  const printEmt = document.getElementById('lc-print-emitido');
+  if (printSub) printSub.innerHTML = `Camareira: <strong>${nomeCam}</strong> &nbsp;|&nbsp; Período: <strong>${periodoTx}</strong>`;
+  if (printEmt) printEmt.textContent = `Emitido em ${new Date().toLocaleString('pt-BR')}`;
 
   function _durMin(s) {
-    if (!s.fim_at || !s.inicio_at) return null;
-    return Math.round((new Date(s.fim_at) - new Date(s.inicio_at)) / 60000);
+    if (!s.fim_at) return null;
+    const ini = s.inicio_at || s.created_at;
+    if (!ini) return null;
+    return Math.round((new Date(s.fim_at) - new Date(ini)) / 60000);
   }
-  function _fmtMin(min) {
-    if (min == null || min < 0) return '—';
-    if (min < 60) return min + 'min';
-    return Math.floor(min / 60) + 'h ' + (min % 60) + 'min';
-  }
-
-  const comFim    = sessoes.filter(s => s.fim_at).length;
-  const minTotal  = sessoes.reduce((acc, s) => { const d = _durMin(s); return acc + (d ?? 0); }, 0);
-  const mediaMin  = comFim > 0 ? Math.round(minTotal / comFim) : null;
-
-  const nomeCam   = f.camareira
-    ? (equipe.find(u => u.user_id === f.camareira)?.nome || '—')
-    : 'Todas as camareiras';
-  const periodoTx = (f.dtIni || f.dtFim)
-    ? `${f.dtIni ? f.dtIni.split('-').reverse().join('/') : '…'} a ${f.dtFim ? f.dtFim.split('-').reverse().join('/') : '…'}`
-    : 'Todo o período';
-  const emitidoEm = new Date().toLocaleString('pt-BR');
 
   const linhas = sessoes.map(s => {
     const apto = aptoById[s.apartment_id];
     const dur  = _durMin(s);
+    const dataExib = (s.inicio_at || s.created_at || '').slice(0, 10).split('-').reverse().join('/');
+    const hrIni    = (s.inicio_at || s.created_at || '').slice(11, 16) || '—';
+    const hrFim    = (s.fim_at || '').slice(11, 16) || '—';
     const atrasado = dur != null && s.tipo_limpeza && dur > (_tlMetaMs(s.tipo_limpeza) / 60000 * 1.2);
     return `<tr style="border-bottom:1px solid var(--border);">
-      <td style="padding:8px 12px;">${(s.inicio_at || s.created_at || '').slice(0,10).split('-').reverse().join('/')}</td>
+      <td style="padding:8px 12px;white-space:nowrap;">${dataExib}</td>
       <td style="padding:8px 12px;font-weight:700;">${apto?.numero || '—'}</td>
       <td style="padding:8px 12px;">${apto?.tipo || '—'}</td>
       <td style="padding:8px 12px;">${_tlLabelTipo(s.tipo_limpeza)}</td>
-      <td style="padding:8px 12px;">${(s.inicio_at || '').slice(11,16) || '—'}</td>
-      <td style="padding:8px 12px;">${(s.fim_at || '').slice(11,16) || '—'}</td>
-      <td style="padding:8px 12px;${atrasado ? 'color:#dc2626;font-weight:600;' : ''}">${_fmtMin(dur)}</td>
-      <td style="padding:8px 12px;font-size:11px;color:var(--text3);max-width:180px;">${s.obs || '—'}</td>
+      <td style="padding:8px 12px;">${hrIni}</td>
+      <td style="padding:8px 12px;">${hrFim}</td>
+      <td style="padding:8px 12px;${atrasado ? 'color:#dc2626;font-weight:600;' : ''}">${_lcFmtMin(dur)}</td>
+      <td style="padding:8px 12px;font-size:11px;color:var(--text3);">${s.obs || '—'}</td>
     </tr>`;
   }).join('');
 
+  const thStyle = 'padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--text3);white-space:nowrap;';
   const tabelaHtml = sessoes.length === 0
     ? `<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px;">
-        Nenhuma limpeza encontrada. Selecione uma camareira e/ou período nos filtros acima.
-       </div>`
+        Nenhuma limpeza encontrada para os filtros selecionados.</div>`
     : `<div style="overflow:auto;">
         <table style="width:100%;border-collapse:collapse;font-size:13px;">
-          <thead>
-            <tr style="background:var(--surface2);">
-              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--text3);white-space:nowrap;">Data</th>
-              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--text3);">Apto</th>
-              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--text3);">Tipo Apto</th>
-              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--text3);">Tipo Limpeza</th>
-              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--text3);">Início</th>
-              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--text3);">Fim</th>
-              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--text3);">Duração</th>
-              <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--text3);">Observações</th>
-            </tr>
-          </thead>
+          <thead><tr style="background:var(--surface2);">
+            <th style="${thStyle}">Data</th><th style="${thStyle}">Apto</th>
+            <th style="${thStyle}">Tipo Apto</th><th style="${thStyle}">Tipo Limpeza</th>
+            <th style="${thStyle}">Início</th><th style="${thStyle}">Fim</th>
+            <th style="${thStyle}">Duração</th><th style="${thStyle}">Observações</th>
+          </tr></thead>
           <tbody>${linhas}</tbody>
         </table>
        </div>`;
 
-  el.innerHTML = `
-    <div id="lc-print-area">
-      <!-- Cabeçalho visível só na impressão -->
-      <div class="lc-print-header">
-        <div style="font-size:20px;font-weight:700;margin-bottom:6px;">Relatório de Limpezas por Camareira</div>
-        <div style="font-size:13px;">Camareira: <strong>${nomeCam}</strong> &nbsp;|&nbsp; Período: <strong>${periodoTx}</strong></div>
-        <div style="font-size:11px;color:#666;margin-top:3px;">Emitido em ${emitidoEm}</div>
-        <hr style="margin:12px 0 16px;">
+  if (res) res.innerHTML = `
+    <!-- Totalizadores -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+      <div class="card" style="padding:14px 18px;flex:1;min-width:120px;text-align:center;">
+        <div style="font-size:26px;font-weight:700;color:var(--primary);">${sessoes.length}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px;">Total limpezas</div>
       </div>
-
-      <!-- Cabeçalho visível na tela -->
-      <div class="card lc-screen-only" style="padding:14px 16px;margin-bottom:12px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-          <div>
-            <div style="font-size:15px;font-weight:700;">🧹 Limpezas por Camareira</div>
-            <div style="font-size:12px;color:var(--text3);margin-top:3px;">
-              ${nomeCam} &nbsp;·&nbsp; ${periodoTx} &nbsp;·&nbsp; ${sessoes.length} registro(s)
-            </div>
-          </div>
-          <button class="btn btn-outline btn-sm" onclick="window.print()">🖨 Imprimir</button>
-        </div>
+      <div class="card" style="padding:14px 18px;flex:1;min-width:120px;text-align:center;">
+        <div style="font-size:26px;font-weight:700;color:var(--primary);">${comFim}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px;">Concluídas</div>
       </div>
-
-      <!-- Totalizadores -->
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
-        <div class="card" style="padding:14px 18px;flex:1;min-width:120px;text-align:center;">
-          <div style="font-size:26px;font-weight:700;color:var(--primary);">${sessoes.length}</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:2px;">Total de limpezas</div>
-        </div>
-        <div class="card" style="padding:14px 18px;flex:1;min-width:120px;text-align:center;">
-          <div style="font-size:26px;font-weight:700;color:var(--primary);">${_fmtMin(minTotal)}</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:2px;">Tempo total</div>
-        </div>
-        <div class="card" style="padding:14px 18px;flex:1;min-width:120px;text-align:center;">
-          <div style="font-size:26px;font-weight:700;color:var(--primary);">${_fmtMin(mediaMin)}</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:2px;">Duração média</div>
-        </div>
-        <div class="card" style="padding:14px 18px;flex:1;min-width:120px;text-align:center;">
-          <div style="font-size:26px;font-weight:700;color:var(--primary);">${comFim}</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:2px;">Concluídas</div>
-        </div>
+      <div class="card" style="padding:14px 18px;flex:1;min-width:120px;text-align:center;">
+        <div style="font-size:26px;font-weight:700;color:var(--primary);">${_lcFmtMin(minTotal)}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px;">Tempo total</div>
       </div>
-
-      <!-- Tabela -->
-      <div class="card" style="padding:0;overflow:hidden;">
-        ${tabelaHtml}
+      <div class="card" style="padding:14px 18px;flex:1;min-width:120px;text-align:center;">
+        <div style="font-size:26px;font-weight:700;color:var(--primary);">${_lcFmtMin(mediaMin)}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px;">Duração média</div>
       </div>
-    </div>`;
+    </div>
+    <!-- Tabela -->
+    <div class="card" style="padding:0;overflow:hidden;">${tabelaHtml}</div>`;
 }
 
 // ── Patch openPage ────────────────────────────────────────────────
