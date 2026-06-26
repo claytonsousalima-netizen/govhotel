@@ -2216,9 +2216,10 @@ async function _lcBuscar() {
   const linhas = sessoes.map(s => {
     const apto = aptoById[s.apartment_id];
     const dur  = _durMin(s);
-    const dataExib = (s.inicio_at || s.created_at || '').slice(0, 10).split('-').reverse().join('/');
-    const hrIni    = (s.inicio_at || s.created_at || '').slice(11, 16) || '—';
-    const hrFim    = (s.fim_at || '').slice(11, 16) || '—';
+    const _dtIni   = new Date(s.inicio_at || s.created_at);
+    const dataExib = isNaN(_dtIni) ? '—' : _dtIni.toLocaleDateString('pt-BR');
+    const hrIni    = isNaN(_dtIni) ? '—' : _dtIni.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const hrFim    = s.fim_at ? new Date(s.fim_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '—';
     const atrasado = dur != null && s.tipo_limpeza && dur > (_tlMetaMs(s.tipo_limpeza) / 60000 * 1.2);
     return `<tr style="border-bottom:1px solid var(--border);">
       <td style="padding:8px 12px;white-space:nowrap;">${dataExib}</td>
@@ -2228,7 +2229,7 @@ async function _lcBuscar() {
       <td style="padding:8px 12px;">${hrIni}</td>
       <td style="padding:8px 12px;">${hrFim}</td>
       <td style="padding:8px 12px;${atrasado ? 'color:#dc2626;font-weight:600;' : ''}">${_lcFmtMin(dur)}</td>
-      <td style="padding:8px 12px;font-size:11px;color:var(--text3);">${s.obs || '—'}</td>
+      <td style="padding:8px 12px;">${s.obs || '—'}</td>
     </tr>`;
   }).join('');
 
