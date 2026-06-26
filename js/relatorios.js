@@ -2239,7 +2239,6 @@ async function _lcBuscar() {
     return `<tr style="border-bottom:1px solid var(--border);">
       <td style="padding:8px 12px;white-space:nowrap;">${dataExib}</td>
       <td style="padding:8px 12px;font-weight:700;">${apto?.numero || '—'}</td>
-      <td style="padding:8px 12px;">${apto?.tipo || '—'}</td>
       <td style="padding:8px 12px;">${nomeUser}</td>
       <td style="padding:8px 12px;">${atividadeBadge}</td>
       <td style="padding:8px 12px;">${hrIni}</td>
@@ -2256,7 +2255,7 @@ async function _lcBuscar() {
         <table style="width:100%;border-collapse:collapse;font-size:13px;">
           <thead><tr style="background:var(--surface2);">
             <th style="${thStyle}">Data</th><th style="${thStyle}">Apto</th>
-            <th style="${thStyle}">Tipo Apto</th><th style="${thStyle}">Usu\xE1rio</th>
+            <th style="${thStyle}">Usu\xE1rio</th>
             <th style="${thStyle}">Atividade</th>
             <th style="${thStyle}">In\xEDcio</th><th style="${thStyle}">Fim</th>
             <th style="${thStyle}">Dura\xE7\xE3o</th><th style="${thStyle}">Observa\xE7\xF5es</th>
