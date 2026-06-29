@@ -2749,7 +2749,7 @@ async function openAptoDetail(id) {
       : `<span style="font-size:12px;color:var(--text3);">Apartamento bloqueado — sem ação disponível.</span>`,
     vago:       `<button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','sujo')">↩ Marcar sujo</button>
                   <button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','ocupado')">🏠 Ocupar</button>`,
-    ocupado:     `<button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','sujo')">⬇ Checkout/Sujo</button>`,
+    ocupado:     `<button class="btn btn-xs btn-ghost" onclick="checkoutApto('${id}')">⬇ Checkout/Sujo</button>`,
     manutencao:  `<button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','sujo')">↩ Liberar limpeza</button>`,
   };
   // Manutenção não usa o fluxo de limpeza — não exibe botões de limpeza na seção "Próxima ação"
@@ -3206,7 +3206,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <script src="js/hotels.js?v=20260619g"></script>
-<script src="js/apartments.js?v=20260626h"></script>
+<script src="js/apartments.js?v=20260629a"></script>
 <script src="js/maids.js?v=20260619g"></script>
 <script src="js/users.js?v=20260619g"></script>
 <script src="js/permissions.js?v=20260619g"></script>

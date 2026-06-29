@@ -899,6 +899,38 @@ function _aptoSyncParaStatus(status) {
   return mapa[status] ?? null;
 }
 
+// ── CHECKOUT: muda status→sujo + status_apto→Vago em uma chamada ──
+window.checkoutApto = async function(id) {
+  const apto = aptos.find(a => a.id === id);
+  if (!apto) { toast('Apartamento não encontrado', 'error'); return; }
+  if (!sameHotel(apto.hotel_id)) { toast('Sem permissão', 'error'); return; }
+
+  const obs = `Checkout registrado por ${currentUser.nome} em ${new Date().toLocaleString('pt-BR')}`;
+  const statusAnterior = apto.status;
+
+  const { error } = await supabaseClient.from('apartments')
+    .update({ status: 'sujo', status_apto: 'Vago', status_governanca_manual: 'Sujo' })
+    .eq('id', id);
+
+  if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
+
+  await supabaseClient.from('apartment_status_history').insert({
+    apartment_id: id, status_anterior: statusAnterior, status_novo: 'sujo',
+    alterado_por: currentUser.id, obs,
+  });
+
+  apto.status = 'sujo';
+  apto.status_apto = 'Vago';
+  apto.status_gov  = 'Sujo';
+  toast('Apto ' + apto.numero + ' → Checkout registrado (Vago / Sujo)', 'success');
+
+  if (typeof closeModal === 'function') closeModal('modal-apto-detail');
+  if (currentPage === 'mapa')       renderMapa();
+  if (currentPage === 'kanban')     renderKanban();
+  if (currentPage === 'minha-fila') { if (typeof renderMinhaFila === 'function') renderMinhaFila(); }
+  if (currentPage === 'dashboard')  renderDashboard();
+};
+
 // ── ALTERAR STATUS (com escrita no Supabase + histórico) ──────
 // Função global — usada pelo mapa, kanban, minha fila e cadastro
 window.mudarStatusApto = async function mudarStatusApto(id, novoStatus, obs) {
