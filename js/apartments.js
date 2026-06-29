@@ -1540,6 +1540,7 @@ async function renderAppCamareira() {
                 case 'limpando':  return `<button class="btn btn-warning btn-sm" onclick="abrirModalPausa('${a.id}')">⏸ Pausar</button>
                                           <button class="btn btn-danger btn-sm"  onclick="abrirModalCancelarLimpeza('${a.id}')">🚫 Cancelar</button>
                                           <button class="btn btn-success btn-sm" onclick="selectedAptoId='${a.id}';concluirLimpeza()">🔍 Enviar conf.</button>`;
+                case 'ocupado':   return `<button class="btn btn-ghost btn-sm" onclick="checkoutApto('${a.id}')">⬇ Checkout/Sujo</button>`;
                 default: return '';
               }
             })()}
