@@ -286,9 +286,23 @@ function renderCadastroTableDb(filter = '') {
         conferencia:'#8e44ad', limpo:'#1abc9c', reprovado:'#e74c3c',
         bloqueado:'#c0392b', ocupado:'#7f8c8d', manutencao:'#f1c40f', inspecao:'#0891b2',
       };
-      const statusColor = _stColors[a.status] || '#999';
-      const statusLabel = (typeof _STATUS_LABELS !== 'undefined' && _STATUS_LABELS[a.status]) || a.status;
-      const statusIcon  = (typeof _STATUS_ICONS  !== 'undefined' && _STATUS_ICONS[a.status])  || '';
+      // Normaliza status para exibição: vago/ocupado → limpo; bloqueado sem motivo → sujo
+      function _normCad(ap) {
+        if (ap.status === 'ocupado' || ap.status === 'vago') return 'limpo';
+        if (ap.status === 'bloqueado') {
+          const gov = (ap.status_gov || '').toLowerCase();
+          if (gov.includes('inspe')) return 'inspecao';
+          if (gov.includes('manut')) return 'manutencao';
+          if (gov === 'sujo') return 'sujo';
+          if (gov === 'limpo') return 'limpo';
+          return 'sujo';
+        }
+        return ap.status;
+      }
+      const stNorm     = _normCad(a);
+      const statusColor = _stColors[stNorm] || '#999';
+      const statusLabel = (typeof _STATUS_LABELS !== 'undefined' && _STATUS_LABELS[stNorm]) || stNorm;
+      const statusIcon  = (typeof _STATUS_ICONS  !== 'undefined' && _STATUS_ICONS[stNorm])  || '';
 
       html += `<tr>
         <td>
