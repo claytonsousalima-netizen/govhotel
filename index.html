@@ -2726,9 +2726,11 @@ async function openAptoDetail(id) {
   // Botões de fluxo contextuais — cada status tem suas ações específicas
   const _flowMap = {
     sujo:        `<button class="btn btn-xs btn-primary" onclick="iniciarLimpeza()">▶ Iniciar limpeza</button>
-                  <button class="btn btn-xs btn-ghost" onclick="marcarBloqueado('${id}')">🔒 Bloquear</button>`,
+                  <button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','inspecao')">🔍 Inspecionar</button>
+                  <button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','manutencao')">🔧 Manutenção</button>`,
     reprovado:   `<button class="btn btn-xs btn-primary" onclick="iniciarLimpeza()">▶ Re-limpar</button>
-                  <button class="btn btn-xs btn-ghost" onclick="marcarBloqueado('${id}')">🔒 Bloquear</button>`,
+                  <button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','inspecao')">🔍 Inspecionar</button>
+                  <button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','manutencao')">🔧 Manutenção</button>`,
     limpando:    `<button class="btn btn-xs btn-primary" onclick="abrirModalPausa('${id}')">⏸ Pausar</button>
                   <button class="btn btn-xs btn-primary" onclick="concluirLimpeza()">🔍 Enviar conf.</button>
                   <button class="btn btn-xs btn-ghost" onclick="abrirModalCancelarLimpeza('${id}')">🚫 Cancelar</button>`,
@@ -3205,7 +3207,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <script src="js/hotels.js?v=20260619g"></script>
-<script src="js/apartments.js?v=20260629d"></script>
+<script src="js/apartments.js?v=20260629e"></script>
 <script src="js/maids.js?v=20260619g"></script>
 <script src="js/users.js?v=20260619g"></script>
 <script src="js/permissions.js?v=20260619g"></script>
