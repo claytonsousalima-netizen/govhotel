@@ -2739,16 +2739,15 @@ async function openAptoDetail(id) {
          <button class="btn btn-xs btn-danger"  onclick="abrirModalReprovacao()">❌ Reprovar limpeza</button>`
       : `<span style="font-size:12px;color:var(--text3);">Aguardando arrumação da supervisora.</span>`,
     limpo:       apto.status_apto === 'Ocupado'
-      ? `<button class="btn btn-xs btn-primary" onclick="mudarStatusApto('${id}','ocupado')">🏠 Confirmar ocupado</button>
-         <button class="btn btn-xs btn-ghost"   onclick="mudarStatusApto('${id}','sujo')">↩ Marcar sujo</button>`
+      ? `<button class="btn btn-xs btn-ghost"   onclick="mudarStatusApto('${id}','sujo')">↩ Marcar sujo</button>`
       : `<button class="btn btn-xs btn-primary" onclick="mudarStatusApto('${id}','vago')">✅ Disponível (Vago)</button>
-         <button class="btn btn-xs btn-ghost"   onclick="mudarStatusApto('${id}','ocupado')">🏠 Marcar ocupado</button>
+         <button class="btn btn-xs btn-ghost"   onclick="marcarOcupado('${id}')">🏠 Marcar ocupado</button>
          <button class="btn btn-xs btn-ghost"   onclick="mudarStatusApto('${id}','sujo')">↩ Marcar sujo</button>`,
     bloqueado:   (!isCamareira && !isManutencao)
       ? `<button class="btn btn-xs btn-primary" onclick="mudarStatusApto('${id}','sujo')">🔓 Desbloquear</button>`
       : `<span style="font-size:12px;color:var(--text3);">Apartamento bloqueado — sem ação disponível.</span>`,
     vago:       `<button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','sujo')">↩ Marcar sujo</button>
-                  <button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','ocupado')">🏠 Ocupar</button>`,
+                  <button class="btn btn-xs btn-ghost" onclick="marcarOcupado('${id}')">🏠 Ocupar</button>`,
     ocupado:     `<button class="btn btn-xs btn-ghost" onclick="checkoutApto('${id}')">⬇ Checkout/Sujo</button>`,
     manutencao:  `<button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','sujo')">↩ Liberar limpeza</button>`,
   };
@@ -3206,7 +3205,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <script src="js/hotels.js?v=20260619g"></script>
-<script src="js/apartments.js?v=20260629b"></script>
+<script src="js/apartments.js?v=20260629c"></script>
 <script src="js/maids.js?v=20260619g"></script>
 <script src="js/users.js?v=20260619g"></script>
 <script src="js/permissions.js?v=20260619g"></script>

@@ -899,6 +899,29 @@ function _aptoSyncParaStatus(status) {
   return mapa[status] ?? null;
 }
 
+// ── MARCAR OCUPADO: só atualiza status_apto, NÃO toca no status de governança ──
+// Check-in do hóspede não deve interferir no fluxo de limpeza (limpo permanece limpo)
+window.marcarOcupado = async function(id) {
+  const apto = aptos.find(a => a.id === id);
+  if (!apto) { toast('Apartamento não encontrado', 'error'); return; }
+  if (!sameHotel(apto.hotel_id)) { toast('Sem permissão', 'error'); return; }
+
+  const { error } = await supabaseClient.from('apartments')
+    .update({ status_apto: 'Ocupado' })
+    .eq('id', id);
+
+  if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
+
+  apto.status_apto = 'Ocupado';
+  toast('Apto ' + apto.numero + ' → Ocupado', 'success');
+
+  if (currentPage === 'mapa')          renderMapa();
+  if (currentPage === 'kanban')        renderKanban();
+  if (currentPage === 'app-camareira') renderAppCamareira();
+  if (currentPage === 'minha-fila')    { if (typeof renderMinhaFila === 'function') renderMinhaFila(); }
+  if (typeof closeModal === 'function') closeModal('modal-apto-detail');
+};
+
 // ── CHECKOUT: muda status→sujo + status_apto→Vago em uma chamada ──
 window.checkoutApto = async function(id) {
   const apto = aptos.find(a => a.id === id);
@@ -1466,27 +1489,29 @@ async function renderAppCamareira() {
 
   let exibir;
   if (_appCamFiltroMeus)   exibir = todos.filter(a => a.camareira_id === currentUser.id);
-  else if (_appCamFiltro)  exibir = todos.filter(a => a.status === _appCamFiltro);
+  else if (_appCamFiltro)  exibir = todos.filter(a => a.status === _appCamFiltro || (_appCamFiltro === 'limpo' && a.status === 'ocupado'));
   else                     exibir = todos;
 
-  // Agrupa por status na ordem definida
+  // Normaliza status='ocupado' → 'limpo' para exibição (check-in não deve criar grupo separado)
+  const exibirNorm = exibir.map(a => a.status === 'ocupado' ? { ...a, status: 'limpo' } : a);
+
+  // Agrupa por status na ordem definida — 'ocupado' removido: check-in não altera status de governança
   const grupos = [
     { key:'reprovado',  label:'Re-limpeza necessária', icon:'❌', color:'#e74c3c', badge:'badge-reprovado' },
     { key:'pausado',    label:'Pausados — retomar',     icon:'⏸', color:'#f39c12', badge:'badge-pausado'   },
-    { key:'limpando',   label:'Em Limpeza',               icon:'🧹', color:'#2e86c1', badge:'badge-limpando'  },
-    { key:'sujo',       label:'Para limpar',             icon:'🟠', color:'#e67e22', badge:'badge-sujo'      },
-    { key:'conferencia',label:'Arrumação',                icon:'🔍', color:'#8e44ad', badge:'badge-conferencia'},
-    { key:'limpo',      label:'Limpos',                  icon:'✨', color:'#27ae60', badge:'badge-limpo'     },
-    { key:'vago',      label:'Vagos',                   icon:'✅', color:'#27ae60', badge:'badge-vago'     },
-    { key:'ocupado',    label:'Ocupados',                icon:'🏠', color:'#7f8c8d', badge:'badge-ocupado'   },
-    { key:'bloqueado',  label:'Bloqueados',              icon:'🔒', color:'#c0392b', badge:'badge-bloqueado' },
-    { key:'manutencao', label:'Manutenção',              icon:'🔧', color:'#95a5a6', badge:'badge-manutencao'},
+    { key:'limpando',   label:'Em Limpeza',             icon:'🧹', color:'#2e86c1', badge:'badge-limpando'  },
+    { key:'sujo',       label:'Para limpar',            icon:'🟠', color:'#e67e22', badge:'badge-sujo'      },
+    { key:'conferencia',label:'Arrumação',              icon:'🔍', color:'#8e44ad', badge:'badge-conferencia'},
+    { key:'limpo',      label:'Limpos',                 icon:'✨', color:'#27ae60', badge:'badge-limpo'     },
+    { key:'vago',       label:'Vagos',                  icon:'✅', color:'#27ae60', badge:'badge-vago'      },
+    { key:'bloqueado',  label:'Bloqueados',             icon:'🔒', color:'#c0392b', badge:'badge-bloqueado' },
+    { key:'manutencao', label:'Manutenção',             icon:'🔧', color:'#95a5a6', badge:'badge-manutencao'},
     { key:'inspecao',   label:'Inspeção',               icon:'🔎', color:'#0891b2', badge:'badge-inspecao'  },
   ];
 
   let html = '';
   grupos.forEach(g => {
-    const lista = exibir.filter(a => a.status === g.key);
+    const lista = exibirNorm.filter(a => a.status === g.key);
     if (!lista.length) return;
 
     // Atribuídos a mim primeiro
