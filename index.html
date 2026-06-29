@@ -2726,9 +2726,9 @@ async function openAptoDetail(id) {
   // Botões de fluxo contextuais — cada status tem suas ações específicas
   const _flowMap = {
     sujo:        `<button class="btn btn-xs btn-primary" onclick="iniciarLimpeza()">▶ Iniciar limpeza</button>
-                  <button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','bloqueado')">🔒 Bloquear</button>`,
+                  <button class="btn btn-xs btn-ghost" onclick="marcarBloqueado('${id}')">🔒 Bloquear</button>`,
     reprovado:   `<button class="btn btn-xs btn-primary" onclick="iniciarLimpeza()">▶ Re-limpar</button>
-                  <button class="btn btn-xs btn-ghost" onclick="mudarStatusApto('${id}','bloqueado')">🔒 Bloquear</button>`,
+                  <button class="btn btn-xs btn-ghost" onclick="marcarBloqueado('${id}')">🔒 Bloquear</button>`,
     limpando:    `<button class="btn btn-xs btn-primary" onclick="abrirModalPausa('${id}')">⏸ Pausar</button>
                   <button class="btn btn-xs btn-primary" onclick="concluirLimpeza()">🔍 Enviar conf.</button>
                   <button class="btn btn-xs btn-ghost" onclick="abrirModalCancelarLimpeza('${id}')">🚫 Cancelar</button>`,
@@ -2740,7 +2740,7 @@ async function openAptoDetail(id) {
       : `<span style="font-size:12px;color:var(--text3);">Aguardando arrumação da supervisora.</span>`,
     limpo:       apto.status_apto === 'Ocupado'
       ? `<button class="btn btn-xs btn-ghost"   onclick="mudarStatusApto('${id}','sujo')">↩ Marcar sujo</button>`
-      : `<button class="btn btn-xs btn-primary" onclick="mudarStatusApto('${id}','vago')">✅ Disponível (Vago)</button>
+      : `<button class="btn btn-xs btn-primary" onclick="marcarVago('${id}')">✅ Disponível (Vago)</button>
          <button class="btn btn-xs btn-ghost"   onclick="marcarOcupado('${id}')">🏠 Marcar ocupado</button>
          <button class="btn btn-xs btn-ghost"   onclick="mudarStatusApto('${id}','sujo')">↩ Marcar sujo</button>`,
     bloqueado:   (!isCamareira && !isManutencao)
@@ -3205,7 +3205,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <script src="js/hotels.js?v=20260619g"></script>
-<script src="js/apartments.js?v=20260629c"></script>
+<script src="js/apartments.js?v=20260629d"></script>
 <script src="js/maids.js?v=20260619g"></script>
 <script src="js/users.js?v=20260619g"></script>
 <script src="js/permissions.js?v=20260619g"></script>

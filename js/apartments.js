@@ -899,6 +899,50 @@ function _aptoSyncParaStatus(status) {
   return mapa[status] ?? null;
 }
 
+// ── MARCAR VAGO / BLOQUEADO: só atualiza status_apto, NÃO toca no status de governança ──
+// Vago e Bloqueado são estados do apto (hotel), não do fluxo de limpeza
+window.marcarVago = async function(id) {
+  const apto = aptos.find(a => a.id === id);
+  if (!apto) { toast('Apartamento não encontrado', 'error'); return; }
+  if (!sameHotel(apto.hotel_id)) { toast('Sem permissão', 'error'); return; }
+
+  const { error } = await supabaseClient.from('apartments')
+    .update({ status_apto: 'Vago' })
+    .eq('id', id);
+
+  if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
+
+  apto.status_apto = 'Vago';
+  toast('Apto ' + apto.numero + ' → Disponível (Vago)', 'success');
+
+  if (currentPage === 'mapa')          renderMapa();
+  if (currentPage === 'kanban')        renderKanban();
+  if (currentPage === 'app-camareira') renderAppCamareira();
+  if (currentPage === 'minha-fila')    { if (typeof renderMinhaFila === 'function') renderMinhaFila(); }
+  if (typeof closeModal === 'function') closeModal('modal-apto-detail');
+};
+
+window.marcarBloqueado = async function(id) {
+  const apto = aptos.find(a => a.id === id);
+  if (!apto) { toast('Apartamento não encontrado', 'error'); return; }
+  if (!sameHotel(apto.hotel_id)) { toast('Sem permissão', 'error'); return; }
+
+  const { error } = await supabaseClient.from('apartments')
+    .update({ status_apto: 'Bloqueado' })
+    .eq('id', id);
+
+  if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
+
+  apto.status_apto = 'Bloqueado';
+  toast('Apto ' + apto.numero + ' → Bloqueado', 'success');
+
+  if (currentPage === 'mapa')          renderMapa();
+  if (currentPage === 'kanban')        renderKanban();
+  if (currentPage === 'app-camareira') renderAppCamareira();
+  if (currentPage === 'minha-fila')    { if (typeof renderMinhaFila === 'function') renderMinhaFila(); }
+  if (typeof closeModal === 'function') closeModal('modal-apto-detail');
+};
+
 // ── MARCAR OCUPADO: só atualiza status_apto, NÃO toca no status de governança ──
 // Check-in do hóspede não deve interferir no fluxo de limpeza (limpo permanece limpo)
 window.marcarOcupado = async function(id) {
@@ -1492,10 +1536,11 @@ async function renderAppCamareira() {
   else if (_appCamFiltro)  exibir = todos.filter(a => a.status === _appCamFiltro || (_appCamFiltro === 'limpo' && a.status === 'ocupado'));
   else                     exibir = todos;
 
-  // Normaliza status='ocupado' → 'limpo' para exibição (check-in não deve criar grupo separado)
-  const exibirNorm = exibir.map(a => a.status === 'ocupado' ? { ...a, status: 'limpo' } : a);
+  // Normaliza para exibição: ocupado/vago/bloqueado → 'limpo' (são estados do apto, não de limpeza)
+  const _normStatus = s => (['ocupado','vago','bloqueado'].includes(s) ? 'limpo' : s);
+  const exibirNorm = exibir.map(a => ({ ...a, status: _normStatus(a.status) }));
 
-  // Agrupa por status na ordem definida — 'ocupado' removido: check-in não altera status de governança
+  // Agrupa apenas por status de limpeza — vago/bloqueado/ocupado não são workflow de limpeza
   const grupos = [
     { key:'reprovado',  label:'Re-limpeza necessária', icon:'❌', color:'#e74c3c', badge:'badge-reprovado' },
     { key:'pausado',    label:'Pausados — retomar',     icon:'⏸', color:'#f39c12', badge:'badge-pausado'   },
@@ -1503,8 +1548,6 @@ async function renderAppCamareira() {
     { key:'sujo',       label:'Para limpar',            icon:'🟠', color:'#e67e22', badge:'badge-sujo'      },
     { key:'conferencia',label:'Arrumação',              icon:'🔍', color:'#8e44ad', badge:'badge-conferencia'},
     { key:'limpo',      label:'Limpos',                 icon:'✨', color:'#27ae60', badge:'badge-limpo'     },
-    { key:'vago',       label:'Vagos',                  icon:'✅', color:'#27ae60', badge:'badge-vago'      },
-    { key:'bloqueado',  label:'Bloqueados',             icon:'🔒', color:'#c0392b', badge:'badge-bloqueado' },
     { key:'manutencao', label:'Manutenção',             icon:'🔧', color:'#95a5a6', badge:'badge-manutencao'},
     { key:'inspecao',   label:'Inspeção',               icon:'🔎', color:'#0891b2', badge:'badge-inspecao'  },
   ];
