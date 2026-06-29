@@ -1536,11 +1536,23 @@ async function renderAppCamareira() {
   else if (_appCamFiltro)  exibir = todos.filter(a => a.status === _appCamFiltro || (_appCamFiltro === 'limpo' && a.status === 'ocupado'));
   else                     exibir = todos;
 
-  // Normaliza para exibição: ocupado/vago/bloqueado → 'limpo' (são estados do apto, não de limpeza)
-  const _normStatus = s => (['ocupado','vago','bloqueado'].includes(s) ? 'limpo' : s);
-  const exibirNorm = exibir.map(a => ({ ...a, status: _normStatus(a.status) }));
+  // Normaliza status para exibição:
+  // - 'ocupado' e 'vago' → 'limpo' (são estados do apto, não de limpeza)
+  // - 'bloqueado' → usa status_gov para descobrir o motivo real (manutencao/inspecao)
+  //   se não houver motivo reconhecível, mantém como 'bloqueado' (grupo informativo)
+  function _normStatus(a) {
+    if (a.status === 'ocupado' || a.status === 'vago') return 'limpo';
+    if (a.status === 'bloqueado') {
+      const gov = (a.status_gov || '').toLowerCase();
+      if (gov.includes('inspe') || gov.includes('insp')) return 'inspecao';
+      if (gov.includes('manut')) return 'manutencao';
+      return 'bloqueado'; // motivo desconhecido — mantém grupo próprio
+    }
+    return a.status;
+  }
+  const exibirNorm = exibir.map(a => ({ ...a, status: _normStatus(a) }));
 
-  // Agrupa apenas por status de limpeza — vago/bloqueado/ocupado não são workflow de limpeza
+  // Agrupa por status de governança real — vago/ocupado folded em limpo, bloqueado por motivo
   const grupos = [
     { key:'reprovado',  label:'Re-limpeza necessária', icon:'❌', color:'#e74c3c', badge:'badge-reprovado' },
     { key:'pausado',    label:'Pausados — retomar',     icon:'⏸', color:'#f39c12', badge:'badge-pausado'   },
@@ -1550,6 +1562,7 @@ async function renderAppCamareira() {
     { key:'limpo',      label:'Limpos',                 icon:'✨', color:'#27ae60', badge:'badge-limpo'     },
     { key:'manutencao', label:'Manutenção',             icon:'🔧', color:'#95a5a6', badge:'badge-manutencao'},
     { key:'inspecao',   label:'Inspeção',               icon:'🔎', color:'#0891b2', badge:'badge-inspecao'  },
+    { key:'bloqueado',  label:'Bloqueados',             icon:'🔒', color:'#6b7280', badge:'badge-bloqueado' },
   ];
 
   let html = '';
