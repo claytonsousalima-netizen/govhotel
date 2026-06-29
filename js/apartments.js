@@ -1546,7 +1546,10 @@ async function renderAppCamareira() {
       const gov = (a.status_gov || '').toLowerCase();
       if (gov.includes('inspe') || gov.includes('insp')) return 'inspecao';
       if (gov.includes('manut')) return 'manutencao';
-      return 'bloqueado'; // motivo desconhecido — mantém grupo próprio
+      // status_gov indica estado de limpeza real → desmapeia de volta
+      if (gov === 'sujo') return 'sujo';
+      if (gov === 'limpo') return 'limpo';
+      return 'sujo'; // fallback: tratar como sujo para entrar no fluxo de limpeza
     }
     return a.status;
   }
