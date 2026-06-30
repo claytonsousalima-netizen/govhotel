@@ -127,7 +127,7 @@
 <nav class="sidebar">
   <div class="sidebar-logo">
     <h1>🏨 Gov Estancorp</h1>
-    <p>Manual de Uso — v2026.06.19</p>
+    <p>Manual de Uso — v2026.06.30</p>
   </div>
 
   <div class="sidebar-section">Introdução</div>
@@ -165,7 +165,9 @@
   <a href="#mod-rel-retrabalhos" style="padding-left:24px;font-size:12px;">↳ Retrabalhos</a>
   <a href="#mod-rel-timeline" style="padding-left:24px;font-size:12px;">↳ Timeline</a>
   <a href="#mod-rel-equipe" style="padding-left:24px;font-size:12px;">↳ Equipe</a>
+  <a href="#mod-rel-discrepancia" style="padding-left:24px;font-size:12px;">↳ Discrepância XLS <span class="novidade-badge" style="font-size:9px;">Novo</span></a>
   <a href="#mod-config">Configurações</a>
+  <a href="#mod-config-status-gov" style="padding-left:24px;font-size:12px;">↳ Status Governança</a>
   <a href="#mod-config" style="padding-left:24px;font-size:12px;">↳ Seletor hotel (Admin Global)</a>
 
   <div class="sidebar-section">Ajuda</div>
@@ -177,7 +179,7 @@
 
   <div class="page-title">Manual de Uso — Gov Estancorp</div>
   <div class="page-subtitle">
-    Sistema de Governança Hoteleira · Todos os perfis de acesso · Versão 2026.06.17
+    Sistema de Governança Hoteleira · Todos os perfis de acesso · Versão 2026.06.30
   </div>
 
   <!-- ══ VISÃO GERAL ════════════════════════════════════════ -->
@@ -219,13 +221,13 @@
       <table>
         <thead><tr><th>Camada</th><th>Campo</th><th>Valores possíveis</th><th>Quem controla</th></tr></thead>
         <tbody>
-          <tr><td><strong>Status Operacional</strong></td><td><code>status</code></td><td>sujo · limpando · pausado · conferência · limpo · reprovado · livre · ocupado · bloqueado · manutenção</td><td>Fluxo de limpeza (automático)</td></tr>
-          <tr><td><strong>Status Apto</strong></td><td><code>status_apto</code></td><td>Ocupado · Vago · Bloqueado</td><td>Admin / Gestor (manual)</td></tr>
-          <tr><td><strong>Status Gov</strong></td><td><code>status_governanca_manual</code></td><td>Limpo · Sujo · Manutenção · Não Perturbe · Dormiu Fora · Não Quis Arrumação</td><td>Admin / Gestor (manual)</td></tr>
+          <tr><td><strong>Status Operacional</strong></td><td><code>status</code></td><td>sujo · limpando · pausado · conferência · limpo · reprovado · livre · ocupado · bloqueado · manutenção · inspeção</td><td>Fluxo de limpeza (automático)</td></tr>
+          <tr><td><strong>Status Apto</strong></td><td><code>status_apto</code></td><td>Ocupado · Vago · Bloqueado</td><td>Admin / Gestor / Supervisora (manual)</td></tr>
+          <tr><td><strong>Status Gov</strong></td><td><code>status_governanca_manual</code></td><td>Limpo · Sujo · Manutenção · Não Perturbe · Dormiu Fora · Não Quis Arrumação · <strong>No Show</strong></td><td>Admin / Gestor / Supervisora / Camareira (conforme visibilidade)</td></tr>
         </tbody>
       </table>
       <div class="info-box blue" style="margin-top:10px;margin-bottom:0;">
-        <strong>Alterar Status:</strong> O modal "Alterar Status de Apartamento" exibe apenas <strong>Status Apto</strong> e <strong>Status Gov</strong> para alteração manual. O Status Operacional é gerenciado exclusivamente pelo fluxo de limpeza (iniciar, pausar, concluir, reprovar) e não é editável manualmente.
+        <strong>Alterar Status:</strong> O modal "Ver Detalhes" exibe <strong>Status Apto</strong> e <strong>Status Gov</strong> para alteração manual. O Status Operacional é gerenciado exclusivamente pelo fluxo de limpeza (iniciar, pausar, concluir, reprovar) e não é editável manualmente. A <strong>camareira</strong> visualiza apenas os Status Gov marcados como <em>Visível camareira</em> nas configurações (ex.: Não Perturbe, Dormiu Fora, Não Quis Arrumação, No Show) — sem acesso ao Status Apto completo.
       </div>
     </div>
 
@@ -241,8 +243,9 @@
         <tr><td><span class="badge b-reprovado">Reprovado</span></td><td>Não passou na conferência</td><td>Perfil operacional re-limpa — checklist abre imediatamente</td></tr>
         <tr><td><span class="badge b-livre">Livre</span></td><td>Disponível para hospedagem</td><td>—</td></tr>
         <tr><td><span class="badge b-ocupado">Ocupado</span></td><td>Hóspede no apartamento</td><td>—</td></tr>
-        <tr><td><span class="badge b-bloqueado">Bloqueado</span></td><td>Fora de uso (interdição)</td><td>—</td></tr>
+        <tr><td><span class="badge b-bloqueado">Bloqueado</span></td><td>Fora de uso (interdição). Quando o Status Gov indica Inspeção ou Manutenção, o apto é reclassificado visualmente no grupo correspondente. Se o Status Gov for Sujo ou Limpo, aparece no grupo de limpeza adequado.</td><td>Supervisora ou Admin define Status Gov para liberar</td></tr>
         <tr><td><span class="badge b-manutencao">Manutenção</span></td><td>Com equipe de manutenção</td><td>Manutenção libera</td></tr>
+        <tr><td><span class="badge" style="background:#e0e7ff;color:#3730a3;">Inspeção</span></td><td>Apartamento aguardando inspeção da supervisora</td><td>Supervisora conclui inspeção (→ Limpo) ou devolve para limpeza (→ Sujo)</td></tr>
       </tbody>
     </table>
 
@@ -593,16 +596,31 @@
 
     <div class="section">
       <div class="section-title">🧹 Fluxo de Limpeza (Supervisora / Governanta) <span class="novidade-badge">Atualizado</span></div>
-      <div class="info-box amber">A Supervisora e a Governanta agora também participam do fluxo de limpeza — ao iniciar ou retomar uma limpeza o checklist abre automaticamente, igual à camareira. Suas funções de conferência e aprovação permanecem inalteradas.</div>
+      <div class="info-box amber">A Supervisora e a Governanta participam do fluxo de limpeza — ao iniciar ou retomar uma limpeza o checklist abre automaticamente, igual à camareira. Também têm acesso exclusivo aos botões <strong>🔍 Inspecionar</strong> e <strong>🔧 Manutenção</strong> — visíveis somente para supervisoras, gestores e admins, nunca para camareira ou manutenção.</div>
       <table>
         <thead><tr><th>Status do apto</th><th>Ação</th><th>Resultado</th></tr></thead>
         <tbody>
-          <tr><td><span class="badge b-sujo">Sujo</span></td><td>▶ Iniciar limpeza</td><td>→ <span class="badge b-limpando">Limpando</span> + checklist abre</td></tr>
+          <tr><td><span class="badge b-sujo">Sujo</span></td><td>▶ Iniciar limpeza · 🔍 Inspecionar · 🔧 Manutenção</td><td>Iniciar → <span class="badge b-limpando">Limpando</span> + checklist · Inspecionar → <span class="badge" style="background:#e0e7ff;color:#3730a3;">Inspeção</span> · Manutenção → <span class="badge b-manutencao">Manutenção</span></td></tr>
           <tr><td><span class="badge b-pausado">Pausado</span></td><td>▶ Retomar limpeza</td><td>→ <span class="badge b-limpando">Limpando</span> + checklist reabre</td></tr>
           <tr><td><span class="badge b-reprovado">Reprovado</span></td><td>▶ Re-limpar</td><td>→ <span class="badge b-limpando">Limpando</span> + checklist abre</td></tr>
           <tr><td><span class="badge b-conferencia">Conferência</span></td><td>✅ Aprovar · ❌ Reprovar</td><td>Aprovar → checklist de conferência → <span class="badge b-limpo">Limpo</span></td></tr>
+          <tr><td><span class="badge" style="background:#e0e7ff;color:#3730a3;">Inspeção</span></td><td>✅ Concluir inspeção · ↩ Devolver limpeza</td><td>Concluir → <span class="badge b-limpo">Limpo</span> · Devolver → <span class="badge b-sujo">Sujo</span></td></tr>
         </tbody>
       </table>
+    </div>
+
+    <div class="section">
+      <div class="section-title">🔍 Inspecionar e Manutenção <span class="novidade-badge">Novo</span></div>
+      <div class="info-box blue">Os botões <strong>🔍 Inspecionar</strong> e <strong>🔧 Manutenção</strong> aparecem no modal "Ver Detalhes" apenas para supervisoras, gestores e admins. A camareira e o perfil manutenção não têm acesso a esses botões.</div>
+      <ul class="steps">
+        <li><div class="step-num">1</div><div class="step-body">Abra <strong>Ver Detalhes</strong> de um apartamento sujo ou limpo. Use <strong>🔍 Inspecionar</strong> para colocar o apto em estado de inspeção — o status muda para <span class="badge" style="background:#e0e7ff;color:#3730a3;">Inspeção</span> e o apto aparece no grupo Inspeção em Meus Aptos.</div></li>
+        <li><div class="step-num">2</div><div class="step-body">Para concluir a inspeção: clique em <strong>✅ Concluir inspeção</strong> no modal. O apto vai para <span class="badge b-limpo">Limpo</span>.</div></li>
+        <li><div class="step-num">3</div><div class="step-body">Para devolver à fila de limpeza: clique em <strong>↩ Devolver limpeza</strong>. O apto retorna para <span class="badge b-sujo">Sujo</span>.</div></li>
+        <li><div class="step-num">4</div><div class="step-body">Use <strong>🔧 Manutenção</strong> para bloquear o apto para manutenção. O status operacional muda para <span class="badge b-manutencao">Manutenção</span>.</div></li>
+      </ul>
+      <div class="info-box amber">
+        Enquanto o apartamento está em <strong>Inspeção</strong>, a camareira vê apenas a mensagem <em>"Apto em inspeção — aguarde a supervisora."</em> e não pode iniciar limpeza.
+      </div>
     </div>
 
     <div class="section">
@@ -648,13 +666,14 @@
 
     <div class="section">
       <div class="section-title">🧹 Meus Aptos <span class="novidade-badge">Atualizado</span></div>
-      <div class="info-box blue">A tela <strong>Meus Aptos</strong> exibe todos os apartamentos do hotel com ícone e status visual. O comportamento ao tocar em um card varia conforme o status do apartamento.</div>
+      <div class="info-box blue">A tela <strong>Meus Aptos</strong> exibe todos os apartamentos do hotel com ícone e status visual. Os cards exibem também o <strong>Status Apto</strong> (Ocupado/Vago/Bloqueado) e o <strong>Status Gov</strong> como badges coloridos quando definidos.</div>
       <ul class="steps">
-        <li><div class="step-num">1</div><div class="step-body">Clique em <strong>Meus Aptos</strong> no menu. Os apartamentos são exibidos em cards com ícone, número, andar, tipo e status.</div></li>
+        <li><div class="step-num">1</div><div class="step-body">Clique em <strong>Meus Aptos</strong> no menu. Os apartamentos são exibidos em grupos por status: Reprovado, Pausado, Em limpeza, Sujo, Ag. Conferência, Limpo, Manutenção, Inspeção e Bloqueado.</div></li>
         <li><div class="step-num">2</div><div class="step-body">Quando um gestor ou supervisora atribuir um apartamento diretamente a você, o card exibe o badge <strong>👤 Atribuído a mim</strong> com borda azul.</div></li>
-        <li><div class="step-num">3</div><div class="step-body">Clique em <strong>Ver detalhes</strong> em qualquer card para abrir o painel completo do apartamento: histórico, status, observações e ações disponíveis.</div></li>
-        <li><div class="step-num">4</div><div class="step-body">Use o filtro <strong>👤 Meus atribuídos (N)</strong> para ver apenas os apartamentos atribuídos a você.</div></li>
-        <li><div class="step-num">5</div><div class="step-body">Use os <strong>botões de filtro por status</strong> (Sujo, Em andamento, Pausado…) para exibir apenas um status específico.</div></li>
+        <li><div class="step-num">3</div><div class="step-body">Se o apartamento tiver um <strong>Status Gov</strong> definido (ex.: Não Perturbe, No Show), aparece um badge colorido 🏛 no card, mesmo após a seleção de situação em "Ver Detalhes".</div></li>
+        <li><div class="step-num">4</div><div class="step-body">Clique em <strong>Ver detalhes</strong> em qualquer card para abrir o painel completo do apartamento: histórico, status, observações e ações disponíveis.</div></li>
+        <li><div class="step-num">5</div><div class="step-body">Use o filtro <strong>👤 Meus atribuídos (N)</strong> para ver apenas os apartamentos atribuídos a você.</div></li>
+        <li><div class="step-num">6</div><div class="step-body">Use os <strong>botões de filtro por status</strong> (Sujo, Em andamento, Pausado…) para exibir apenas um status específico.</div></li>
       </ul>
 
       <div style="margin-top:14px;font-size:13px;font-weight:700;color:var(--text2);margin-bottom:8px;">Comportamento ao tocar em cada status:</div>
@@ -687,11 +706,26 @@
     </div>
 
     <div class="section">
+      <div class="section-title">🏛 Situação do Apartamento (Status Gov — Camareira) <span class="novidade-badge">Novo</span></div>
+      <div class="info-box blue">Em <strong>Ver Detalhes</strong> de qualquer apartamento, a camareira vê a seção <strong>"Situação do Apartamento"</strong> com botões para registrar a situação encontrada no quarto.</div>
+      <ul class="steps">
+        <li><div class="step-num">1</div><div class="step-body">Abra <strong>Ver Detalhes</strong> de um apartamento. Role até a seção <strong>🏛 Situação do Apartamento</strong>.</div></li>
+        <li><div class="step-num">2</div><div class="step-body">Toque no botão correspondente à situação encontrada: <strong>Não Perturbe</strong>, <strong>Dormiu Fora</strong>, <strong>Não Quis Arrumação</strong> ou <strong>No Show</strong>. O botão selecionado fica destacado com a cor da situação.</div></li>
+        <li><div class="step-num">3</div><div class="step-body">Para remover a situação registrada, toque em <strong>✕ Nenhuma</strong>. O badge desaparece do card.</div></li>
+        <li><div class="step-num">4</div><div class="step-body">Após selecionar, o card do apartamento em <strong>Meus Aptos</strong> e <strong>Minha Fila</strong> exibe imediatamente o badge 🏛 com a situação escolhida e sua cor correspondente.</div></li>
+      </ul>
+      <div class="info-box amber">
+        <strong>Opções visíveis:</strong> A camareira vê apenas as situações configuradas como <em>Visível camareira</em> pelo Admin em <strong>Config → Status Governança</strong>. Por padrão: Não Perturbe, Dormiu Fora, Não Quis Arrumação e No Show. Situações como Manutenção, Inspeção ou Sujo não aparecem para a camareira.
+      </div>
+    </div>
+
+    <div class="section">
       <div class="section-title">📌 Minha Fila (tela principal) <span class="novidade-badge">Atualizado</span></div>
       <div class="info-box blue">Ao fazer login, a camareira é direcionada automaticamente para <strong>Minha Fila</strong>.</div>
       <ul class="steps">
         <li><div class="step-num">1</div><div class="step-body">A fila é organizada por <strong>prioridade de atribuição</strong> em 4 seções: <strong>(1) Minha atribuição</strong> — apenas aptos com status <span class="badge b-sujo">Sujo</span> atribuídos a mim → <strong>(2) Reprovados disponíveis</strong> (sem camareira definida) → <strong>(3) Sujos sem responsável</strong> (nenhuma camareira atribuída) → <strong>(4) Demais</strong> (pausados, conferência e outros status não sujo atribuídos a mim ou sem atribuição).</div></li>
         <li><div class="step-num">2</div><div class="step-body">Todos os cards exibem o <strong>nome da camareira responsável</strong> pelo apartamento, ou o texto <span style="color:#dc2626;font-weight:700;">👤 Sem responsável</span> em vermelho quando não há atribuição. Isso vale para todos os status.</div></li>
+        <li><div class="step-num">2b</div><div class="step-body">Se o apartamento tiver um <strong>Status Gov</strong> definido (ex.: Não Perturbe, No Show), o card exibe o badge 🏛 colorido com o nome da situação — útil para saber que o quarto ainda está com restrição antes de iniciar a limpeza.</div></li>
         <li><div class="step-num">3</div><div class="step-body">Para <strong>iniciar</strong>: clique em <strong>▶ Iniciar limpeza</strong>. O apto vai para <span class="badge b-limpando">Em andamento</span> e o <strong>checklist de limpeza abre automaticamente</strong>. No topo do checklist, três botões com emojis aparecem sempre: <strong>🛏 Saída (checkout)</strong>, <strong>🏠 Permanência</strong> e <strong>🔧 Pós-manutenção</strong>. Toque no tipo correto antes de marcar os itens (mínimo 80%).</div></li>
         <li><div class="step-num">4</div><div class="step-body">Ao concluir o checklist, clique em <strong>✓ Concluir limpeza</strong>. O tipo de limpeza selecionado e as respostas são salvos e o apto vai direto para <span class="badge b-conferencia">Ag. Conferência</span>. Se precisar cancelar, clique em <strong>🚫 Cancelar limpeza</strong> — o apto retorna ao status de origem.</div></li>
         <li><div class="step-num">5</div><div class="step-body">Aguarde a supervisora aprovar ou reprovar. Se <span class="badge b-reprovado">Reprovado</span>: veja o motivo, clique em <strong>▶ Re-limpar</strong> → apto volta para <span class="badge b-limpando">Em andamento</span>, checklist abre novamente e o ciclo recomeça.</div></li>
@@ -1182,6 +1216,23 @@
     </ul>
 
     <div class="card">
+      <h4>Status exibido na tabela de cadastro <span class="novidade-badge">Atualizado</span></h4>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:8px;">A coluna <strong>Status</strong> na tabela de cadastro exibe sempre o <strong>status de limpeza normalizado</strong> do apartamento:</p>
+      <table style="margin-bottom:0;">
+        <thead><tr><th>Status real</th><th>Status exibido na tabela</th></tr></thead>
+        <tbody>
+          <tr><td>ocupado / vago</td><td><span class="badge b-limpo">Limpo</span> — quarto disponível para o fluxo</td></tr>
+          <tr><td>bloqueado + Status Gov "Inspeção"</td><td><span class="badge" style="background:#e0e7ff;color:#3730a3;">Inspeção</span></td></tr>
+          <tr><td>bloqueado + Status Gov "Manutenção"</td><td><span class="badge b-manutencao">Manutenção</span></td></tr>
+          <tr><td>bloqueado + Status Gov "Sujo"</td><td><span class="badge b-sujo">Sujo</span></td></tr>
+          <tr><td>bloqueado + Status Gov "Limpo"</td><td><span class="badge b-limpo">Limpo</span></td></tr>
+          <tr><td>bloqueado sem Status Gov específico</td><td><span class="badge b-bloqueado">Bloqueado</span></td></tr>
+          <tr><td>demais status</td><td>Status atual (sujo, limpando, pausado, etc.)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
       <h4>Tipos e Categorias de Apartamento</h4>
       <p style="font-size:13px;color:var(--text2);">Os tipos (ex.: Standard, Luxo, Suíte) e categorias (ex.: Casal, Solteiro, Família) disponíveis no formulário de cadastro são configurados em <strong>Config → Tipos de Apartamento</strong> e <strong>Config → Categorias de Apartamento</strong>. Somente itens ativos aparecem no seletor.</p>
     </div>
@@ -1425,8 +1476,45 @@
       </div>
     </div>
 
+    <!-- Aba Discrepância -->
+    <div class="section" id="mod-rel-discrepancia">
+      <div class="section-title" style="font-size:14px;">14. Discrepância XLS × Governança <span class="novidade-badge">Novo</span></div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:8px;">Compara o arquivo de integração diária (XLS/CSV importado pela recepção) com o que a equipe de governança realmente encontrou nos apartamentos. Identifica divergências entre o status informado pelo sistema hoteleiro e o status registrado pela governança.</p>
+
+      <div class="card">
+        <h4>Como funciona</h4>
+        <ul class="steps" style="margin-top:8px;">
+          <li><div class="step-num">1</div><div class="step-body">Selecione a <strong>data de integração</strong> no filtro do relatório. O sistema busca o arquivo XLS importado para aquela data.</div></li>
+          <li><div class="step-num">2</div><div class="step-body">Para cada apartamento no arquivo, o sistema verifica as discrepâncias entre o status informado pelo XLS e o que foi registrado pela governança no mesmo período.</div></li>
+          <li><div class="step-num">3</div><div class="step-body">Discrepâncias <strong>críticas</strong> são destacadas com borda vermelha e texto em destaque. Discrepâncias menores aparecem como alertas secundários.</div></li>
+          <li><div class="step-num">4</div><div class="step-body">Use o botão <strong>⬇ Exportar CSV</strong> para baixar o relatório completo com todas as discrepâncias listadas por apartamento.</div></li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h4>Tipos de Discrepância Detectadas</h4>
+        <table style="margin-bottom:0;">
+          <thead><tr><th>Discrepância</th><th>Severidade</th><th>Descrição</th></tr></thead>
+          <tbody>
+            <tr><td>🔴 VAGO × OCUPADO</td><td><strong>Crítica</strong></td><td>XLS informa Vago mas governança registrou Ocupado</td></tr>
+            <tr><td>🔴 OCUPADO × VAGO</td><td><strong>Crítica</strong></td><td>XLS informa Ocupado mas governança registrou Vago</td></tr>
+            <tr><td>🔴 BLOQUEADO × OCUPADO/VAGO</td><td><strong>Crítica</strong></td><td>XLS informa Bloqueado mas governança encontrou ocupação diferente</td></tr>
+            <tr><td>⚠ Qtd. pessoas divergente</td><td>Atenção</td><td>Número de hóspedes informado no XLS difere do registrado no checklist de limpeza</td></tr>
+            <tr><td>⚠ Qtd. crianças divergente</td><td>Atenção</td><td>Número de crianças informado no XLS difere do registrado</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="info-box purple">
+        <strong>Rastreabilidade:</strong> O sistema registra automaticamente cada mudança de <strong>Status Apto</strong> (Vago/Ocupado/Bloqueado) no histórico de alterações com data, hora e quem efetuou. Isso permite comparar o que foi registrado na governança versus o que o XLS informou, mesmo que o status já tenha sido corrigido depois.
+      </div>
+      <div class="info-box amber">
+        <strong>Pré-requisito:</strong> O arquivo XLS de integração precisa ter sido importado pelo módulo de integração antes de gerar o relatório de discrepância. Sem dados de integração, o relatório não exibe resultados.
+      </div>
+    </div>
+
     <div class="info-box green">
-      <strong>Fontes de dados:</strong> Os relatórios usam 8 tabelas do Supabase carregadas em paralelo: <code>apartments</code>, <code>work_orders</code>, <code>pendencias_retrabalho</code>, <code>user_profiles</code>, <code>apartment_status_history</code>, <code>conferencia_supervisora_checklists</code>, <code>limpeza_checklists</code> e <code>hotel_config</code> (para metas de tempo). O cálculo de sessões de limpeza é derivado do histórico — não há tabela dedicada de sessões.
+      <strong>Fontes de dados:</strong> Os relatórios usam 9 tabelas do Supabase carregadas em paralelo: <code>apartments</code>, <code>work_orders</code>, <code>pendencias_retrabalho</code>, <code>user_profiles</code>, <code>apartment_status_history</code> (com campo <code>campo</code> para distinguir limpeza de ocupação), <code>conferencia_supervisora_checklists</code>, <code>limpeza_checklists</code>, <code>hotel_config</code> (para metas de tempo) e <code>integracao_xls_status_diario</code> (para discrepância XLS). O cálculo de sessões de limpeza é derivado do histórico — não há tabela dedicada de sessões.
     </div>
   </section>
 
@@ -1528,6 +1616,36 @@
     <div class="card">
       <h4>🕐 Turnos</h4>
       <p style="font-size:13px;color:var(--text2);">Gerencie os turnos de trabalho disponíveis (ex.: Manhã, Tarde, Noturno). Associados ao cadastro de membros da equipe.</p>
+    </div>
+
+    <div class="card" id="mod-config-status-gov">
+      <h4>🏛 Status Governança (Situação do Apartamento) <span class="novidade-badge">Novo</span></h4>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:10px;">Gerencie as opções de <strong>Status Governança</strong> exibidas no modal "Ver Detalhes" para indicar a situação encontrada no apartamento. Cada opção tem nome, cor e controle de visibilidade por perfil.</p>
+      <table>
+        <thead><tr><th>Campo</th><th>Descrição</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Nome</strong></td><td>Texto que aparece como botão/badge (ex.: Não Perturbe, No Show)</td></tr>
+          <tr><td><strong>Cor</strong></td><td>Cor hexadecimal do badge e do botão de seleção</td></tr>
+          <tr><td><strong>Ativo</strong></td><td>Controla se a opção aparece nos seletores</td></tr>
+          <tr><td><strong>Ordem</strong></td><td>Posição na listagem de botões</td></tr>
+          <tr><td><strong>Visível camareira</strong> ✅</td><td>Quando marcado, a opção aparece na seção "Situação do Apartamento" no modal da camareira. Quando desmarcado, a opção é visível apenas para supervisoras, gestores e admins.</td></tr>
+        </tbody>
+      </table>
+      <div class="info-box blue" style="margin-top:10px;">
+        <strong>Opções padrão e visibilidade:</strong>
+        <ul style="margin-top:6px;padding-left:18px;font-size:12px;">
+          <li><strong>Não Perturbe</strong> — Visível camareira ✅</li>
+          <li><strong>Dormiu Fora</strong> — Visível camareira ✅</li>
+          <li><strong>Não Quis Arrumação</strong> — Visível camareira ✅</li>
+          <li><strong>No Show</strong> — Visível camareira ✅</li>
+          <li><strong>Inspeção</strong> — Somente supervisora/admin</li>
+          <li><strong>Manutenção</strong> — Somente supervisora/admin</li>
+          <li><strong>Limpo / Sujo / Reservado / Site / Teste TI</strong> — Somente supervisora/admin</li>
+        </ul>
+      </div>
+      <div class="info-box amber" style="margin-top:8px;">
+        <strong>Como criar um novo Status Gov:</strong> Clique em <strong>+ Adicionar</strong> → informe nome e cor → marque <strong>Visível camareira</strong> se a camareira deve ver a opção → Salvar. A nova opção aparece imediatamente nos botões do modal.
+      </div>
     </div>
   </section>
 
@@ -1686,10 +1804,40 @@
       <h4>As configurações de um hotel afetam os outros hotéis?</h4>
       <p>Não. Cada hotel tem suas configurações isoladas no banco de dados. Uma alteração feita no Hotel A (seja pelo Admin Global com aquele hotel selecionado, ou pelo Admin Hotel do Hotel A) não afeta o Hotel B. A única exceção é a replicação automática que ocorre <em>uma única vez</em> ao criar um novo hotel.</p>
     </div>
+
+    <div class="card">
+      <h4>Como registrar a situação de um apartamento (Não Perturbe, No Show etc.)? <span class="novidade-badge">Novo</span></h4>
+      <p>Em <strong>Ver Detalhes</strong> de qualquer apartamento, role até a seção <strong>🏛 Situação do Apartamento</strong>. Toque no botão da situação desejada — ele fica destacado com a cor configurada. O badge aparece imediatamente no card. Para remover, toque em <strong>✕ Nenhuma</strong>. A camareira vê apenas as situações marcadas como <em>Visível camareira</em> em Config.</p>
+    </div>
+
+    <div class="card">
+      <h4>O badge 🏛 aparece no card mas não sei o que significa. O que é? <span class="novidade-badge">Novo</span></h4>
+      <p>O badge 🏛 colorido indica o <strong>Status Governança (Situação do Apartamento)</strong> registrado pela equipe — por exemplo, Não Perturbe, Dormiu Fora, No Show. Ele é independente do status operacional (Sujo, Limpando etc.) e serve para comunicar a situação encontrada no quarto. Para remover, abra <strong>Ver Detalhes</strong> → seção Situação do Apartamento → toque em <strong>✕ Nenhuma</strong>.</p>
+    </div>
+
+    <div class="card">
+      <h4>O que é "No Show" e como usar? <span class="novidade-badge">Novo</span></h4>
+      <p>No Show indica que o hóspede tinha reserva mas não se apresentou no hotel. É um <strong>Status Gov</strong> visível para a camareira. Para registrar: abra <strong>Ver Detalhes</strong> do apartamento → seção <strong>🏛 Situação do Apartamento</strong> → toque em <strong>No Show</strong>. O badge aparece no card e o dado fica disponível para o relatório de Discrepância XLS.</p>
+    </div>
+
+    <div class="card">
+      <h4>Como funciona o Relatório de Discrepância XLS? <span class="novidade-badge">Novo</span></h4>
+      <p>O relatório compara o arquivo de integração diária (importado pela recepção) com o que a governança registrou nos apartamentos. Selecione a data em Relatórios → aba <strong>Discrepância XLS</strong>. Discrepâncias críticas (ex.: XLS diz Vago mas governança encontrou Ocupado) são destacadas em vermelho. Use <strong>Exportar CSV</strong> para baixar o relatório completo.</p>
+    </div>
+
+    <div class="card">
+      <h4>A camareira não vê o botão Inspecionar. É correto? <span class="novidade-badge">Novo</span></h4>
+      <p>Sim, é o comportamento esperado. Os botões <strong>🔍 Inspecionar</strong> e <strong>🔧 Manutenção</strong> são exclusivos para supervisoras, gestores e admins. A camareira, ao abrir "Ver Detalhes" de um apto em inspeção, vê apenas a mensagem <em>"Apto em inspeção — aguarde a supervisora."</em> sem acesso às ações de inspeção.</p>
+    </div>
+
+    <div class="card">
+      <h4>O status do apto no Cadastro parece diferente do status no Mapa. Por quê? <span class="novidade-badge">Novo</span></h4>
+      <p>O Cadastro de Aptos exibe o <strong>status de limpeza normalizado</strong>: apartamentos Ocupados ou Vagos aparecem como <span class="badge b-limpo">Limpo</span> (pois estão disponíveis para o fluxo), e apartamentos Bloqueados são reclassificados conforme o Status Gov (Inspeção, Manutenção, Sujo ou Limpo). O Mapa mostra o status operacional bruto. Ambas as telas estão corretas — a lógica de normalização é intencional para facilitar a gestão de limpeza.</p>
+    </div>
   </section>
 
   <div style="text-align:center;padding:32px 0;color:var(--text3);font-size:12px;border-top:1px solid var(--border);">
-    Gov Estancorp · Manual de Uso · Versão 2026.06.19 · Sistema de Governança Hoteleira
+    Gov Estancorp · Manual de Uso · Versão 2026.06.30 · Sistema de Governança Hoteleira
   </div>
 
 </main>
