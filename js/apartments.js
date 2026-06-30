@@ -920,11 +920,17 @@ window.marcarVago = async function(id) {
   if (!apto) { toast('Apartamento não encontrado', 'error'); return; }
   if (!sameHotel(apto.hotel_id)) { toast('Sem permissão', 'error'); return; }
 
+  const aptoAnterior = apto.status_apto;
   const { error } = await supabaseClient.from('apartments')
     .update({ status_apto: 'Vago' })
     .eq('id', id);
 
   if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
+
+  await supabaseClient.from('apartment_status_history').insert({
+    apartment_id: id, campo: 'status_apto',
+    status_anterior: aptoAnterior, status_novo: 'Vago', alterado_por: currentUser.id,
+  });
 
   apto.status_apto = 'Vago';
   toast('Apto ' + apto.numero + ' → Disponível (Vago)', 'success');
@@ -941,11 +947,17 @@ window.marcarBloqueado = async function(id) {
   if (!apto) { toast('Apartamento não encontrado', 'error'); return; }
   if (!sameHotel(apto.hotel_id)) { toast('Sem permissão', 'error'); return; }
 
+  const aptoAnterior = apto.status_apto;
   const { error } = await supabaseClient.from('apartments')
     .update({ status_apto: 'Bloqueado' })
     .eq('id', id);
 
   if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
+
+  await supabaseClient.from('apartment_status_history').insert({
+    apartment_id: id, campo: 'status_apto',
+    status_anterior: aptoAnterior, status_novo: 'Bloqueado', alterado_por: currentUser.id,
+  });
 
   apto.status_apto = 'Bloqueado';
   toast('Apto ' + apto.numero + ' → Bloqueado', 'success');
@@ -964,11 +976,17 @@ window.marcarOcupado = async function(id) {
   if (!apto) { toast('Apartamento não encontrado', 'error'); return; }
   if (!sameHotel(apto.hotel_id)) { toast('Sem permissão', 'error'); return; }
 
+  const aptoAnterior = apto.status_apto;
   const { error } = await supabaseClient.from('apartments')
     .update({ status_apto: 'Ocupado' })
     .eq('id', id);
 
   if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
+
+  await supabaseClient.from('apartment_status_history').insert({
+    apartment_id: id, campo: 'status_apto',
+    status_anterior: aptoAnterior, status_novo: 'Ocupado', alterado_por: currentUser.id,
+  });
 
   apto.status_apto = 'Ocupado';
   toast('Apto ' + apto.numero + ' → Ocupado', 'success');
@@ -995,10 +1013,11 @@ window.checkoutApto = async function(id) {
 
   if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
 
-  await supabaseClient.from('apartment_status_history').insert({
-    apartment_id: id, status_anterior: statusAnterior, status_novo: 'sujo',
-    alterado_por: currentUser.id, obs,
-  });
+  const aptoAnteriorCheckout = apto.status_apto;
+  await supabaseClient.from('apartment_status_history').insert([
+    { apartment_id: id, campo: 'status',      status_anterior: statusAnterior,       status_novo: 'sujo',  alterado_por: currentUser.id, obs },
+    { apartment_id: id, campo: 'status_apto', status_anterior: aptoAnteriorCheckout, status_novo: 'Vago',  alterado_por: currentUser.id },
+  ]);
 
   apto.status = 'sujo';
   apto.status_apto = 'Vago';

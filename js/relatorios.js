@@ -1713,13 +1713,30 @@ function _discBadge(v) {
 // status_apto   = STATUS GOV do XLS  (ocupação: vago/ocupado/bloqueado/nao_perturbe/nao_quis_arrumacao)
 // status_governanca = STATUS APTO do XLS (limpeza: limpo/sujo/limpando/inspecao/manutencao)
 
-function calcularDiscrepanciasIntegracaoXls(r, dataIntegracao, qtdPessoasLimpeza, qtdCriancasLimpeza) {
+function calcularDiscrepanciasIntegracaoXls(r, dataIntegracao, qtdPessoasLimpeza, qtdCriancasLimpeza, histApto) {
   const disc = [];
   const gov     = r.status_apto        || '';
   const limpeza = r.status_governanca  || '';
   const adultos  = r.adultos  ?? 0;
   const criancas = r.criancas ?? 0;
   const partida  = r.data_partida || '';
+
+  // ── Regras de ocupação XLS × status_apto encontrado pela governança ──────
+  // histApto = primeiro registro de mudança de status_apto do dia (o que foi ENCONTRADO)
+  if (histApto) {
+    const xlsApto  = gov;                          // ex: 'vago'
+    const govApto  = (histApto.status_novo || '').toLowerCase(); // ex: 'ocupado'
+    const xlsLabel = { vago:'Vago', ocupado:'Ocupado', bloqueado:'Bloqueado' };
+
+    if (xlsApto === 'vago' && govApto === 'ocupado')
+      disc.push({ texto: `🔴 VAGO × OCUPADO — XLS: Vago · Governança encontrou: Ocupado`, severidade: 'critica' });
+
+    if (xlsApto === 'ocupado' && govApto === 'vago')
+      disc.push({ texto: `🔴 OCUPADO × VAGO — XLS: Ocupado · Governança encontrou: Vago`, severidade: 'critica' });
+
+    if (xlsApto === 'bloqueado' && (govApto === 'ocupado' || govApto === 'vago'))
+      disc.push({ texto: `🔴 BLOQUEADO × ${(xlsLabel[govApto]||govApto).toUpperCase()} — XLS: Bloqueado · Governança encontrou: ${xlsLabel[govApto]||govApto}`, severidade: 'critica' });
+  }
 
   // Regra 1: Ocupado sem hóspedes informados
   if (gov === 'ocupado' && adultos === 0)
@@ -1878,7 +1895,7 @@ async function _discCarregarERender() {
   const dataInicio = _discFiltros.data + 'T00:00:00';
   const dataFim    = _discFiltros.data + 'T23:59:59';
 
-  const [xlsRes, limpRes] = await Promise.all([
+  const [xlsRes, limpRes, histAptoRes] = await Promise.all([
     supabaseClient
       .from('integracao_xls_status_diario')
       .select('apto, status_apto, status_apto_original, status_governanca, status_governanca_original, adultos, criancas, data_partida, data_integracao')
@@ -1892,6 +1909,13 @@ async function _discCarregarERender() {
       .eq('tipo_limpeza', 'permanencia')
       .gte('created_at', dataInicio)
       .lte('created_at', dataFim),
+    supabaseClient
+      .from('apartment_status_history')
+      .select('apartment_id, status_anterior, status_novo, created_at, apartments(numero, hotel_id)')
+      .eq('campo', 'status_apto')
+      .gte('created_at', dataInicio)
+      .lte('created_at', dataFim)
+      .order('created_at', { ascending: true }),
   ]);
 
   if (xlsRes.error) {
@@ -1919,11 +1943,21 @@ async function _discCarregarERender() {
     };
   });
 
-  // Enriquece cada registro com dados de limpeza para uso no CSV e cálculo
+  // Monta mapa apto → primeira mudança de status_apto do dia (o que a governança ENCONTROU)
+  // Filtra apenas registros do hotel correto
+  const mapHistApto = {};
+  (histAptoRes.data || []).forEach(h => {
+    if (h.apartments?.hotel_id !== _relHotelId) return;
+    const num = h.apartments?.numero;
+    if (num && !mapHistApto[num]) mapHistApto[num] = h; // já ordenado por created_at asc → primeiro registro
+  });
+
+  // Enriquece cada registro com dados de limpeza e histórico para uso no CSV e cálculo
   _discDadosAtuais = data.map(r => ({
     ...r,
     qtdPessoasLimpeza:   mapLimpeza[r.apto]?.pessoas  ?? null,
     qtdCriancasLimpeza:  mapLimpeza[r.apto]?.criancas ?? null,
+    histApto: mapHistApto[r.apto] || null,
   }));
 
   // Aplica filtros de tela
@@ -1934,15 +1968,17 @@ async function _discCarregarERender() {
     return true;
   });
 
-  // Calcula discrepâncias de cada registro, cruzando com dados da limpeza
+  // Calcula discrepâncias de cada registro, cruzando com dados da limpeza e histórico de status_apto
   const comDisc = filtrados.map(r => {
     const limpPessoas  = mapLimpeza[r.apto]?.pessoas  ?? null;
     const limpCriancas = mapLimpeza[r.apto]?.criancas ?? null;
+    const histApto     = mapHistApto[r.apto] || null;
     return {
       ...r,
       qtdPessoasLimpeza:  limpPessoas,
       qtdCriancasLimpeza: limpCriancas,
-      disc: calcularDiscrepanciasIntegracaoXls(r, _discFiltros.data, limpPessoas, limpCriancas),
+      histApto,
+      disc: calcularDiscrepanciasIntegracaoXls(r, _discFiltros.data, limpPessoas, limpCriancas, histApto),
       obs:  _discObs(r),
     };
   });
@@ -1965,9 +2001,15 @@ async function _discCarregarERender() {
   const rows = filtrados.map(r => {
     const temDisc    = r.disc.length > 0;
     const rowStyle   = temDisc ? 'background:#fff1f2;' : '';
-    const discTags   = r.disc.map(d =>
-      `<div style="margin-bottom:3px;padding:2px 7px;border-radius:5px;font-size:11px;font-weight:700;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;white-space:nowrap;">${d}</div>`
-    ).join('');
+    const discTags = r.disc.map(d => {
+      const critica = typeof d === 'object' && d.severidade === 'critica';
+      const texto   = typeof d === 'object' ? d.texto : d;
+      const bg      = critica ? '#fef2f2' : '#fee2e2';
+      const cor     = critica ? '#7f1d1d' : '#991b1b';
+      const borda   = critica ? '#fca5a5' : '#fca5a5';
+      const extra   = critica ? 'font-size:12px;padding:5px 10px;border-left:4px solid #dc2626;' : 'font-size:11px;padding:2px 7px;';
+      return `<div style="margin-bottom:4px;border-radius:5px;font-weight:700;background:${bg};color:${cor};border:1px solid ${borda};white-space:nowrap;${extra}">${texto}</div>`;
+    }).join('');
     const obsTag = r.obs
       ? `<span style="font-size:11px;color:#6b7280;font-style:italic;">${r.obs}</span>`
       : '';
