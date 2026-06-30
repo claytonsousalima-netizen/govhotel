@@ -1977,10 +1977,15 @@ async function mudarStatusAptoField(id, campo, valor) {
     if (campo === 'status_apto') apto.status_apto = valor || null;
     else apto.status_gov = valor || null;
   }
-  if (currentPage === 'mapa')        renderMapa();
-  if (currentPage === 'kanban')      renderAptoKanban();
-  if (currentPage === 'minha-fila')  renderMinhaFila();
+  if (currentPage === 'mapa')          renderMapa();
+  if (currentPage === 'kanban')        renderAptoKanban();
+  if (currentPage === 'minha-fila')    renderMinhaFila();
   if (currentPage === 'app-camareira') renderAppCamareira();
+  // Recarrega o modal se estiver aberto para o mesmo apto (atualiza botões ativos e badges)
+  const modalAberto = document.getElementById('modal-apto-detail')?.classList.contains('active');
+  if (modalAberto && typeof selectedAptoId !== 'undefined' && selectedAptoId === id && typeof openAptoDetail === 'function') {
+    openAptoDetail(id);
+  }
   toast('Status atualizado!', 'success');
 }
 
