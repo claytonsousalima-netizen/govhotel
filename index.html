@@ -2820,6 +2820,19 @@ async function openAptoDetail(id) {
         <option value="">Carregando...</option>
       </select>
     </div>` : ''}
+    ${isCamareira ? (() => {
+      const opsCam = (_statusGovOpcoes||[]).filter(o => o.visivel_camareira);
+      if (!opsCam.length) return '';
+      return `
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">🏛 Situação do Apartamento</div>
+      <select id="detail-status-gov-cam" onchange="mudarStatusAptoField('${apto.id}','status_gov',this.value)"
+        style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;">
+        <option value="">— Sem ocorrência —</option>
+        ${opsCam.map(o=>`<option value="${o.nome}" ${apto.status_gov===o.nome?'selected':''}>${o.nome}</option>`).join('')}
+      </select>
+    </div>`;
+    })() : ''}
     ${(['admin_global','admin_hotel','gestor','supervisora'].includes(currentUser.perfil)) ? `
     <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
       <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:10px;">🔄 Status do Apartamento</div>
@@ -3207,7 +3220,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 <script src="js/hotels.js?v=20260619g"></script>
-<script src="js/apartments.js?v=20260629h"></script>
+<script src="js/apartments.js?v=20260630a"></script>
 <script src="js/maids.js?v=20260619g"></script>
 <script src="js/users.js?v=20260619g"></script>
 <script src="js/permissions.js?v=20260619g"></script>

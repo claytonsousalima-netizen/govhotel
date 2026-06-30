@@ -1940,7 +1940,7 @@ async function _loadStatusOpcoes() {
   if (!hotelId) return;
   const [saoRes, sgoRes] = await Promise.all([
     supabaseClient.from('status_apto_opcoes').select('*').eq('ativo', true).order('ordem'),
-    supabaseClient.from('status_governanca_opcoes').select('*').eq('ativo', true).order('ordem'),
+    supabaseClient.from('status_governanca_opcoes').select('id,nome,cor,ativo,ordem,hotel_id,visivel_camareira').eq('ativo', true).order('ordem'),
   ]);
   _statusAptoOpcoes = (saoRes.data || []).filter(o => !o.hotel_id || o.hotel_id === hotelId);
   _statusGovOpcoes  = (sgoRes.data || []).filter(o => !o.hotel_id || o.hotel_id === hotelId);
