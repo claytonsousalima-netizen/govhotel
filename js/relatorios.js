@@ -1796,7 +1796,7 @@ function _discObs(r) {
 function _discExportarCsv(registros, dataIntegracao) {
   const header = ['Apto','Status Apto','Status Governança','Adultos XLS','Crianças XLS','Adultos Limpeza','Crianças Limpeza','Data Partida','Discrepâncias','Observação'];
   const linhas = registros.map(r => {
-    const disc = calcularDiscrepanciasIntegracaoXls(r, dataIntegracao, r.qtdPessoasLimpeza ?? null, r.qtdCriancasLimpeza ?? null);
+    const disc = calcularDiscrepanciasIntegracaoXls(r, dataIntegracao, r.qtdPessoasLimpeza ?? null, r.qtdCriancasLimpeza ?? null, r.histApto ?? null);
     const obs  = _discObs(r);
     return [
       r.apto,
@@ -1807,7 +1807,7 @@ function _discExportarCsv(registros, dataIntegracao) {
       r.qtdPessoasLimpeza  ?? '',
       r.qtdCriancasLimpeza ?? '',
       r.data_partida || '',
-      disc.join(' | '),
+      disc.map(d => typeof d === 'object' ? d.texto : d).join(' | '),
       obs,
     ].map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(',');
   });
@@ -1909,13 +1909,19 @@ async function _discCarregarERender() {
       .eq('tipo_limpeza', 'permanencia')
       .gte('created_at', dataInicio)
       .lte('created_at', dataFim),
-    supabaseClient
-      .from('apartment_status_history')
-      .select('apartment_id, status_anterior, status_novo, created_at, apartments(numero, hotel_id)')
-      .eq('campo', 'status_apto')
-      .gte('created_at', dataInicio)
-      .lte('created_at', dataFim)
-      .order('created_at', { ascending: true }),
+    (() => {
+      // Filtra pelo conjunto de apartment_id do hotel (aptos já carregados com filtro de hotel)
+      const aptoIds = (typeof aptos !== 'undefined' ? aptos : []).map(a => a.id).filter(Boolean);
+      let q = supabaseClient
+        .from('apartment_status_history')
+        .select('apartment_id, status_anterior, status_novo, created_at, apartments(numero)')
+        .eq('campo', 'status_apto')
+        .gte('created_at', dataInicio)
+        .lte('created_at', dataFim)
+        .order('created_at', { ascending: true });
+      if (aptoIds.length) q = q.in('apartment_id', aptoIds);
+      return q;
+    })(),
   ]);
 
   if (xlsRes.error) {
@@ -1947,7 +1953,6 @@ async function _discCarregarERender() {
   // Filtra apenas registros do hotel correto
   const mapHistApto = {};
   (histAptoRes.data || []).forEach(h => {
-    if (h.apartments?.hotel_id !== _relHotelId) return;
     const num = h.apartments?.numero;
     if (num && !mapHistApto[num]) mapHistApto[num] = h; // já ordenado por created_at asc → primeiro registro
   });

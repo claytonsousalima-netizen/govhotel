@@ -1051,6 +1051,10 @@ async function renderConfigStatusGov() {
         style="flex:1;min-width:140px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;"
         onkeydown="if(event.key==='Enter') _addStatusGov()">
       <input type="color" id="new-sgo-cor" value="#6b7280" title="Cor do badge" style="width:38px;height:36px;border:1.5px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;">
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);white-space:nowrap;cursor:pointer;">
+        <input type="checkbox" id="new-sgo-cam" style="width:15px;height:15px;cursor:pointer;">
+        Visível camareira
+      </label>
       <button class="btn btn-primary btn-sm" onclick="_addStatusGov()">+ Adicionar</button>
     </div>
     <div>${_statusGovCache.map(o => _rowStatusOpcao(o, 'sgo')).join('')}</div>`;
@@ -1064,11 +1068,15 @@ function _rowStatusOpcao(o, prefix) {
       <span id="${prefix}-text-${o.id}" style="font-size:13px;${!o.ativo?'text-decoration:line-through;color:var(--text3);':''}">${o.nome}</span>
       ${!o.ativo?'<span class="badge badge-bloqueado" style="font-size:10px;">Inativo</span>':''}
     </div>
-    <div id="${prefix}-edit-${o.id}" style="display:none;flex:1;gap:8px;align-items:center;">
+    <div id="${prefix}-edit-${o.id}" style="display:none;flex:1;gap:8px;align-items:center;flex-wrap:wrap;">
       <input type="text" id="${prefix}-input-${o.id}" value="${o.nome}"
-        style="flex:1;padding:5px 8px;border:1.5px solid var(--primary-light);border-radius:var(--radius-sm);font-size:13px;"
+        style="flex:1;min-width:120px;padding:5px 8px;border:1.5px solid var(--primary-light);border-radius:var(--radius-sm);font-size:13px;"
         onkeydown="if(event.key==='Enter') _saveStatusOpcao('${o.id}','${prefix}')">
       <input type="color" id="${prefix}-cor-${o.id}" value="${cor}" style="width:32px;height:30px;border:1.5px solid var(--border);border-radius:4px;cursor:pointer;">
+      ${prefix === 'sgo' ? `<label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);white-space:nowrap;cursor:pointer;">
+        <input type="checkbox" id="${prefix}-cam-${o.id}" ${o.visivel_camareira?'checked':''} style="width:14px;height:14px;">
+        Camareira
+      </label>` : ''}
     </div>
     <div style="display:flex;gap:4px;flex-shrink:0;">
       <button class="btn btn-ghost btn-xs" id="${prefix}-btn-edit-${o.id}" onclick="_editStatusOpcao('${o.id}','${prefix}')" title="Editar">✏️</button>
@@ -1092,7 +1100,9 @@ async function _saveStatusOpcao(id, prefix) {
   const nome = document.getElementById(`${prefix}-input-${id}`)?.value.trim();
   const cor  = document.getElementById(`${prefix}-cor-${id}`)?.value || '#6b7280';
   if (!nome) { toast('Informe o nome', 'error'); return; }
-  const { error } = await supabaseClient.from(tabela).update({ nome, cor }).eq('id', id);
+  const payload = { nome, cor };
+  if (prefix === 'sgo') payload.visivel_camareira = document.getElementById(`${prefix}-cam-${id}`)?.checked ?? false;
+  const { error } = await supabaseClient.from(tabela).update(payload).eq('id', id);
   if (error) { toast('Erro: ' + error.message, 'error'); return; }
   toast('Salvo!', 'success');
   prefix === 'sao' ? await renderConfigStatusApto() : await renderConfigStatusGov();
@@ -1112,11 +1122,13 @@ async function _addStatusApto() {
 async function _addStatusGov() {
   const nome = document.getElementById('new-sgo-nome')?.value.trim();
   const cor  = document.getElementById('new-sgo-cor')?.value || '#6b7280';
+  const cam  = document.getElementById('new-sgo-cam')?.checked ?? false;
   if (!nome) { toast('Informe o nome', 'error'); return; }
   if (_cfgBlocked()) { toast('Selecione um hotel', 'error'); return; }
-  const { error } = await supabaseClient.from('status_governanca_opcoes').insert([{ nome, cor, hotel_id: _cfgHotelId(), ativo: true, ordem: (_statusGovCache.length || 0) + 1 }]);
+  const { error } = await supabaseClient.from('status_governanca_opcoes').insert([{ nome, cor, hotel_id: _cfgHotelId(), ativo: true, ordem: (_statusGovCache.length || 0) + 1, visivel_camareira: cam }]);
   if (error) { toast('Erro: ' + error.message, 'error'); return; }
   document.getElementById('new-sgo-nome').value = '';
+  if (document.getElementById('new-sgo-cam')) document.getElementById('new-sgo-cam').checked = false;
   toast('Adicionado!', 'success'); await renderConfigStatusGov();
   if (typeof _loadStatusOpcoes === 'function') await _loadStatusOpcoes();
 }

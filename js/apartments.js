@@ -291,11 +291,11 @@ function renderCadastroTableDb(filter = '') {
         if (ap.status === 'ocupado' || ap.status === 'vago') return 'limpo';
         if (ap.status === 'bloqueado') {
           const gov = (ap.status_gov || '').toLowerCase();
-          if (gov.includes('inspe')) return 'inspecao';
+          if (gov.includes('inspe') || gov.includes('insp')) return 'inspecao';
           if (gov.includes('manut')) return 'manutencao';
           if (gov === 'sujo') return 'sujo';
           if (gov === 'limpo') return 'limpo';
-          return 'sujo';
+          return 'bloqueado';
         }
         return ap.status;
       }
@@ -1060,6 +1060,7 @@ window.mudarStatusApto = async function mudarStatusApto(id, novoStatus, obs) {
     // Histórico — awaited para garantir que o registro não se perca
     const { error: histErr } = await supabaseClient.from('apartment_status_history').insert({
       apartment_id:    id,
+      campo:           'status',
       status_anterior: statusAnterior,
       status_novo:     novoStatus,
       alterado_por:    currentUser.id,
@@ -1582,7 +1583,7 @@ async function renderAppCamareira() {
       // status_gov indica estado de limpeza real → desmapeia de volta
       if (gov === 'sujo') return 'sujo';
       if (gov === 'limpo') return 'limpo';
-      return 'sujo'; // fallback: tratar como sujo para entrar no fluxo de limpeza
+      return 'bloqueado'; // fallback: mantém no grupo Bloqueados sem motivo identificado
     }
     return a.status;
   }
@@ -2001,7 +2002,7 @@ async function mudarStatusAptoField(id, campo, valor) {
   if (currentPage === 'minha-fila')    renderMinhaFila();
   if (currentPage === 'app-camareira') renderAppCamareira();
   // Recarrega o modal se estiver aberto para o mesmo apto (atualiza botões ativos e badges)
-  const modalAberto = document.getElementById('modal-apto-detail')?.classList.contains('active');
+  const modalAberto = document.getElementById('modal-apto-detail')?.classList.contains('open');
   if (modalAberto && typeof selectedAptoId !== 'undefined' && selectedAptoId === id && typeof openAptoDetail === 'function') {
     openAptoDetail(id);
   }
