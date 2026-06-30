@@ -2826,11 +2826,14 @@ async function openAptoDetail(id) {
       return `
     <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
       <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">🏛 Situação do Apartamento</div>
-      <select id="detail-status-gov-cam" onchange="mudarStatusAptoField('${apto.id}','status_gov',this.value)"
-        style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;">
-        <option value="">— Sem ocorrência —</option>
-        ${opsCam.map(o=>`<option value="${o.nome}" ${apto.status_gov===o.nome?'selected':''}>${o.nome}</option>`).join('')}
-      </select>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button onclick="mudarStatusAptoField('${apto.id}','status_gov','')" style="padding:7px 12px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:${!apto.status_gov?'var(--primary)':'var(--bg)'};color:${!apto.status_gov?'#fff':'var(--text)'};font-size:12px;font-weight:600;cursor:pointer;">✕ Nenhuma</button>
+        ${opsCam.map(o=>{
+          const ativo = apto.status_gov === o.nome;
+          const cor = o.cor || '#6b7280';
+          return `<button onclick="mudarStatusAptoField('${apto.id}','status_gov','${o.nome}')" style="padding:7px 12px;border-radius:var(--radius-sm);border:1.5px solid ${cor};background:${ativo?cor:'transparent'};color:${ativo?'#fff':cor};font-size:12px;font-weight:600;cursor:pointer;">${o.nome}</button>`;
+        }).join('')}
+      </div>
     </div>`;
     })() : ''}
     ${(['admin_global','admin_hotel','gestor','supervisora'].includes(currentUser.perfil)) ? `
