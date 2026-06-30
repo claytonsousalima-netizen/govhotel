@@ -1977,8 +1977,10 @@ async function mudarStatusAptoField(id, campo, valor) {
     if (campo === 'status_apto') apto.status_apto = valor || null;
     else apto.status_gov = valor || null;
   }
-  if (currentPage === 'mapa')   renderMapa();
-  if (currentPage === 'kanban') renderAptoKanban();
+  if (currentPage === 'mapa')        renderMapa();
+  if (currentPage === 'kanban')      renderAptoKanban();
+  if (currentPage === 'minha-fila')  renderMinhaFila();
+  if (currentPage === 'app-camareira') renderAppCamareira();
   toast('Status atualizado!', 'success');
 }
 
