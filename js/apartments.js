@@ -1626,6 +1626,12 @@ async function renderAppCamareira() {
                 const cor = op?.cor || '#6b7280';
                 return `<div style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;background:${cor}22;color:${cor};border:1px solid ${cor}55;margin-top:5px;">🏠 ${a.status_apto}</div>`;
               })()}
+              ${(() => {
+                if (!a.status_gov) return '';
+                const op  = (_statusGovOpcoes||[]).find(o => o.nome === a.status_gov);
+                const cor = op?.cor || '#6b7280';
+                return `<div style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;background:${cor}22;color:${cor};border:1px solid ${cor}55;margin-top:5px;margin-left:4px;">🏛 ${a.status_gov}</div>`;
+              })()}
             </div>
             <span class="badge ${g.badge}" style="flex-shrink:0;">${LABEL[a.status]||a.status}</span>
           </div>
