@@ -63,6 +63,7 @@ jobs:
             LATEST_COMMIT=$(git rev-parse origin/main)
             COMMIT_MSG=$(git log -1 --format=%B origin/main)
 
+
             # Check for existing PR
             PR_NUMBER=$(gh pr list --head main --base main-aws --json number -q '.[0].number' 2>/dev/null || echo "")
 
