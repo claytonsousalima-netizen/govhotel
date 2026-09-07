@@ -1,0 +1,99 @@
+# ============================================================
+# GitHub Actions — Auto PR Workflow
+#
+# Trigger: Push to main branch
+# Purpose: Automatically create/update PR from main → main-aws
+# This gates production deploys with a review checkpoint
+# ============================================================
+
+name: auto-pr-main
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  auto-pr:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create or update PR (main → main-aws)
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+        run: |
+          # Fetch all branches
+          git fetch origin main main-aws 2>/dev/null || git fetch origin main:main --allow-unrelated-histories
+
+          # Check if main-aws exists; create if not
+          if ! git show-ref --quiet refs/remotes/origin/main-aws; then
+            echo "Creating main-aws branch from main..."
+            git checkout -b main-aws origin/main
+            git push origin main-aws
+            git fetch origin main-aws
+          fi
+
+          # Compare branches
+          DIFF_COUNT=$(git rev-list --count origin/main...origin/main-aws)
+
+          if [ "$DIFF_COUNT" -eq 0 ]; then
+            echo "Branches are in sync. Checking for stale PR..."
+
+            # Close any stale PR
+            PR_NUMBER=$(gh pr list --head main --base main-aws --json number -q '.[0].number' 2>/dev/null || echo "")
+            if [ -n "$PR_NUMBER" ] && [ "$PR_NUMBER" != "null" ]; then
+              echo "Closing stale PR #$PR_NUMBER..."
+              gh pr close "$PR_NUMBER"
+            fi
+
+            echo "Branches are synced. No PR needed."
+          else
+            echo "Found $DIFF_COUNT commits to sync. Creating or updating PR..."
+
+            # Get latest commit info
+            LATEST_COMMIT=$(git rev-parse origin/main)
+            COMMIT_MSG=$(git log -1 --format=%B origin/main)
+
+            # Check for existing PR
+            PR_NUMBER=$(gh pr list --head main --base main-aws --json number -q '.[0].number' 2>/dev/null || echo "")
+
+            if [ -n "$PR_NUMBER" ] && [ "$PR_NUMBER" != "null" ]; then
+              echo "Updating existing PR #$PR_NUMBER..."
+              gh pr edit "$PR_NUMBER" \
+                --body "**Auto-synced PR from main branch**
+
+Latest commit: \`$LATEST_COMMIT\`
+
+**Commit message:**
+\`\`\`
+$COMMIT_MSG
+\`\`\`
+
+This PR will trigger automated CI/CD checks on merge."
+            else
+              echo "Creating new PR from main to main-aws..."
+              gh pr create \
+                --head main \
+                --base main-aws \
+                --title "chore: sync main → main-aws" \
+                --body "**Auto-synced PR from main branch**
+
+Latest commit: \`$LATEST_COMMIT\`
+
+**Commit message:**
+\`\`\`
+$COMMIT_MSG
+\`\`\`
+
+This PR will trigger automated CI/CD checks on merge."
+            fi
+          fi

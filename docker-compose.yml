@@ -1,0 +1,62 @@
+# ============================================================
+# Docker Compose — Gov Estancorp (Docker Swarm)
+#
+# Stack: govhotel
+# Services: app (Nginx serving static SPA)
+# Deployment: 2 replicas, rolling updates, health checks
+# ============================================================
+
+version: '3.8'
+
+services:
+  app:
+    image: ghcr.io/${REGISTRY_ORG}/govhotel:${IMAGE_TAG:-latest}
+    container_name: ${STACK_NAME}_app
+
+    # Expose port 80 (internal to Swarm overlay network only)
+    # External access via nginx reverse proxy on host
+    expose:
+      - "80"
+
+    # Bind-mount config.js for environment-specific Supabase credentials
+    # This allows different credentials per deployment without rebuilding image
+    volumes:
+      - ./config.js:/usr/share/nginx/html/js/supabase-client.js:ro
+
+    # Overlay network for service-to-service communication
+    networks:
+      - ${STACK_NAME}_appnet
+
+    # ===== DOCKER SWARM DEPLOYMENT CONFIG =====
+    deploy:
+      # Run 2 replicas for high availability
+      replicas: 2
+
+      # Rolling update strategy
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+
+      # Automatic rollback on failure
+      rollback_config:
+        parallelism: 1
+        delay: 5s
+
+      # Restart policy
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+        window: 60s
+        delay: 5s
+
+      # Healthcheck (same as Dockerfile)
+      labels:
+        health: "true"
+
+networks:
+  ${STACK_NAME}_appnet:
+    driver: overlay
+    driver_opts:
+      com.docker.network.driver.overlay.vxlan_list: 4789
